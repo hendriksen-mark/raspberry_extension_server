@@ -59,6 +59,14 @@ pip install --upgrade pip
 echo "Installing Python dependencies..."
 pip3 install -r requirements.txt
 
+# Install RPi.GPIO only on Linux systems (Raspberry Pi)
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "Installing RPi.GPIO for Linux/Raspberry Pi..."
+    pip3 install RPi.GPIO
+else
+    echo "Skipping RPi.GPIO installation (not on Linux)"
+fi
+
 # Create systemd service for API
 SERVICE_FILE="/etc/systemd/system/eqiva-api.service"
 if [ ! -f "$SERVICE_FILE" ]; then

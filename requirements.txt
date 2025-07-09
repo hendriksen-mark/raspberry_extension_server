@@ -2,5 +2,6 @@ flask
 pyyaml
 bleak
 logManager @ git+https://github.com/hendriksen-mark/logManager.git
-Adafruit_Python_DHT @ git+https://github.com/hendriksen-mark/Adafruit_Python_DHT.git
+adafruit-dht @ git+https://github.com/hendriksen-mark/Adafruit_Python_DHT.git
 Eqiva-Smart-Radiator-Thermostat @ git+https://github.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat.git
+# RPi.GPIO; platform_system == "Linux"  # Only install on Linux/Raspberry Pi - commented out due to parsing issues
