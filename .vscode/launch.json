@@ -1,0 +1,31 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Launch server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/api.py",
+      "args": [
+        "--docker",
+        "--config_path",
+        "${workspaceFolder}/config",
+        "--debug",
+        "--bind-ip",
+        "xxx.xxx.xxx.xxx"
+      ],
+      "console": "integratedTerminal",
+      "sudo": true
+    },
+    {
+      "name": "install ui",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "sh ${workspaceFolder}/install_ui.sh"
+    }
+  ]
+}
