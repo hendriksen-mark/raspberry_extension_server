@@ -66,7 +66,7 @@ class Config:
         defaults = {
             "name":"DiyHue Bridge",
             "netmask":"255.255.255.0",
-            "users":{"admin@diyhue.org":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
+            "users":{"admin":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
             "thermostats": {"enabled": False, "interval": 300},
             "dht": {"enabled": False, "interval": 5},
             "klok": {"enabled": False},
@@ -116,8 +116,7 @@ class Config:
         Load DHT sensor configuration from the YAML file.
         """
         dht_data = self._load_yaml_file("dht.yaml", {})
-        if dht_data:
-            self.yaml_config["dht"] = DHTService(dht_data)
+        self.yaml_config["dht"] = DHTService(dht_data)
 
     def load_config(self) -> None:
         """

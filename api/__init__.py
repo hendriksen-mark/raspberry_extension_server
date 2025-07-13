@@ -7,7 +7,6 @@ from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api
 import os
-import configManager
 import logManager
 import flask_login
 from flaskUI.core import User  # dummy import for flask_login module
@@ -15,14 +14,19 @@ from flaskUI.core import User  # dummy import for flask_login module
 logging = logManager.logger.get_logger(__name__)
 
 
-def create_app():
+def create_app(serverConfig):
     """
     App factory function following diyHue pattern
     """
+    root_dir = serverConfig["config"]["runningDir"]
+
+    template_dir = os.path.join(root_dir, 'flaskUI', 'templates')
+    static_dir = os.path.join(root_dir, 'flaskUI', 'assets')
+    
     app = Flask(__name__, 
-                template_folder='flaskUI/templates', 
+                template_folder=template_dir, 
                 static_url_path="/assets", 
-                static_folder='flaskUI/assets')
+                static_folder=static_dir)
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
@@ -35,8 +39,6 @@ def create_app():
     login_manager = flask_login.LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "core.login"
-    
-    serverConfig = configManager.serverConfig.yaml_config
     
     @login_manager.user_loader
     def user_loader(email):
@@ -65,17 +67,12 @@ def create_app():
     # Flask-RESTful API setup
     api = Api(app)
     
-    # Add favicon route to prevent 404 errors
-    @app.route('/favicon.ico')
-    def favicon():
-        return '', 204  # No Content
-    
     # Register other routes
     from api.routes.system_routes import SystemRoute
-    from api.routes.dht_routes import DHTRoute
+    #from api.routes.dht_routes import DHTRoute
     from api.routes.homekit_routes import ThermostatRoute
     api.add_resource(SystemRoute, '/<string:resource>', strict_slashes=False)
-    api.add_resource(DHTRoute, '/dht/<string:resource>', strict_slashes=False)
+    #api.add_resource(DHTRoute, '/dht', strict_slashes=False)
     api.add_resource(ThermostatRoute, '/<string:mac>/<string:resource>', strict_slashes=False)
     
     # Register web interface blueprints

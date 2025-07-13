@@ -10,6 +10,7 @@ import os
 import logManager
 import configManager
 from ..utils import get_pi_temp
+from .dht_routes import DHTRoute
 
 from services.updateManager import githubCheck, githubInstall
 
@@ -30,6 +31,9 @@ class SystemRoute(Resource):
             except RuntimeError as e:
                 logging.error(f"Error reading Pi temperature: {e}")
                 return {"error": "Could not read Pi temperature"}, 503
+            
+        elif resource == "dht":
+            return DHTRoute().get()
             
         elif resource == "all":
             getResources = ["thermostats", "dht", "klok", "fan", "powerbutton"]

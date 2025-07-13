@@ -21,7 +21,7 @@ cherrypy_logger = logManager.logger.get_logger("cherrypy")
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 # Create app using factory pattern (diyHue style)
-app = create_app()
+app = create_app(serverConfig)
 
 def runHttp(BIND_IP, HOST_HTTP_PORT):
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)

@@ -1,26 +1,22 @@
-from flask import render_template, request, Blueprint, redirect, url_for, make_response, send_file, Response
+from flask import render_template, request, Blueprint, redirect, url_for, send_file, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flaskUI.core.forms import LoginForm
 import flask_login
-import uuid
-import json
 import configManager
 from flaskUI.core import User
-from subprocess import check_output
-from pprint import pprint
 import os
 import sys
 import logManager
 import subprocess
-from typing import Dict, Any, Union
+from typing import Dict, Union
 
 logging = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
 core = Blueprint('core', __name__)
 
-def save_bridge_config(backup: bool = False) -> str:
+def save_server_config(backup: bool = False) -> str:
     """
-    Save the bridge configuration.
+    Save the server configuration.
 
     Args:
         backup (bool): Whether to create a backup of the configuration.
@@ -56,12 +52,12 @@ def index() -> str:
     Returns:
         str: The rendered index page.
     """
-    return render_template('index.html', groups=serverConfig["groups"], lights=serverConfig["lights"])
+    return render_template('index.html')
 
 @core.route('/save')
 def save_config() -> str:
     """
-    Save the bridge configuration.
+    Save the server configuration.
 
     Args:
         None
@@ -69,13 +65,13 @@ def save_config() -> str:
     Returns:
         str: A message indicating whether the configuration was saved or backed up.
     """
-    return save_bridge_config(backup=request.args.get('backup', type=str) == "True")
+    return save_server_config(backup=request.args.get('backup', type=str) == "True")
 
 @core.route('/reset_config')
 @flask_login.login_required
 def reset_config() -> str:
     """
-    Reset the bridge configuration.
+    Reset the server configuration.
 
     Args:
         None
@@ -90,7 +86,7 @@ def reset_config() -> str:
 @flask_login.login_required
 def restore_config() -> str:
     """
-    Restore the bridge configuration from a backup.
+    Restore the server configuration from a backup.
 
     Args:
         None
@@ -105,13 +101,13 @@ def restore_config() -> str:
 @flask_login.login_required
 def download_config() -> Response:
     """
-    Download the bridge configuration.
+    Download the server configuration.
 
     Args:
         None
 
     Returns:
-        Response: The bridge configuration file.
+        Response: The server configuration file.
     """
     path = configManager.serverConfig.download_config()
     return send_file(path, as_attachment=True)
@@ -175,7 +171,7 @@ def info() -> Dict[str, str]:
         "machine": uname.machine,
         "os_version": uname.version,
         "os_release": uname.release,
-        "diyhue": subprocess.run("stat -c %y HueEmulator3.py", shell=True, capture_output=True, text=True).stdout.strip(),
+        "server": subprocess.run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.strip(),
         "webui": subprocess.run("stat -c %y flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.strip()
     }
 
@@ -204,23 +200,6 @@ def login() -> Union[str, Response]:
 
     logging.info(f"Hashed pass: {generate_password_hash(form.password.data)}")
     return 'Bad login\n'
-
-@core.route('/description.xml')
-def description_xml() -> Response:
-    """
-    Serve the description XML file.
-
-    Args:
-        None
-
-    Returns:
-        Response: The description XML file.
-    """
-    HOST_HTTP_PORT = configManager.runtimeConfig.arg["HTTP_PORT"]
-    mac = configManager.runtimeConfig.arg["MAC"]
-    resp = make_response(render_template('description.xml', mimetype='text/xml', port=HOST_HTTP_PORT, name=serverConfig["config"]["name"], ipaddress=serverConfig["config"]["ipaddress"], serial=mac))
-    resp.headers['Content-type'] = 'text/xml'
-    return resp
 
 @core.route('/logout')
 @flask_login.login_required

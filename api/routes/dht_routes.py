@@ -1,21 +1,18 @@
 """
 DHT sensor related routes
 """
-from flask import Blueprint
-from flask_restful import Resource
 import logManager
 import configManager
 
 logging = logManager.logger.get_logger(__name__)
 
-dht_bp = Blueprint('dht', __name__)
-
 serverConfig = configManager.serverConfig.yaml_config
 
 dht = serverConfig["dht"]
 
-class DHTRoute(Resource):
-    def get(self, resource):
+class DHTRoute():
+    def get(self):
+        dht = serverConfig["dht"]
         pin = dht.get_pin()
         # If no pin is set at all, return default values
         if pin is None:
