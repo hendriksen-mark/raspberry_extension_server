@@ -16,7 +16,9 @@ from flaskUI.core import User  # dummy import for flask_login module
 from werkzeug.serving import WSGIRequestHandler
 from api.routes.dht_routes import DHTRoute
 from api.routes.homekit_routes import ThermostatRoute
-from api import create_app, setup_signal_handlers, initialize_services, Config
+from api.routes.system_routes import SystemRoute
+from api import setup_signal_handlers, initialize_services
+from services import scheduler, stateFetch, updateManager, LogWS
 
 serverConfig = configManager.serverConfig.yaml_config
 logging = logManager.logger.get_logger(__name__)
@@ -57,7 +59,7 @@ def request_loader(request):
 def compare_passwords(input_password, stored_password):
     return check_password_hash(stored_password, input_password)
 
-api.add_resource(DHTRoute, '/<string:resource>', strict_slashes=False)
+api.add_resource(SystemRoute, '/<string:resource>', strict_slashes=False)
 api.add_resource(DHTRoute, '/dht/<string:resource>', strict_slashes=False)
 api.add_resource(ThermostatRoute, '/<string:mac>/<string:resource>', strict_slashes=False)
 
@@ -73,18 +75,12 @@ def runHttp(BIND_IP, HOST_HTTP_PORT):
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def main():
-    from services import ssdp, mdns, scheduler, stateFetch, updateManager, LogWS
     BIND_IP = configManager.runtimeConfig.arg["BIND_IP"]
-    HOST_IP = configManager.runtimeConfig.arg["HOST_IP"]
-    mac = configManager.runtimeConfig.arg["MAC"]
     HOST_HTTP_PORT = configManager.runtimeConfig.arg["HTTP_PORT"]
     updateManager.startupCheck()
 
     Thread(target=stateFetch.syncWithThermostats).start()
     Thread(target=stateFetch.read_dht_temperature).start()
-    Thread(target=ssdp.ssdpSearch, args=[HOST_IP, HOST_HTTP_PORT, mac]).start()
-    Thread(target=ssdp.ssdpBroadcast, args=[HOST_IP, HOST_HTTP_PORT, mac]).start()
-    Thread(target=mdns.mdnsListener, args=[HOST_IP, HOST_HTTP_PORT, "BSB002", mac]).start()
     Thread(target=scheduler.runScheduler).start()
     Thread(target=LogWS.start_ws_server).start()
     runHttp(BIND_IP, HOST_HTTP_PORT)
@@ -94,7 +90,3 @@ if __name__ == '__main__':
     # Initialize services and setup signal handlers
     initialize_services()
     setup_signal_handlers()
-    
-    # Create and run the Flask application
-    app = create_app()
-    app.run(host='0.0.0.0', port=Config.HOST_HTTP_PORT)
