@@ -162,3 +162,7 @@ cython_debug/
 #.idea/
 status_store.yaml
 .DS_Store
+flaskUI/assets
+/config*
+*.log*
+flaskUI/templates/index.html
