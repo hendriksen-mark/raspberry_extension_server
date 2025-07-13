@@ -1,5 +1,18 @@
+astral
+ws4py
+requests
+email-validator
 flask
+flask_login
+flask_restful
+flask_wtf
+jsonify
+Werkzeug
+WTForms
 pyyaml
+zeroconf==0.38.3
+flask_cors
+cherrypy
 bleak
 logManager @ git+https://github.com/hendriksen-mark/logManager.git
 adafruit-dht @ git+https://github.com/hendriksen-mark/Adafruit_Python_DHT.git

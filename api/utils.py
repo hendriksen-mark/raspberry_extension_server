@@ -4,7 +4,7 @@ Utility functions for the API
 import asyncio
 from functools import wraps
 import subprocess
-from typing import Any, Callable
+from typing import Dict,Any, Callable
 
 
 def async_route(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -48,3 +48,19 @@ def get_pi_temp() -> float:
         return float(temp_str.split('=')[1].split('\'')[0])
     except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError):
         raise RuntimeError('Could not get temperature')
+
+def nextFreeId(bridgeConfig: Dict[str, Any], element: str) -> str:
+    """
+    Find the next free ID for a given element in the bridge configuration.
+
+    Args:
+        bridgeConfig (Dict[str, Any]): The bridge configuration.
+        element (str): The element to find the next free ID for.
+
+    Returns:
+        str: The next free ID as a string.
+    """
+    i = 1
+    while str(i) in bridgeConfig[element]:
+        i += 1
+    return str(i)

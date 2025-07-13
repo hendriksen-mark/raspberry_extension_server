@@ -2,8 +2,9 @@
 DHT sensor service for temperature and humidity monitoring
 """
 from time import sleep
-from threading import Lock, Thread
+from threading import Lock
 import logManager
+from typing import Dict, Any
 
 from ..config import Config
 
@@ -24,27 +25,34 @@ except ImportError:
 class DHTService:
     """DHT sensor service for reading temperature and humidity"""
     
-    def __init__(self):
-        self.sensor = Adafruit_DHT.DHT22
-        self.dht_pin: int | None = None
-        self.latest_temperature: float | None = None
-        self.latest_humidity: float | None = None
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.id: str = data.get("id", 1)
+        self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
+        if self.sensor_type not in ["DHT22", "DHT11"]:
+            logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
+            self.sensor_type = "DHT22"
+        self.dht_pin: int = data.get("dht_pin", None)
+        self.latest_temperature: float = data.get("latest_temperature", None)
+        self.latest_humidity: float = data.get("latest_humidity", None)
         self.dht_lock = Lock()
         self.last_logged_dht_temp: float | None = None
         self.last_logged_dht_humidity: float | None = None
         self._thread_started = False
+
+        if self.sensor_type == "DHT22":
+            logging.info("Using DHT22 sensor")
+            self.sensor = Adafruit_DHT.DHT22
+        elif self.sensor_type == "DHT11":
+            logging.info("Using DHT11 sensor")
+            self.sensor = Adafruit_DHT.DHT11
+        else:
+            logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
+            self.sensor = Adafruit_DHT.DHT22
     
     def _get_thermostat_service(self):
         """Lazy import of thermostat_service to avoid circular import"""
         from .thermostat_service import thermostat_service
         return thermostat_service
-    
-    def set_pin(self, pin: int | None) -> None:
-        """Set DHT pin and start reading if not already started"""
-        if pin is not None and self.dht_pin != pin:
-            logging.info(f"Setting DHT_PIN to {pin}")
-            self.dht_pin = pin
-            self._ensure_thread_running()
     
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
@@ -54,13 +62,6 @@ class DHTService:
         """Get current temperature and humidity data"""
         with self.dht_lock:
             return self.latest_temperature, self.latest_humidity
-    
-    def _ensure_thread_running(self) -> None:
-        """Ensure DHT reading thread is running if DHT_PIN is set"""
-        if self.dht_pin is not None and not self._thread_started:
-            Thread(target=self._read_dht_temperature, daemon=True).start()
-            self._thread_started = True
-            logging.info(f"Started DHT reading thread for pin {self.dht_pin}")
     
     def _read_dht_temperature(self) -> None:
         """
@@ -117,6 +118,15 @@ class DHTService:
                 logging.error(f"Error reading DHT sensor: {e}")
             
             sleep(Config.DHT_READ_INTERVAL)
+
+    def save(self) -> Dict[str, Any]:
+        """Save current DHT state to a dictionary"""
+        return {
+            "sensor_type": self.sensor_type,
+            "dht_pin": self.dht_pin,
+            "latest_temperature": self.latest_temperature,
+            "latest_humidity": self.latest_humidity
+        }
 
 
 # Global DHT service instance
