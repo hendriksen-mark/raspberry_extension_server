@@ -26,6 +26,8 @@ class ThermostatService:
         self.currentRelativeHumidity: float = data.get("currentRelativeHumidity", 0.0)  # Default DHT humidity
         self.last_updated: str = strftime("%Y-%m-%d %H:%M:%S", localtime())
         self.equiva_thermostat = Thermostat(self.mac)
+        self.min_temperature = data.get("min_temperature", 5.0)  # Minimum temperature setting
+        self.max_temperature = data.get("max_temperature", 30.0)  # Maximum
 
     def calculate_heating_cooling_state(self, mode: dict[str, Any], valve: int = None) -> int:
         """

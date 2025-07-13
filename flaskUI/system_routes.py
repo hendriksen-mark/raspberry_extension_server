@@ -9,9 +9,9 @@ from subprocess import run
 import os
 import logManager
 import configManager
-from ..utils import get_pi_temp
+from services.utils import get_pi_temp
 from .dht_routes import DHTRoute
-
+from ServerObjects.dht_service import DHTService
 from services.updateManager import githubCheck, githubInstall
 
 logging = logManager.logger.get_logger(__name__)
@@ -77,13 +77,14 @@ class SystemRoute(Resource):
 
 def health_check() -> Any:
     """Health check endpoint"""
-    temp, humidity = serverConfig["dht"].get_data()
-    
+    dht: DHTService = serverConfig["dht"]
+    temp, humidity = dht.get_data()
+
     return {
         "status": "healthy",
         "version": "1.0.0",
         "thermostats_connected": len(serverConfig["thermostats"]),
-        "dht_sensor_active": serverConfig["dht"].get_pin() is not None,
+        "dht_sensor_active": dht.get_pin() is not None,
         "temperature_available": temp is not None,
         "humidity_available": humidity is not None
     }, 200

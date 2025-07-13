@@ -21,7 +21,7 @@ class SystemService:
             }
             
             try:
-                from ..utils import get_pi_temp
+                from ..utils.utils import get_pi_temp
                 message["pi_temp"] = get_pi_temp()
             except RuntimeError:
                 message["pi_temp"] = None

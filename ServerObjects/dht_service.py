@@ -5,8 +5,9 @@ from time import sleep
 from threading import Lock
 import logManager
 from typing import Dict, Any
+from ServerObjects.thermostat_service import ThermostatService
 
-from ..config import Config
+import configManager
 
 logging = logManager.logger.get_logger(__name__)
 
@@ -34,6 +35,12 @@ class DHTService:
         self.dht_pin: int = data.get("dht_pin", None)
         self.latest_temperature: float = data.get("latest_temperature", None)
         self.latest_humidity: float = data.get("latest_humidity", None)
+        self.MIN_DHT_TEMP: float = data.get("MIN_DHT_TEMP", -40.0)
+        self.MAX_DHT_TEMP: float = data.get("MAX_DHT_TEMP", 80.0)
+        self.MIN_HUMIDITY: float = data.get("MIN_HUMIDITY", 0.0)
+        self.MAX_HUMIDITY: float = data.get("MAX_HUMIDITY", 100.0)
+        self.DHT_TEMP_CHANGE_THRESHOLD: float = data.get("DHT_TEMP_CHANGE_THRESHOLD", 0.5)
+        self.DHT_HUMIDITY_CHANGE_THRESHOLD: float = data.get("DHT_HUMIDITY_CHANGE_THRESHOLD", 5.0)
         self.dht_lock = Lock()
         self.last_logged_dht_temp: float | None = None
         self.last_logged_dht_humidity: float | None = None
@@ -48,11 +55,6 @@ class DHTService:
         else:
             logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
             self.sensor = Adafruit_DHT.DHT22
-    
-    def _get_thermostat_service(self):
-        """Lazy import of thermostat_service to avoid circular import"""
-        from .thermostat_service import thermostat_service
-        return thermostat_service
     
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
@@ -72,21 +74,30 @@ class DHTService:
         while self.dht_pin is not None:
             try:
                 humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.dht_pin)
+                serverConfig = configManager.serverConfig.yaml_config
+                MIN_DHT_TEMP = self.MIN_DHT_TEMP
+                MAX_DHT_TEMP = self.MAX_DHT_TEMP
+                MIN_HUMIDITY = self.MIN_HUMIDITY
+                MAX_HUMIDITY = self.MAX_HUMIDITY
+                DHT_TEMP_CHANGE_THRESHOLD = self.DHT_TEMP_CHANGE_THRESHOLD
+                DHT_HUMIDITY_CHANGE_THRESHOLD = self.DHT_HUMIDITY_CHANGE_THRESHOLD
                 logging.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
                 
                 with self.dht_lock:
                     # Only update if values are valid
-                    if temperature is not None and Config.MIN_DHT_TEMP < temperature < Config.MAX_DHT_TEMP:
+                    if temperature is not None and MIN_DHT_TEMP < temperature < MAX_DHT_TEMP:
                         rounded_temp = round(float(temperature), 1)
                         logged_info = False
                         if self.latest_temperature != rounded_temp:
                             self.latest_temperature = rounded_temp
                             # Only log when temperature changes significantly or this is the first reading
                             if (self.last_logged_dht_temp is None or 
-                                abs(rounded_temp - self.last_logged_dht_temp) >= Config.DHT_TEMP_CHANGE_THRESHOLD):
+                                abs(rounded_temp - self.last_logged_dht_temp) >= DHT_TEMP_CHANGE_THRESHOLD):
                                 logging.info(f"Updated temperature: {self.latest_temperature}°C")
                                 self.last_logged_dht_temp = rounded_temp
-                                self._get_thermostat_service().update_dht_related_status(temperature=rounded_temp)
+                                for thermostat in serverConfig["thermostats"].values():
+                                    thermostat: ThermostatService = thermostat
+                                    thermostat.update_dht_related_status(temperature=rounded_temp)
                                 logged_info = True
                         
                         # Always log current temperature for debugging (unless we just logged at info level)
@@ -94,18 +105,20 @@ class DHTService:
                             logging.debug(f"Temperature: {rounded_temp}°C")
                     else:
                         logging.error("Temperature value not updated (None or out of range)")
-                        
-                    if humidity is not None and Config.MIN_HUMIDITY <= humidity <= Config.MAX_HUMIDITY:
+
+                    if humidity is not None and MIN_HUMIDITY <= humidity <= MAX_HUMIDITY:
                         rounded_humidity = round(float(humidity), 1)
                         logged_info = False
                         if self.latest_humidity != rounded_humidity:
                             self.latest_humidity = rounded_humidity
                             # Only log when humidity changes significantly or this is the first reading
                             if (self.last_logged_dht_humidity is None or 
-                                abs(rounded_humidity - self.last_logged_dht_humidity) >= Config.DHT_HUMIDITY_CHANGE_THRESHOLD):
+                                abs(rounded_humidity - self.last_logged_dht_humidity) >= DHT_HUMIDITY_CHANGE_THRESHOLD):
                                 logging.info(f"Updated humidity: {self.latest_humidity}%")
                                 self.last_logged_dht_humidity = rounded_humidity
-                                self._get_thermostat_service().update_dht_related_status(humidity=rounded_humidity)
+                                for thermostat in serverConfig["thermostats"].values():
+                                    thermostat: ThermostatService = thermostat
+                                    thermostat.update_dht_related_status(humidity=rounded_humidity)
                                 logged_info = True
                         
                         # Always log current humidity for debugging (unless we just logged at info level)
@@ -116,8 +129,6 @@ class DHTService:
                         
             except Exception as e:
                 logging.error(f"Error reading DHT sensor: {e}")
-            
-            sleep(Config.DHT_READ_INTERVAL)
 
     def save(self) -> Dict[str, Any]:
         """Save current DHT state to a dictionary"""

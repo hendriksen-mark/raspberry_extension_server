@@ -6,6 +6,11 @@ from eqiva_thermostat import EqivaException
 
 import configManager
 import logManager
+from ServerObjects.dht_service import DHTService
+from ServerObjects.thermostat_service import ThermostatService
+from ServerObjects.fan_service import FanService
+from ServerObjects.klok_service import KlokService
+from ServerObjects.powerbutton_service import PowerButtonService
 
 logging = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
@@ -17,7 +22,8 @@ async def syncWithThermostats() -> None:
     while serverConfig["config"]["thermostats"]["enabled"]:
         logging.info("start thermostats sync")
         interval = serverConfig["config"]["thermostats"]["interval"]
-        for key, thermostat in serverConfig["thermostats"].items():
+        for thermostat in serverConfig["thermostats"].values():
+            thermostat: ThermostatService = thermostat
             try:
                 logging.debug("fetch " + thermostat.mac)
                 thermostat.poll_status()
@@ -70,7 +76,8 @@ async def disconnectThermostats() -> None:
     
     async def cleanup_all():
         tasks = []
-        for key, thermostat in serverConfig["thermostats"].items():
+        for thermostat in serverConfig["thermostats"].values():
+            thermostat: ThermostatService = thermostat
             try:
                 # Create a timeout wrapper for each disconnect
                 task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
@@ -105,9 +112,10 @@ def read_dht_temperature():
     while serverConfig["config"]["dht"]["enabled"]:
         interval = serverConfig["config"]["dht"]["interval"]
         try:
-            # Assuming serverConfig["dht"] has a method to read temperature
-            logging.info("Reading DHT temperature...")
-            serverConfig["dht"]._read_dht_temperature()
+            for key, dht in serverConfig["dht"].items():
+                dht: DHTService = dht
+                logging.info(f"Reading DHT temperature for {key}...")
+                dht._read_dht_temperature()
         except Exception as e:
             logging.error(f"Error reading DHT temperature: {e}")
         finally:
@@ -116,3 +124,53 @@ def read_dht_temperature():
         while i < (interval - 5 if interval > 5 else 0):  # sync every x seconds
             i += 1
             sleep(1)
+
+def run_fan_service():
+    """
+    Placeholder for fan service logic.
+    This function should be implemented to control the fan based on temperature.
+    """
+    while serverConfig["config"]["fan"]["enabled"]:
+        interval = serverConfig["config"]["fan"]["interval"]
+        try:
+            for fan in serverConfig["fan"].values():
+                fan: FanService = fan
+                fan.run()
+        except Exception as e:
+            logging.error(f"Error in fan service: {e}")
+        finally:
+            sleep(5)
+        i = 0
+        while i < (interval - 5 if interval > 5 else 0):  # sync every x seconds
+            i += 1
+            sleep(1)
+
+def run_klok_service():
+    """
+    Placeholder for klok service logic.
+    This function should be implemented to update the klok display.
+    """
+    while serverConfig["config"]["klok"]["enabled"]:
+        try:
+            for klok in serverConfig["klok"].values():
+                klok: KlokService = klok
+                klok.show()
+        except Exception as e:
+            logging.error(f"Error in klok service: {e}")
+        finally:
+            sleep(0.5)
+
+def run_powerbutton_service():
+    """
+    Placeholder for power button service logic.
+    This function should be implemented to handle power button events.
+    """
+    while serverConfig["config"]["powerbutton"]["enabled"]:
+        try:
+            for powerbutton in serverConfig["powerbutton"].values():
+                powerbutton: PowerButtonService = powerbutton
+                powerbutton.run()
+        except Exception as e:
+            logging.error(f"Error in power button service: {e}")
+        finally:
+            sleep(0.1)

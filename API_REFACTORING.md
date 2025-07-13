@@ -74,7 +74,7 @@ python3 -c "from api import create_app, initialize_services; initialize_services
 from api import create_app
 
 # Import services
-from api.services import dht_service, thermostat_service
+from ServerObjects import dht_service, thermostat_service
 
 # Import configuration
 from api.config import Config

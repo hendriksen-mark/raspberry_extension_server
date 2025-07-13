@@ -11,7 +11,7 @@ from werkzeug.serving import WSGIRequestHandler
 
 import configManager
 import logManager
-from api import create_app
+from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
 serverConfig = configManager.serverConfig.yaml_config
@@ -46,6 +46,8 @@ def main():
 
     Thread(target=stateFetch.syncWithThermostats_threaded).start()
     Thread(target=stateFetch.read_dht_temperature).start()
+    Thread(target=stateFetch.run_fan_service).start()
+    Thread(target=stateFetch.run_klok_service).start()
     Thread(target=scheduler.runScheduler).start()
     #Thread(target=LogWS.start_ws_server).start()
     runHttp(BIND_IP, HOST_HTTP_PORT)

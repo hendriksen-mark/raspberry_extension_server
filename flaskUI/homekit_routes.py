@@ -8,8 +8,8 @@ from flask_restful import Resource
 import logManager
 import configManager
 
-from ..utils import validate_mac_address, format_mac, nextFreeId
-from api.services.thermostat_service import ThermostatService
+from services.utils import validate_mac_address, format_mac, nextFreeId
+from ServerObjects.thermostat_service import ThermostatService
 
 logging = logManager.logger.get_logger(__name__)
 
@@ -20,6 +20,7 @@ def find_thermostat(mac: str) -> Any:
     Find thermostat by MAC address
     """
     for thermostat in serverConfig["thermostats"].values():
+        thermostat: ThermostatService = thermostat
         if thermostat.mac.lower() == mac.lower():
             return thermostat
     data = {"mac": mac}
@@ -38,7 +39,7 @@ class ThermostatRoute(Resource):
         
         mac = format_mac(mac)
 
-        thermostat = find_thermostat(mac)
+        thermostat: ThermostatService = find_thermostat(mac)
         if not thermostat:
             return {"error": f"Thermostat with MAC {mac} not found"}, 404
         
@@ -53,9 +54,9 @@ class ThermostatRoute(Resource):
             
             try:
                 temperature = float(temp_value)
-                if not (serverConfig["config"]["MIN_TEMPERATURE"] <= temperature <= serverConfig["config"]["MAX_TEMPERATURE"]):
+                if not (thermostat.min_temperature <= temperature <= thermostat.max_temperature):
                     return {
-                        "error": f"Temperature must be between {serverConfig['config']['MIN_TEMPERATURE']}°C and {serverConfig['config']['MAX_TEMPERATURE']}°C"
+                        "error": f"Temperature must be between {thermostat.min_temperature}°C and {thermostat.max_temperature}°C"
                     }, 400
             except ValueError:
                 return {"error": "Invalid temperature value"}, 400

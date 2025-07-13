@@ -5,13 +5,11 @@ import logManager
 import yaml
 from copy import deepcopy
 from typing import Any, Dict, Optional
-from api.services.thermostat_service import ThermostatService
-from api.services.dht_service import DHTService
-
-try:
-    from time import tzset
-except ImportError:
-    tzset = None
+from ServerObjects.thermostat_service import ThermostatService
+from ServerObjects.dht_service import DHTService
+from ServerObjects.klok_service import KlokService
+from ServerObjects.fan_service import FanService
+from ServerObjects.powerbutton_service import PowerButtonService
 
 logging = logManager.logger.get_logger(__name__)
 
@@ -67,14 +65,33 @@ class Config:
             "name":"DiyHue Bridge",
             "netmask":"255.255.255.0",
             "users":{"admin":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
-            "thermostats": {"enabled": False, "interval": 300},
-            "dht": {"enabled": False, "interval": 5},
-            "klok": {"enabled": False},
-            "fan": {"enabled": False},
-            "powerbutton": {"enabled": False},
+            "thermostats": {
+                "enabled": False,
+                "interval": 300
+            },
+            "dht": {
+                "enabled": False,
+                "interval": 5
+            },
+            "klok": {
+                "enabled": False
+            },
+            "fan": {
+                "enabled": False,
+                "interval": 5
+            },
+            "powerbutton": {
+                "enabled": False
+            },
             "swupdate2": {
-                "autoinstall": {"on": False, "updatetime": "T14:00:00"},
-                "bridge": {"lastinstall": "2020-12-11T17:08:55", "state": "noupdates"},
+                "autoinstall": {
+                    "on": False,
+                    "updatetime": "T14:00:00"
+                },
+                "bridge": {
+                    "lastinstall": "2020-12-11T17:08:55",
+                    "state": "noupdates"
+                },
                 "checkforupdate": False,
                 "lastchange": "2020-12-13T10:30:15",
                 "state": "noupdates",
@@ -116,7 +133,36 @@ class Config:
         Load DHT sensor configuration from the YAML file.
         """
         dht_data = self._load_yaml_file("dht.yaml", {})
-        self.yaml_config["dht"] = DHTService(dht_data)
+        for key, value in dht_data.items():
+            value["id"] = key
+            self.yaml_config["dht"][key] = DHTService(value)
+
+    def _load_klok(self) -> None:
+        """
+        Load klok configuration from the YAML file.
+        """
+        klok_data = self._load_yaml_file("klok.yaml", {})
+        for key, value in klok_data.items():
+            value["id"] = key
+            self.yaml_config["klok"][key] = KlokService(value)
+
+    def _load_fan(self) -> None:
+        """
+        Load fan configuration from the YAML file.
+        """
+        fan_data = self._load_yaml_file("fan.yaml", {})
+        for key, value in fan_data.items():
+            value["id"] = key
+            self.yaml_config["fan"][key] = FanService(value)
+    
+    def _load_powerbutton(self) -> None:
+        """
+        Load power button configuration from the YAML file.
+        """
+        powerbutton_data = self._load_yaml_file("powerbutton.yaml", {})
+        for key, value in powerbutton_data.items():
+            value["id"] = key
+            self.yaml_config["powerbutton"][key] = PowerButtonService(value)
 
     def load_config(self) -> None:
         """

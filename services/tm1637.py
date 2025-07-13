@@ -1,5 +1,46 @@
 import math
-import RPi.GPIO as IO # type: ignore
+try:
+    import RPi.GPIO as IO  # type: ignore
+except ImportError:
+    class DummyGPIO:
+        BCM = "BCM"
+        OUT = "OUT"
+        IN = "IN"
+        HIGH = 1
+        LOW = 0
+        
+        @staticmethod
+        def setwarnings(state):
+            """Dummy setwarnings"""
+            pass
+        
+        @staticmethod
+        def setmode(mode):
+            """Dummy setmode"""
+            pass
+        
+        @staticmethod
+        def setup(pin, mode):
+            """Dummy setup"""
+            pass
+        
+        @staticmethod
+        def output(pin, state):
+            """Dummy output"""
+            pass
+        
+        @staticmethod
+        def input(pin):
+            """Dummy input"""
+            return 0
+        
+        @staticmethod
+        def cleanup():
+            """Dummy cleanup"""
+            pass
+    
+    IO = DummyGPIO()
+
 import threading
 from time import sleep, localtime
 # from tqdm import tqdm
