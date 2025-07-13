@@ -65,6 +65,11 @@ def create_app():
     # Flask-RESTful API setup
     api = Api(app)
     
+    # Add favicon route to prevent 404 errors
+    @app.route('/favicon.ico')
+    def favicon():
+        return '', 204  # No Content
+    
     # Register other routes
     from api.routes.system_routes import SystemRoute
     from api.routes.dht_routes import DHTRoute

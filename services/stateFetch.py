@@ -14,9 +14,9 @@ async def syncWithThermostats() -> None:
     """
     Synchronize the state of the thermostats with their actual state.
     """
-    while serverConfig["thermostats"]["enabled"]:
+    while serverConfig["config"]["thermostats"]["enabled"]:
         logging.info("start thermostats sync")
-        interval = serverConfig["thermostats"]["interval"]
+        interval = serverConfig["config"]["thermostats"]["interval"]
         for key, thermostat in serverConfig["thermostats"].items():
             try:
                 logging.debug("fetch " + thermostat.mac)

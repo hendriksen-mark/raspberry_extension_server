@@ -27,7 +27,7 @@ def githubCheck() -> None:
         logging.info("UI update on github")
         serverConfig["config"]["swupdate2"]["state"] = "anyreadytoinstall"
     else:
-        logging.info("no update for diyHue or UI on github")
+        logging.info("no update for server or UI on github")
         serverConfig["config"]["swupdate2"]["state"] = "noupdates"
         serverConfig["config"]["swupdate2"]["bridge"]["state"] = "noupdates"
 

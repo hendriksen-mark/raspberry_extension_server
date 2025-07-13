@@ -1,7 +1,7 @@
 """
 System and configuration routes
 """
-from flask import request, jsonify
+from flask import request
 from typing import Any
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
@@ -26,10 +26,10 @@ class SystemRoute(Resource):
         if resource == 'pi_temp':
             try:
                 temp = get_pi_temp()
-                return jsonify({"temperature": temp}), 200
+                return {"temperature": temp}, 200
             except RuntimeError as e:
                 logging.error(f"Error reading Pi temperature: {e}")
-                return jsonify({"error": "Could not read Pi temperature"}), 503
+                return {"error": "Could not read Pi temperature"}, 503
             
         elif resource == "all":
             getResources = ["thermostats", "dht", "klok", "fan", "powerbutton"]
@@ -52,7 +52,7 @@ class SystemRoute(Resource):
         elif resource == "health":
             return health_check()
         else:
-            return jsonify({"error": "Resource not found"}), 404
+            return {"error": "Resource not found"}, 404
         
     def put(self, resource: str) -> Any:
             putDict = request.get_json(force=True)
@@ -75,11 +75,11 @@ def health_check() -> Any:
     """Health check endpoint"""
     temp, humidity = serverConfig["dht"].get_data()
     
-    return jsonify({
+    return {
         "status": "healthy",
         "version": "1.0.0",
         "thermostats_connected": len(serverConfig["thermostats"]),
         "dht_sensor_active": serverConfig["dht"].get_pin() is not None,
         "temperature_available": temp is not None,
         "humidity_available": humidity is not None
-    }), 200
+    }, 200

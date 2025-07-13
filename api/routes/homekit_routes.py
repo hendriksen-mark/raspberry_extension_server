@@ -1,8 +1,7 @@
 """
 HomeKit/Homebridge compatible routes
 """
-from http import server
-from flask import request, jsonify
+from flask import request
 from bleak import BleakError
 from typing import Any
 from flask_restful import Resource
@@ -35,64 +34,64 @@ class ThermostatRoute(Resource):
         URL: /MAC_ADDRESS/resource
         """
         if not validate_mac_address(mac):
-            return jsonify({"error": "Invalid MAC address format"}), 400
+            return {"error": "Invalid MAC address format"}, 400
         
         mac = format_mac(mac)
 
         thermostat = find_thermostat(mac)
         if not thermostat:
-            return jsonify({"error": f"Thermostat with MAC {mac} not found"}), 404
+            return {"error": f"Thermostat with MAC {mac} not found"}, 404
         
         if resource == 'status':
-            return jsonify(thermostat.get_status()), 200
+            return thermostat.get_status(), 200
         
 
         elif resource == 'targetTemperature':
             temp_value = request.args.get('value')
             if not temp_value:
-                return jsonify({"error": "Temperature value is required as 'value' parameter"}), 400
+                return {"error": "Temperature value is required as 'value' parameter"}, 400
             
             try:
                 temperature = float(temp_value)
                 if not (serverConfig["config"]["MIN_TEMPERATURE"] <= temperature <= serverConfig["config"]["MAX_TEMPERATURE"]):
-                    return jsonify({
+                    return {
                         "error": f"Temperature must be between {serverConfig['config']['MIN_TEMPERATURE']}°C and {serverConfig['config']['MAX_TEMPERATURE']}°C"
-                    }), 400
+                    }, 400
             except ValueError:
-                return jsonify({"error": "Invalid temperature value"}), 400
+                return {"error": "Invalid temperature value"}, 400
             try:
                 result = thermostat.set_temperature(str(temperature))
                 logging.info(f"HomeKit: Set targetTemperature for {mac} to {temperature}: {result}")
                 
                 if result["result"] == "ok":
-                    return jsonify({"success": True, "temperature": temperature}), 200
+                    return {"success": True, "temperature": temperature}, 200
                 else:
-                    return jsonify(result), 400
+                    return result, 400
                     
             except BleakError:
                 logging.error(f"Device with address {mac} was not found")
-                return jsonify({"error": f"Device with address {mac} was not found"}), 404
+                return {"error": f"Device with address {mac} was not found"}, 404
             
     
         elif resource == 'targetHeatingCoolingState':
             mode_value = request.args.get('value')
             if not mode_value:
-                return jsonify({"error": "Mode value is required as 'value' parameter"}), 400
+                return {"error": "Mode value is required as 'value' parameter"}, 400
             
             if mode_value not in ['0', '1', '2', '3']:
-                return jsonify({"error": "Mode must be 0 (off), 1 (heat), 2 (cool), or 3 (auto)"}), 400
+                return {"error": "Mode must be 0 (off), 1 (heat), 2 (cool), or 3 (auto)"}, 400
             
             try:
                 result = thermostat.set_mode(mode_value)
                 logging.info(f"HomeKit: Set targetHeatingCoolingState for {mac} to {mode_value}: {result}")
                 
                 if result["result"] == "ok":
-                    return jsonify({"success": True, "mode": int(mode_value)}), 200
+                    return {"success": True, "mode": int(mode_value)}, 200
                 else:
-                    return jsonify(result), 400
+                    return result, 400
                     
             except BleakError:
                 logging.error(f"Device with address {mac} was not found")
-                return jsonify({"error": f"Device with address {mac} was not found"}), 404
+                return {"error": f"Device with address {mac} was not found"}, 404
         else:
-            return jsonify({"error": "Resource not found"}), 404
+            return {"error": "Resource not found"}, 404
