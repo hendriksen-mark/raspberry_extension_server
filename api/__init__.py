@@ -1,54 +1,82 @@
 """
-API package initialization
+API module with Flask app factory and resource registration
+Following diyHue architectural patterns
 """
-from flask import Flask
-import signal
-import os
-from typing import Any
-import logManager
 
-from .config import Config
-from .services import thermostat_service
-from .routes import dht_bp, homekit_bp, system_bp
-from .middleware import register_middleware
+from flask import Flask
+from flask_cors import CORS
+from flask_restful import Api
+import os
+import configManager
+import logManager
+import flask_login
+from flaskUI.core import User  # dummy import for flask_login module
 
 logging = logManager.logger.get_logger(__name__)
 
 
-def create_app() -> Flask:
-    """Application factory function"""
-    app = Flask(__name__)
+def create_app():
+    """
+    App factory function following diyHue pattern
+    """
+    app = Flask(__name__, 
+                template_folder='flaskUI/templates', 
+                static_url_path="/assets", 
+                static_folder='flaskUI/assets')
     
-    # Register middleware
-    register_middleware(app)
+    # Configuration
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
+    app.config['RESTFUL_JSON'] = {'ensure_ascii': False}
     
-    # Register blueprints
-    app.register_blueprint(dht_bp)
-    app.register_blueprint(homekit_bp)
-    app.register_blueprint(system_bp)
+    # CORS setup
+    cors = CORS(app, resources={r"*": {"origins": "*"}})
+    
+    # Flask-Login setup
+    login_manager = flask_login.LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "core.login"
+    
+    serverConfig = configManager.serverConfig.yaml_config
+    
+    @login_manager.user_loader
+    def user_loader(email):
+        if email not in serverConfig["config"]["users"]:
+            return None
+        user = User()
+        user.id = email
+        return user
+
+    @login_manager.request_loader
+    def request_loader(request):
+        from werkzeug.security import check_password_hash
+        
+        email = request.form.get('email')
+        if email not in serverConfig["config"]["users"]:
+            return None
+        user = User()
+        user.id = email
+        logging.info(f"Authentication attempt for user: {email}")
+        user.is_authenticated = check_password_hash(
+            request.form['password'], 
+            serverConfig["config"]["users"][email]["password"]
+        )
+        return user
+    
+    # Flask-RESTful API setup
+    api = Api(app)
+    
+    # Register other routes
+    from api.routes.system_routes import SystemRoute
+    from api.routes.dht_routes import DHTRoute
+    from api.routes.homekit_routes import ThermostatRoute
+    api.add_resource(SystemRoute, '/<string:resource>', strict_slashes=False)
+    api.add_resource(DHTRoute, '/dht/<string:resource>', strict_slashes=False)
+    api.add_resource(ThermostatRoute, '/<string:mac>/<string:resource>', strict_slashes=False)
+    
+    # Register web interface blueprints
+    from flaskUI.core.views import core
+    from flaskUI.error_pages.handlers import error_pages
+    app.register_blueprint(core)
+    app.register_blueprint(error_pages)
     
     return app
-
-
-def handle_exit(signum: int, frame: Any) -> None:
-    """Handle exit signals"""
-    logging.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
-    thermostat_service.cleanup_thermostats()
-    os._exit(0)
-
-
-def setup_signal_handlers() -> None:
-    """Setup signal handlers for graceful shutdown"""
-    signal.signal(signal.SIGTERM, handle_exit)
-    signal.signal(signal.SIGINT, handle_exit)
-
-
-def initialize_services() -> None:
-    """Initialize all services"""
-    logging.info("Starting Eqiva Smart Radiator Thermostat API...")
-    logging.info(f"Current log level: {Config.LOG_LEVEL}")
-    logManager.logger.configure_logger(Config.LOG_LEVEL)
-    thermostat_service.start_polling()
-
-
-__all__ = ['create_app', 'setup_signal_handlers', 'initialize_services', 'Config']

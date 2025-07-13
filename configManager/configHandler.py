@@ -1,5 +1,4 @@
-from configManager import configInit
-from configManager.argumentHandler import parse_arguments
+from .argumentHandler import parse_arguments
 import os
 import subprocess
 import logManager
@@ -67,9 +66,9 @@ class Config:
         defaults = {
             "name":"DiyHue Bridge",
             "netmask":"255.255.255.0",
-            "timezone": "Europe/London",
             "users":{"admin@diyhue.org":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
-            "dht": {"enabled": False},
+            "thermostats": {"enabled": False, "interval": 300},
+            "dht": {"enabled": False, "interval": 5},
             "klok": {"enabled": False},
             "fan": {"enabled": False},
             "powerbutton": {"enabled": False},
@@ -117,7 +116,8 @@ class Config:
         Load DHT sensor configuration from the YAML file.
         """
         dht_data = self._load_yaml_file("dht.yaml", {})
-        self.yaml_config["dht"] = DHTService(dht_data)
+        if dht_data:
+            self.yaml_config["dht"] = DHTService(dht_data)
 
     def load_config(self) -> None:
         """
@@ -126,12 +126,6 @@ class Config:
         self.yaml_config = {"config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}}
         try:
             config = self._load_yaml_file("config.yaml", {})
-            if "timezone" not in config:
-                logging.warn("No Time Zone in config, please set Time Zone in webui, default to Europe/London")
-                config["timezone"] = "Europe/London"
-            os.environ['TZ'] = config["timezone"]
-            if tzset is not None:
-                tzset()
             config = self._set_default_config_values(config)
             self.yaml_config["config"] = config
             self.yaml_config["config"]["configDir"] = self.configDir
@@ -245,18 +239,3 @@ class Config:
         subprocess.run(f'tar --exclude=\'config.yaml\' -cvf {self.configDir}/config_debug.tar {self.configDir}/*.yaml {self.runningDir}/*.log* ', shell=True, capture_output=True, text=True)
         subprocess.run(f'rm -r {self.configDir}/config_debug.yaml', check=True)
         return f"{self.configDir}/config_debug.tar"
-
-    def write_args(self, args: Dict[str, Any]) -> None:
-        """
-        Write arguments to the configuration.
-
-        Args:
-            args (Dict[str, Any]): The arguments to write.
-        """
-        self.yaml_config = configInit.write_args(args, self.yaml_config)
-
-    def generate_security_key(self) -> None:
-        """
-        Generate a new security key for the configuration.
-        """
-        self.yaml_config = configInit.generate_security_key(self.yaml_config)

@@ -127,7 +127,3 @@ class DHTService:
             "latest_temperature": self.latest_temperature,
             "latest_humidity": self.latest_humidity
         }
-
-
-# Global DHT service instance
-dht_service = DHTService()

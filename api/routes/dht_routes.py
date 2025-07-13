@@ -13,7 +13,7 @@ dht_bp = Blueprint('dht', __name__)
 
 serverConfig = configManager.serverConfig.yaml_config
 
-dht = serverConfig["DHT"]
+dht = serverConfig["dht"]
 
 class DHTRoute(Resource):
     def get(self, resource):

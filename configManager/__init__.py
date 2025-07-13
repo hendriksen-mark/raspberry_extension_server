@@ -1,6 +1,6 @@
-from configManager import configHandler
-from configManager import argumentHandler
-from configManager import runtimeConfigHandler
+from . import configHandler
+from . import argumentHandler
+from . import runtimeConfigHandler
 
 serverConfig = configHandler.Config()
 runtimeConfig = runtimeConfigHandler.Config()
@@ -14,4 +14,4 @@ serverConfig.load_config()
 
 # Initialize bridge config
 #serverConfig.generate_security_key()
-serverConfig.write_args(runtimeConfig.arg)
+#serverConfig.write_args(runtimeConfig.arg)

@@ -14,8 +14,9 @@ async def syncWithThermostats() -> None:
     """
     Synchronize the state of the thermostats with their actual state.
     """
-    while True:
+    while serverConfig["thermostats"]["enabled"]:
         logging.info("start thermostats sync")
+        interval = serverConfig["thermostats"]["interval"]
         for key, thermostat in serverConfig["thermostats"].items():
             try:
                 logging.debug("fetch " + thermostat.mac)
@@ -39,9 +40,26 @@ async def syncWithThermostats() -> None:
 
         sleep(10)  # wait at least 10 seconds before next sync
         i = 0
-        while i < (serverConfig["config"]["sync_interval"] - 10 if serverConfig["config"]["sync_interval"] > 10 else 0):  # sync every x seconds
+        while i < (interval - 10 if interval > 10 else 0):  # sync every x seconds
             i += 1
             sleep(1)
+
+
+def syncWithThermostats_threaded() -> None:
+    """
+    Thread wrapper for the async syncWithThermostats function
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(syncWithThermostats())
+    except Exception as e:
+        logging.error(f"Error in thermostat sync thread: {e}")
+    finally:
+        try:
+            loop.close()
+        except Exception as e:
+            logging.error(f"Error closing sync loop: {e}")
 
 async def disconnectThermostats() -> None:
     """
@@ -84,7 +102,8 @@ def read_dht_temperature():
     Placeholder for DHT temperature reading logic.
     This function should be implemented to read from the DHT sensor.
     """
-    while True:
+    while serverConfig["config"]["dht"]["enabled"]:
+        interval = serverConfig["config"]["dht"]["interval"]
         try:
             # Assuming serverConfig["dht"] has a method to read temperature
             logging.info("Reading DHT temperature...")
@@ -94,6 +113,6 @@ def read_dht_temperature():
         finally:
             sleep(5)
         i = 0
-        while i < (serverConfig["config"]["dht_interval"] - 5 if serverConfig["config"]["dht_interval"] > 5 else 0):  # sync every x seconds
+        while i < (interval - 5 if interval > 5 else 0):  # sync every x seconds
             i += 1
             sleep(1)

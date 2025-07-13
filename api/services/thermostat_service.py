@@ -186,7 +186,3 @@ class ThermostatService:
             "last_updated": self.last_updated
         })
         return result
-
-
-# Global thermostat service instance
-thermostat_service = ThermostatService()
