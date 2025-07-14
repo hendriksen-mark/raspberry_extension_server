@@ -2,29 +2,7 @@ from typing import Any
 try:
     import pigpio  # type: ignore
 except ImportError:
-    class DummyPigpioInstance:
-        def __init__(self) -> None:
-            self.connected = True
-        
-        def set_PWM_frequency(self, gpio, frequency) -> None:
-            """Dummy PWM frequency setter"""
-            pass
-
-        def set_PWM_dutycycle(self, gpio, duty_cycle) -> None:
-            """Dummy PWM duty cycle setter"""
-            pass
-
-        def stop(self) -> None:
-            """Dummy stop method"""
-            pass
-    
-    class DummyPigpio:
-        @staticmethod
-        def pi():
-            """Return a dummy pigpio instance"""
-            return DummyPigpioInstance()
-    
-    pigpio = DummyPigpio()
+    from services.dummy_import import DummyPigpio as pigpio  # Import a dummy pigpio class for testing
 
 import logManager
 from services.utils import get_pi_temp

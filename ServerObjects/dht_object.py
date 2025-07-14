@@ -13,13 +13,7 @@ logging = logManager.logger.get_logger(__name__)
 try:
     import Adafruit_DHT  # type: ignore
 except ImportError:
-    class DummyDHT:
-        DHT22 = None
-
-        @staticmethod
-        def read_retry(sensor, pin):
-            return 22.0, 50.0
-    Adafruit_DHT = DummyDHT()
+    from services.dummy_import import DummyDHT as Adafruit_DHT  # Import a dummy DHT class for testing
 
 
 class DHTObject:

@@ -2,8 +2,8 @@ import math
 try:
     import RPi.GPIO as IO  # type: ignore
 except ImportError:
-    from services.dummy_gpio import DummyGPIO as IO
-import threading
+    from services.dummy_import import DummyGPIO as IO
+
 from time import sleep
 # IO.setwarnings(False)
 IO.setmode(IO.BCM)

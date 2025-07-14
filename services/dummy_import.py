@@ -37,3 +37,33 @@ class DummyGPIO:
         def cleanup() -> None:
             """Dummy cleanup"""
             pass
+
+class DummyDHT:
+        DHT22 = None
+
+        @staticmethod
+        def read_retry(sensor, pin):
+            return 22.0, 50.0
+        
+class DummyPigpioInstance:
+        def __init__(self) -> None:
+            self.connected = True
+        
+        def set_PWM_frequency(self, gpio, frequency) -> None:
+            """Dummy PWM frequency setter"""
+            pass
+
+        def set_PWM_dutycycle(self, gpio, duty_cycle) -> None:
+            """Dummy PWM duty cycle setter"""
+            pass
+
+        def stop(self) -> None:
+            """Dummy stop method"""
+            pass
+    
+class DummyPigpio:
+    @staticmethod
+    def pi():
+        """Return a dummy pigpio instance"""
+        return DummyPigpioInstance()
+        
