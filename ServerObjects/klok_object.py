@@ -67,7 +67,6 @@ class KlokObject:
     def save(self) -> Dict[str, Any]:
         """Save the klok service configuration"""
         return {
-            "id": self.id,
             "CLK_pin": self.CLK_pin,
             "DIO_pin": self.DIO_pin,
             "brightness": self.brightness

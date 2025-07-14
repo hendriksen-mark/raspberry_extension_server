@@ -75,11 +75,11 @@ def create_app(serverConfig):
     api.add_resource(SystemRoute, '/<string:resource>', strict_slashes=False)
     #api.add_resource(DHTRoute, '/dht', strict_slashes=False)
     api.add_resource(ThermostatRoute, '/<string:mac>/<string:resource>', strict_slashes=False)
-    # KlokRoute handles both /klok/<request_type> and /klok/<request_type>/<value>
     api.add_resource(KlokRoute, 
                     '/klok/<string:request_type>', 
                     '/klok/<string:request_type>/<string:value>', 
                     strict_slashes=False)
+    #api.add_resource(ConfigRoute, '/config/<string:resource>', strict_slashes=False)  # legacy route
 
     # Register web interface blueprints
     from flaskUI.core.views import core

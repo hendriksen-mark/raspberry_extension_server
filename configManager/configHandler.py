@@ -62,8 +62,6 @@ class Config:
             config (Dict[str, Any]): The configuration dictionary.
         """
         defaults = {
-            "name":"DiyHue Bridge",
-            "netmask":"255.255.255.0",
             "users":{"admin":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
             "thermostats": {
                 "enabled": False,
@@ -133,28 +131,32 @@ class Config:
         Load DHT sensor configuration from the YAML file.
         """
         dht_data = self._load_yaml_file("dht.yaml", {})
-        self.yaml_config["dht"] = DHTObject(dht_data)
+        if dht_data != {}:
+            self.yaml_config["dht"] = DHTObject(dht_data)
 
     def _load_klok(self) -> None:
         """
         Load klok configuration from the YAML file.
         """
         klok_data = self._load_yaml_file("klok.yaml", {})
-        self.yaml_config["klok"] = KlokObject(klok_data)
+        if klok_data != {}:
+            self.yaml_config["klok"] = KlokObject(klok_data)
 
     def _load_fan(self) -> None:
         """
         Load fan configuration from the YAML file.
         """
         fan_data = self._load_yaml_file("fan.yaml", {})
-        self.yaml_config["fan"] = FanObject(fan_data)
-    
+        if fan_data != {}:
+            self.yaml_config["fan"] = FanObject(fan_data)
+
     def _load_powerbutton(self) -> None:
         """
         Load power button configuration from the YAML file.
         """
         powerbutton_data = self._load_yaml_file("powerbutton.yaml", {})
-        self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
+        if powerbutton_data != {}:
+            self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
 
     def load_config(self) -> None:
         """

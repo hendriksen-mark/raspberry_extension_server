@@ -76,7 +76,6 @@ class FanObject:
     def save(self) -> Dict[str, Any]:
         """Save the fan service configuration"""
         return {
-            "id": self.id,
             "gpio_pin": self.gpio_pin,
             "pwm_frequency": self.pwm_frequency,
             "min_temperature": self.min_temperature,
