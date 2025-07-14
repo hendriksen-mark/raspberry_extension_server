@@ -33,7 +33,6 @@ class TM1637:
 
     def cleanup(self):
         """Stop updating clock, turn off display, and cleanup GPIO"""
-        self.StopClock()
         self.Clear()
         IO.cleanup()
 
@@ -131,10 +130,3 @@ class TM1637:
         else:
             data = HexDigits[data] + pointData
         return data
-
-    def StopClock(self):
-        try:
-            print ('Attempting to stop live clock')
-            self.__stop_event.set()
-        except:
-            print ('No clock to close')
