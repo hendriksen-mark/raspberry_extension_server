@@ -3,18 +3,18 @@ try:
     import pigpio  # type: ignore
 except ImportError:
     class DummyPigpioInstance:
-        def __init__(self):
+        def __init__(self) -> None:
             self.connected = True
         
-        def set_PWM_frequency(self, gpio, frequency):
+        def set_PWM_frequency(self, gpio, frequency) -> None:
             """Dummy PWM frequency setter"""
             pass
-        
-        def set_PWM_dutycycle(self, gpio, duty_cycle):
+
+        def set_PWM_dutycycle(self, gpio, duty_cycle) -> None:
             """Dummy PWM duty cycle setter"""
             pass
-        
-        def stop(self):
+
+        def stop(self) -> None:
             """Dummy stop method"""
             pass
     
@@ -49,19 +49,19 @@ class FanObject:
         self.pi.set_PWM_frequency(self.gpio_pin, self.pwm_frequency)
         self.pi.set_PWM_dutycycle(self.gpio_pin, 0)
 
-    def renormalize(self, n, range1, range2):
+    def renormalize(self, n, range1, range2) -> float:
         """Scale n from range1 to range2."""
         delta1: float = range1[1] - range1[0]
         delta2: float = range2[1] - range2[0]
         return (delta2 * (n - range1[0]) / delta1) + range2[0]
-    
-    def cleanup(self):
+
+    def cleanup(self) -> None:
         if not self.cleanup_done and self.pi.connected:
             self.pi.set_PWM_dutycycle(self.gpio_pin, 0)
             self.pi.stop()
             self.cleanup_done = True
 
-    def run(self):
+    def run(self) -> None:
         temp: float = get_pi_temp()
         temp = max(self.min_temperature, min(self.max_temperature, temp))
         # Convert temp to pigpio duty cycle (0-255)

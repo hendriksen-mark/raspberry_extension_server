@@ -29,7 +29,7 @@ def find_thermostat(mac: str) -> Any:
     return serverConfig["thermostats"][data["id"]]
 
 class ThermostatRoute(Resource):
-    def get(self, mac, resource):
+    def get(self, mac, resource) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for thermostat resources
         URL: /MAC_ADDRESS/resource

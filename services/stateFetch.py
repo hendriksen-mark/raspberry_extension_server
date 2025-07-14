@@ -105,7 +105,7 @@ async def disconnectThermostats() -> None:
     
     logging.info("Cleanup: All thermostats disconnected.")
 
-def read_dht_temperature():
+def read_dht_temperature() -> None:
     """
     Placeholder for DHT temperature reading logic.
     This function should be implemented to read from the DHT sensor.
@@ -125,7 +125,7 @@ def read_dht_temperature():
             i += 1
             sleep(1)
 
-def run_fan_service():
+def run_fan_service() -> None:
     """
     Placeholder for fan service logic.
     This function should be implemented to control the fan based on temperature.
@@ -144,7 +144,7 @@ def run_fan_service():
             i += 1
             sleep(1)
 
-def run_klok_service():
+def run_klok_service() -> None:
     """
     Placeholder for klok service logic.
     This function should be implemented to update the klok display.
@@ -158,7 +158,7 @@ def run_klok_service():
         finally:
             sleep(0.5)
 
-def run_powerbutton_service():
+def run_powerbutton_service() -> None:
     """
     Placeholder for power button service logic.
     This function should be implemented to handle power button events.

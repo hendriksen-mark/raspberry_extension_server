@@ -22,7 +22,7 @@ class KlokObject:
         step: int = min(7, max(0, round((value / 100) * 7)))
         self.brightness = step / 7.0
 
-    def show(self):
+    def show(self) -> None:
         if not self.power_state:
             if self.last_time is not None or self.last_brightness is not None or self.last_doublepoint is not None:
                 self.display.Clear()
@@ -52,11 +52,11 @@ class KlokObject:
 
         self.doublepoint = not self.doublepoint
 
-    def toggle_power(self):
+    def toggle_power(self) -> None:
         """Toggle the power state"""
         self.power_state = not self.power_state
 
-    def set_power(self, state: bool):
+    def set_power(self, state: bool) -> None:
         """Set the power state"""
         self.power_state = state
 

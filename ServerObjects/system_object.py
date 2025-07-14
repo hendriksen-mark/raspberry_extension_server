@@ -5,7 +5,7 @@ from ServerObjects.dht_object import DHTObject
 
 class SystemService:
 
-    def _get_dht_service(self):
+    def _get_dht_service(self) -> DHTObject:
         """Get the DHT service from server config"""
         return configManager.serverConfig.yaml_config["dht"]
 

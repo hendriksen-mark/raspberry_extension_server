@@ -12,16 +12,16 @@ serverConfig = configManager.serverConfig.yaml_config
 LOG_FILE = str(serverConfig["config"]["runningDir"] + "/diyhue.log")
 
 class LogWebSocketHandler(WebSocket):
-    def opened(self):
+    def opened(self) -> None:
         self._running: bool = True
         self._thread: threading.Thread = threading.Thread(target=self.tail_log)
         self._thread.daemon = True
         self._thread.start()
 
-    def closed(self, code, reason=None):
+    def closed(self, code, reason=None) -> None:
         self._running = False
 
-    def tail_log(self):
+    def tail_log(self) -> None:
         try:
             with open(LOG_FILE) as f:
                 f.seek(0, 2)
@@ -44,14 +44,14 @@ cherrypy.tools.websocket = WebSocketTool()
 
 class Root(object):
     @cherrypy.expose
-    def index(self):
+    def index(self) -> str:
         return "WebSocket log server running."
 
     @cherrypy.expose
-    def ws(self):
+    def ws(self) -> None:
         pass  # ws4py handles this
 
-def start_ws_server():
+def start_ws_server() -> None:
     cherrypy.quickstart(Root(), '/', config={
         '/ws': {
             'tools.websocket.on': True,

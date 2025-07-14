@@ -8,10 +8,10 @@ import os
 import sys
 import logManager
 import subprocess
-from typing import Union
+from typing import Any, Union
 
 logging = logManager.logger.get_logger(__name__)
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 core = Blueprint('core', __name__)
 
 def save_server_config(backup: bool = False) -> str:
@@ -109,7 +109,7 @@ def download_config() -> Response:
     Returns:
         Response: The server configuration file.
     """
-    path = configManager.serverConfig.download_config()
+    path: str = configManager.serverConfig.download_config()
     return send_file(path, as_attachment=True)
 
 @core.route('/download_log')
@@ -123,7 +123,7 @@ def download_log() -> Response:
     Returns:
         Response: The log file.
     """
-    path = configManager.serverConfig.download_log()
+    path: str = configManager.serverConfig.download_log()
     return send_file(path, as_attachment=True)
 
 @core.route('/download_debug')
@@ -137,7 +137,7 @@ def download_debug() -> Response:
     Returns:
         Response: The debug file.
     """
-    path = configManager.serverConfig.download_debug()
+    path: str = configManager.serverConfig.download_debug()
     return send_file(path, as_attachment=True)
 
 @core.route('/restart')
@@ -165,7 +165,7 @@ def info() -> dict[str, str]:
     Returns:
         dict[str, str]: The system information.
     """
-    uname = os.uname()
+    uname: os.uname_result = os.uname()
     return {
         "sysname": uname.sysname,
         "machine": uname.machine,
@@ -186,14 +186,14 @@ def login() -> Union[str, Response]:
     Returns:
         Union[str, Response]: The login page or a redirect to the index page.
     """
-    form = LoginForm()
+    form: LoginForm = LoginForm()
     if request.method == 'GET':
         return render_template('login.html', form=form)
-    email = form.email.data
+    email: str = form.email.data
     if email not in serverConfig["config"]["users"]:
         return 'User don\'t exist\n'
     if check_password_hash(serverConfig["config"]["users"][email]['password'], form.password.data):
-        user = User()
+        user: User = User()
         user.id = email
         flask_login.login_user(user)
         return redirect(url_for('core.index'))

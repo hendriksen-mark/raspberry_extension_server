@@ -75,7 +75,7 @@ class SystemRoute(Resource):
                     logManager.logger.configure_logger(putDict["loglevel"])
                     logging.info("Change log level to: " + str(logManager.logger.get_level_name()))
 
-def health_check() -> Any:
+def health_check() -> tuple[dict[str, Any], int]:
     """Health check endpoint"""
     dht: DHTObject = serverConfig["dht"]
     temp, humidity = dht.get_data()

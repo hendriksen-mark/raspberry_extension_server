@@ -20,21 +20,21 @@ class PowerButtonObject:
         IO.setup(self.button_pin, IO.IN, pull_up_down=IO.PUD_UP)
         self.last_press_time = time.time()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up IO resources"""
         IO.cleanup()
         logging.info("IO cleanup completed")
 
-    def button_pressed(self):
+    def button_pressed(self) -> bool:
         """Check if button is currently pressed (LOW = pressed with pull-up)"""
         return IO.input(self.button_pin) == IO.LOW
 
-    def wait_for_button_release(self):
+    def wait_for_button_release(self) -> None:
         """Wait for button to be released"""
         while self.button_pressed():
             time.sleep(0.01)
-            
-    def execute_shutdown(self):
+
+    def execute_shutdown(self) -> None:
         """Execute system shutdown"""
         logging.info("Initiating system shutdown...")
         try:
@@ -44,8 +44,8 @@ class PowerButtonObject:
             subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=True)
         except subprocess.CalledProcessError as e:
             logging.error(f"Shutdown command failed: {e}")
-            
-    def blink_led(self, pin=18, times=3):
+
+    def blink_led(self, pin=18, times=3) -> None:
         """Blink LED to indicate shutdown (optional - requires LED on IO 18)"""
         try:
             IO.setup(pin, IO.OUT)
@@ -57,7 +57,7 @@ class PowerButtonObject:
         except Exception as e:
             logging.debug(f"LED blink failed (optional): {e}")
 
-    def run(self):
+    def run(self) -> None:
         """Main button monitoring loop"""
         logging.info("Power button service started. Press and hold for shutdown...")
         

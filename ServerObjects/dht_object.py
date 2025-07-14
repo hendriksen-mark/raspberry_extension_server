@@ -1,7 +1,6 @@
 """
 DHT sensor service for temperature and humidity monitoring
 """
-from time import sleep
 from threading import Lock
 import logManager
 from typing import Any

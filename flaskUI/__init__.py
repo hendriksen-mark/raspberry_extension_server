@@ -3,7 +3,7 @@ API module with Flask app factory and resource registration
 Following diyHue architectural patterns
 """
 
-from flask import Flask
+from flask import Flask, Request
 from flask_cors import CORS
 from flask_restful import Api
 import os
@@ -14,7 +14,7 @@ from flaskUI.core import User  # dummy import for flask_login module
 logging = logManager.logger.get_logger(__name__)
 
 
-def create_app(serverConfig):
+def create_app(serverConfig) -> Flask:
     """
     App factory function following diyHue pattern
     """
@@ -23,25 +23,25 @@ def create_app(serverConfig):
     template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
     static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
 
-    app = Flask(__name__,
-                template_folder=template_dir, 
-                static_url_path="/assets", 
-                static_folder=static_dir)
+    app: Flask = Flask(__name__,
+                       template_folder=template_dir,
+                       static_url_path="/assets",
+                       static_folder=static_dir)
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
     app.config['RESTFUL_JSON'] = {'ensure_ascii': False}
     
     # CORS setup
-    cors = CORS(app, resources={r"*": {"origins": "*"}})
-    
+    cors: CORS = CORS(app, resources={r"*": {"origins": "*"}})
+
     # Flask-Login setup
-    login_manager = flask_login.LoginManager()
+    login_manager: flask_login.LoginManager = flask_login.LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "core.login"
     
     @login_manager.user_loader
-    def user_loader(email):
+    def user_loader(email: str) -> User | None:
         if email not in serverConfig["config"]["users"]:
             return None
         user: User = User()
@@ -49,7 +49,7 @@ def create_app(serverConfig):
         return user
 
     @login_manager.request_loader
-    def request_loader(request):
+    def request_loader(request: Request) -> User | None:
         from werkzeug.security import check_password_hash
 
         email: str = request.form.get('email')
@@ -65,8 +65,8 @@ def create_app(serverConfig):
         return user
     
     # Flask-RESTful API setup
-    api = Api(app)
-    
+    api: Api = Api(app)
+
     # Register other routes
     from .system_routes import SystemRoute
     #from .dht_routes import DHTRoute

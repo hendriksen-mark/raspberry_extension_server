@@ -11,7 +11,7 @@ logging = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class DHTRoute():
-    def get(self):
+    def get(self) -> tuple[dict[str, Any], int]:
         dht: DHTObject = serverConfig["dht"]
         pin: int = dht.get_pin()
         # If no pin is set at all, return default values

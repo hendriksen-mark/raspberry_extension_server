@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template
 from typing import Tuple
 
-error_pages = Blueprint('error_pages', __name__)
+error_pages: Blueprint = Blueprint('error_pages', __name__)
 
 @error_pages.app_errorhandler(404)
 def error_404(error: Exception) -> Tuple[str, int]:

@@ -9,31 +9,31 @@ class DummyGPIO:
         PUD_OFF: str = "PUD_OFF"
 
         @staticmethod
-        def setwarnings(state):
+        def setwarnings(state) -> None:
             """Dummy setwarnings"""
             pass
         
         @staticmethod
-        def setmode(mode):
+        def setmode(mode) -> None:
             """Dummy setmode"""
             pass
         
         @staticmethod
-        def setup(pin, mode, pull_up_down=None):
+        def setup(pin, mode, pull_up_down=None) -> None:
             """Dummy setup with pull_up_down parameter"""
             pass
         
         @staticmethod
-        def output(pin, state):
+        def output(pin, state) -> None:
             """Dummy output"""
             pass
         
         @staticmethod
-        def input(pin):
+        def input(pin) -> int:
             """Dummy input"""
             return 0
         
         @staticmethod
-        def cleanup():
+        def cleanup() -> None:
             """Dummy cleanup"""
             pass

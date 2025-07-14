@@ -23,20 +23,18 @@ class TM1637:
     #1.0  # default to max brightness
     __currentData: list[int] = [0, 0, 0, 0]
 
-    def __init__(self, CLK, DIO):
-    #, brightness):
+    def __init__(self, CLK: int, DIO: int) -> None:
         self.__Clkpin = CLK
         self.__Datapin = DIO
-        #self.__brightness = brightness
         IO.setup(self.__Clkpin, IO.OUT)
         IO.setup(self.__Datapin, IO.OUT)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Stop updating clock, turn off display, and cleanup GPIO"""
         self.Clear()
         IO.cleanup()
 
-    def Clear(self):
+    def Clear(self) -> None:
         b: int = self.__brightness
         point: bool = self.__doublePoint
         self.__brightness = 0
@@ -47,7 +45,7 @@ class TM1637:
         self.__brightness = b
         self.__doublePoint = point
 
-    def Show(self, data):
+    def Show(self, data: list[int]) -> None:
         for i in range(0, 4):
             self.__currentData[i] = data[i]
 
@@ -61,7 +59,7 @@ class TM1637:
         self.writeByte(0x88 + int(self.__brightness))
         self.stop()
 
-    def SetBrightness(self, percent):
+    def SetBrightness(self, percent: float) -> None:
         """Accepts percent brightness from 0 - 1"""
         max_brightness: float = 7.0
         brightness: int = math.ceil(max_brightness * percent)
@@ -71,13 +69,13 @@ class TM1637:
             self.__brightness = brightness
             self.Show(self.__currentData)
 
-    def ShowDoublepoint(self, on):
+    def ShowDoublepoint(self, on: bool) -> None:
         """Show or hide double point divider"""
         if(self.__doublePoint != on):
             self.__doublePoint = on
             self.Show(self.__currentData)
 
-    def writeByte(self, data):
+    def writeByte(self, data: int) -> None:
         for i in range(0, 8):
             IO.output(self.__Clkpin, IO.LOW)
             if(data & 0x01):
@@ -101,25 +99,25 @@ class TM1637:
                 IO.setup(self.__Datapin, IO.IN)
         IO.setup(self.__Datapin, IO.OUT)
 
-    def start(self):
+    def start(self) -> None:
         """send start signal to TM1637"""
         IO.output(self.__Clkpin, IO.HIGH)
         IO.output(self.__Datapin, IO.HIGH)
         IO.output(self.__Datapin, IO.LOW)
         IO.output(self.__Clkpin, IO.LOW)
 
-    def stop(self):
+    def stop(self) -> None:
         IO.output(self.__Clkpin, IO.LOW)
         IO.output(self.__Datapin, IO.LOW)
         IO.output(self.__Clkpin, IO.HIGH)
         IO.output(self.__Datapin, IO.HIGH)
 
-    def br(self):
+    def br(self) -> None:
         """terse break"""
         self.stop()
         self.start()
 
-    def coding(self, data):
+    def coding(self, data: int) -> int:
         if(self.__doublePoint):
             pointData: int = 0x80
         else:
