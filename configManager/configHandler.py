@@ -4,7 +4,7 @@ import subprocess
 import logManager
 import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.dht_object import DHTObject
 from ServerObjects.klok_object import KlokObject
@@ -42,8 +42,8 @@ def _write_yaml(path: str, contents: Any) -> None:
         yaml.dump(contents, fp, Dumper=NoAliasDumper, allow_unicode=True, sort_keys=False)
 
 class Config:
-    yaml_config: Optional[Dict[str, Any]] = None
-    argsDict: Dict[str, Any] = parse_arguments()
+    yaml_config: Optional[dict[str, Any]] = None
+    argsDict: dict[str, Any] = parse_arguments()
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
 
@@ -54,15 +54,15 @@ class Config:
         if not os.path.exists(self.configDir):
             os.makedirs(self.configDir)
 
-    def _set_default_config_values(self, config: Dict[str, Any]) -> None:
+    def _set_default_config_values(self, config: dict[str, Any]) -> None:
         """
         Set default configuration values.
 
         Args:
-            config (Dict[str, Any]): The configuration dictionary.
+            config (dict[str, Any]): The configuration dictionary.
         """
-        defaults = {
-            "users":{"admin":{"password":"pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
+        defaults: dict[str, Any] = {
+            "users": {"admin": {"password": "pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
             "thermostats": {
                 "enabled": False,
                 "interval": 300
@@ -101,18 +101,18 @@ class Config:
                 config[key] = value
         return config
 
-    def _load_yaml_file(self, filename: str, default: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def _load_yaml_file(self, filename: str, default: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:
         """
         Load a YAML file and return its contents.
 
         Args:
             filename (str): The name of the YAML file.
-            default (Optional[Dict[str, Any]]): The default value if the file does not exist.
+            default (Optional[dict[str, Any]]): The default value if the file does not exist.
 
         Returns:
-            Optional[Dict[str, Any]]: The contents of the YAML file or the default value.
+            Optional[dict[str, Any]]: The contents of the YAML file or the default value.
         """
-        path = os.path.join(self.configDir, filename)
+        path: str = os.path.join(self.configDir, filename)
         if os.path.exists(path):
             return _open_yaml(path)
         return default
@@ -121,7 +121,7 @@ class Config:
         """
         Load thermostats from the YAML configuration.
         """
-        thermostats = self._load_yaml_file("thermostats.yaml", {})
+        thermostats: dict[str, Any] = self._load_yaml_file("thermostats.yaml", {})
         for thermostat, data in thermostats.items():
             data["id"] = thermostat
             self.yaml_config["thermostats"][thermostat] = ThermostatObject(data)
@@ -130,7 +130,7 @@ class Config:
         """
         Load DHT sensor configuration from the YAML file.
         """
-        dht_data = self._load_yaml_file("dht.yaml", {})
+        dht_data: dict[str, Any] = self._load_yaml_file("dht.yaml", {})
         if dht_data != {}:
             self.yaml_config["dht"] = DHTObject(dht_data)
 
@@ -138,7 +138,7 @@ class Config:
         """
         Load klok configuration from the YAML file.
         """
-        klok_data = self._load_yaml_file("klok.yaml", {})
+        klok_data: dict[str, Any] = self._load_yaml_file("klok.yaml", {})
         if klok_data != {}:
             self.yaml_config["klok"] = KlokObject(klok_data)
 
@@ -146,7 +146,7 @@ class Config:
         """
         Load fan configuration from the YAML file.
         """
-        fan_data = self._load_yaml_file("fan.yaml", {})
+        fan_data: dict[str, Any] = self._load_yaml_file("fan.yaml", {})
         if fan_data != {}:
             self.yaml_config["fan"] = FanObject(fan_data)
 
@@ -154,7 +154,7 @@ class Config:
         """
         Load power button configuration from the YAML file.
         """
-        powerbutton_data = self._load_yaml_file("powerbutton.yaml", {})
+        powerbutton_data: dict[str, Any] = self._load_yaml_file("powerbutton.yaml", {})
         if powerbutton_data != {}:
             self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
 
@@ -162,10 +162,10 @@ class Config:
         """
         Load the entire configuration from YAML files.
         """
-        self.yaml_config = {"config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}}
+        self.yaml_config: dict[str, Any] = {"config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}}
         try:
-            config = self._load_yaml_file("config.yaml", {})
-            config = self._set_default_config_values(config)
+            config: dict[str, Any] = self._load_yaml_file("config.yaml", {})
+            config: dict[str, Any] = self._set_default_config_values(config)
             self.yaml_config["config"] = config
             self.yaml_config["config"]["configDir"] = self.configDir
             self.yaml_config["config"]["runningDir"] = self.runningDir
@@ -190,37 +190,37 @@ class Config:
             backup (bool): Whether to save a backup of the configuration.
             resource (str): The specific resource to save or "all" to save everything.
         """
-        path = self.configDir + '/'
+        path: str = self.configDir + '/'
         if backup:
-            path = self.configDir + '/backup/'
+            path: str = self.configDir + '/backup/'
             if not os.path.exists(path):
                 os.makedirs(path)
         if resource in ["all", "config"]:
-            config = self.yaml_config["config"]
+            config: dict[str, Any] = self.yaml_config["config"]
             _write_yaml(path + "config.yaml", config)
             logging.debug("Dump config file " + path + "config.yaml")
             if resource == "config":
                 return
-        saveResources = []
+        saveResources: list[str] = []
         if resource == "all":
             saveResources = ["thermostats", "dht", "klok", "fan", "powerbutton"]
         else:
             saveResources.append(resource)
         for object in saveResources:
-            filePath = path + object + ".yaml"
-            dumpDict = {}
-            
+            filePath: str = path + object + ".yaml"
+            dumpDict: dict[str, Any] = {}
+
             # Handle single service objects (not dictionaries)
             if object in ["dht", "klok", "fan", "powerbutton"]:
                 if hasattr(self.yaml_config[object], 'save'):
-                    savedData = self.yaml_config[object].save()
+                    savedData: dict[str, Any] = self.yaml_config[object].save()
                     if savedData:
-                        dumpDict = savedData
+                        dumpDict.update(savedData)
             elif object in ["thermostats"]:
                 # Handle other objects that are dictionaries (like thermostats)
                 for element in self.yaml_config[object]:
                     if element != "0":
-                        savedData = self.yaml_config[object][element].save()
+                        savedData: dict[str, Any] = self.yaml_config[object][element].save()
                         if savedData:
                             dumpDict[self.yaml_config[object][element].id] = savedData
             
@@ -277,8 +277,8 @@ class Config:
         Returns:
             str: The path to the tar file containing the debug information.
         """
-        debug = deepcopy(self.yaml_config["config"])
-        info = {}
+        debug: dict[str, Any] = deepcopy(self.yaml_config["config"])
+        info: dict[str, Any] = {}
         info["OS"] = os.uname().sysname
         info["Architecture"] = os.uname().machine
         info["os_version"] = os.uname().version

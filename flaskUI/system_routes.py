@@ -16,7 +16,7 @@ from services.updateManager import githubCheck, githubInstall
 
 logging = logManager.logger.get_logger(__name__)
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class SystemRoute(Resource):
     def get(self, resource: str) -> Any:
@@ -26,7 +26,7 @@ class SystemRoute(Resource):
         """
         if resource == 'pi_temp':
             try:
-                temp = get_pi_temp()
+                temp: float = get_pi_temp()
                 return {"temperature": temp}, 200
             except RuntimeError as e:
                 logging.error(f"Error reading Pi temperature: {e}")
@@ -36,7 +36,7 @@ class SystemRoute(Resource):
             return DHTRoute().get()
             
         elif resource == "all":
-            getResources = ["thermostats", "dht", "klok", "fan", "powerbutton"]
+            getResources: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
             response = {
                 resource: {key: obj.save() for key, obj in serverConfig[resource].items()} for resource in getResources
             }
@@ -59,7 +59,7 @@ class SystemRoute(Resource):
             return {"error": "Resource not found"}, 404
         
     def put(self, resource: str) -> Any:
-            putDict = request.get_json(force=True)
+            putDict: dict[str, Any] = request.get_json(force=True)
             if resource == "config":
                 if "swupdate2" in putDict:
                     if "checkforupdate" in putDict["swupdate2"] and putDict["swupdate2"]["checkforupdate"] == True:

@@ -2,7 +2,7 @@ import argparse
 import socket
 import logManager
 from os import getenv
-from typing import Union, Dict, Optional
+from typing import Union, Optional
 import pathlib
 
 logging = logManager.logger.get_logger(__name__)
@@ -33,12 +33,12 @@ def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool
     Returns:
         str or bool: The value of the environment variable, or False if boolean is True and the value is not "true".
     """
-    value = getenv(var)
+    value: Optional[str] = getenv(var)
     if boolean and value:
         value = value.lower() == "true"
     return value
 
-def process_arguments(configDir: str, args: Dict[str, Union[str, bool]]) -> None:
+def process_arguments(args: dict[str, Union[str, bool]]) -> None:
     """
     Process the provided arguments and configure logging and certificate generation.
 
@@ -50,14 +50,14 @@ def process_arguments(configDir: str, args: Dict[str, Union[str, bool]]) -> None
     logManager.logger.configure_logger(log_level)
     logging.info(f"Debug logging {'enabled' if args['DEBUG'] else 'disabled'}!")
 
-def parse_arguments() -> Dict[str, Union[str, int, bool]]:
+def parse_arguments() -> dict[str, Union[str, int, bool]]:
     """
     Parse command-line arguments and environment variables to configure the application.
 
     Returns:
         dict: A dictionary containing the parsed arguments and their values.
     """
-    argumentDict = {
+    argumentDict: dict[str, Union[str, int, bool]] = {
         "BIND_IP": '0.0.0.0', "HOST_IP": '', "HTTP_PORT": 80,
         "FULLMAC": '', "MAC": '', "DEBUG": False, "DOCKER": False
     }
@@ -71,7 +71,7 @@ def parse_arguments() -> Dict[str, Union[str, int, bool]]:
     ap.add_argument("--ip", help="The IP address of the host system (Docker)", type=str)
     ap.add_argument("--http-port", help="The port to listen on for HTTP (Docker)", type=int)
 
-    args = ap.parse_args()
+    args: argparse.Namespace = ap.parse_args()
 
     argumentDict["DEBUG"] = args.debug or get_environment_variable('DEBUG', True)
     argumentDict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/hue-emulator/config'

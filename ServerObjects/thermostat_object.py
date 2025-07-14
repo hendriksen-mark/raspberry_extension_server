@@ -3,7 +3,7 @@ Thermostat service for managing thermostat operations
 """
 import asyncio
 from time import localtime, strftime
-from typing import Dict, Any
+from typing import Any
 from bleak import BleakError
 
 from eqiva_thermostat import Thermostat, Temperature, EqivaException
@@ -15,7 +15,7 @@ logging = logManager.logger.get_logger(__name__)
 class ThermostatObject:
     """Service for managing thermostat operations"""
     
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self.id: str = data.get("id", None)  # Unique identifier for the thermostat
         self.mac: str = data.get("mac", None)  # MAC address of the thermostat
         self.failed_connection: bool = False  # Track failed connection
@@ -62,8 +62,8 @@ class ThermostatObject:
     def update_dht_related_status(self, **kwargs) -> None:
         """Update DHT-related status for all MAC addresses"""
 
-        current_temp = kwargs.get('temperature')
-        current_hum = kwargs.get('humidity')
+        current_temp: float = kwargs.get('temperature')
+        current_hum: float = kwargs.get('humidity')
         if current_temp is not None:
             self.currentTemperature = current_temp
         if current_hum is not None:
@@ -73,7 +73,7 @@ class ThermostatObject:
 
     def get_status(self) -> dict[str, Any]:
         """Get thermostat status for a given MAC address"""
-        response = {
+        response: dict[str, Any] = {
             "targetHeatingCoolingState": self.targetHeatingCoolingState,
             "targetTemperature": self.targetTemperature,
             "currentHeatingCoolingState": self.currentHeatingCoolingState,
@@ -110,9 +110,9 @@ class ThermostatObject:
         logging.debug(f"Polling: Connected to {self.mac}")
         await self.equiva_thermostat.requestStatus()
         logging.debug(f"Polling: Status requested from {self.mac}")
-        mode = self.equiva_thermostat.mode.to_dict()
-        valve = self.equiva_thermostat.valve
-        temp = self.equiva_thermostat.temperature.valueC
+        mode: dict[str, Any] = self.equiva_thermostat.mode.to_dict()
+        valve: float = self.equiva_thermostat.valve
+        temp: float = self.equiva_thermostat.temperature.valueC
 
         target_mode_status = self.calculate_heating_cooling_state(mode)
         current_mode_status = self.calculate_heating_cooling_state(mode, valve)
@@ -126,8 +126,8 @@ class ThermostatObject:
 
     async def set_temperature(self, temp: str) -> dict[str, Any]:
         """Set thermostat target temperature"""
-        thermostat = self.equiva_thermostat
-        mac = self.mac
+        thermostat: Thermostat = self.equiva_thermostat
+        mac: str = self.mac
         if not temp:
             return {"result": "error", "message": "Temperature value is required"}
         try:
@@ -152,8 +152,8 @@ class ThermostatObject:
     
     async def set_mode(self, mode: str) -> dict[str, Any]:
         """Set thermostat heating/cooling mode"""
-        thermostat = self.equiva_thermostat
-        mac = self.mac
+        thermostat: Thermostat = self.equiva_thermostat
+        mac: str = self.mac
         if not mode:
             return {"result": "error", "message": "Mode value is required"}
         try:
@@ -180,9 +180,9 @@ class ThermostatObject:
             except Exception as e:
                 logging.error(f"Error disconnecting from {mac}: {e}")
 
-    def save(self) -> Dict[str, Any]:
+    def save(self) -> dict[str, Any]:
         """Save current thermostat state to a dictionary"""
-        result = self.get_status()
+        result: dict[str, Any] = self.get_status()
         result.update({
             "mac": self.mac,
             "last_updated": self.last_updated

@@ -1,13 +1,13 @@
 class DummyGPIO:
-        BCM = "BCM"
-        OUT = "OUT"
-        IN = "IN"
-        HIGH = 1
-        LOW = 0
-        PUD_UP = "PUD_UP"
-        PUD_DOWN = "PUD_DOWN"
-        PUD_OFF = "PUD_OFF"
-        
+        BCM: str = "BCM"
+        OUT: str = "OUT"
+        IN: str = "IN"
+        HIGH: int = 1
+        LOW: int = 0
+        PUD_UP: str = "PUD_UP"
+        PUD_DOWN: str = "PUD_DOWN"
+        PUD_OFF: str = "PUD_OFF"
+
         @staticmethod
         def setwarnings(state):
             """Dummy setwarnings"""

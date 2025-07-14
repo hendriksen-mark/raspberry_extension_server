@@ -1,12 +1,12 @@
 import logManager
-from typing import Dict, Any
+from typing import Any
 from datetime import datetime
 from services.tm1637 import TM1637
 
 logging = logManager.logger.get_logger(__name__)
 
 class KlokObject:
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self.CLK_pin = data.get("CLK_pin", 24)
         self.DIO_pin = data.get("DIO_pin", 23)  # GPIO pin for the fan
         self.brightness = data.get("brightness", 0.0)  # Default brightness
@@ -19,7 +19,7 @@ class KlokObject:
 
     def set_brightness(self, value: int) -> None:
         """Set the brightness of the display."""
-        step = min(7, max(0, round((value / 100) * 7)))
+        step: int = min(7, max(0, round((value / 100) * 7)))
         self.brightness = step / 7.0
 
     def show(self):
@@ -31,7 +31,7 @@ class KlokObject:
                 self.last_doublepoint = None
             return
 
-        now = datetime.now()
+        now: datetime = datetime.now()
         hour, minute = now.hour, now.minute
         current_time = [hour // 10, hour % 10, minute // 10, minute % 10]
 
@@ -64,7 +64,7 @@ class KlokObject:
         """Get brightness as percentage"""
         return int(self.brightness * 100)
 
-    def save(self) -> Dict[str, Any]:
+    def save(self) -> dict[str, Any]:
         """Save the klok service configuration"""
         return {
             "CLK_pin": self.CLK_pin,

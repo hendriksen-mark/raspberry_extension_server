@@ -4,14 +4,14 @@ except ImportError:
     from services.dummy_gpio import DummyGPIO as IO  # Import a dummy GPIO class for testing
 import time
 import subprocess
-from typing import Dict, Any
+from typing import Any
 import logManager
 from threading import Event
 
 logging = logManager.logger.get_logger(__name__)
 
 class PowerButtonObject:
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self.button_pin = data.get("button_pin", 3)  # Default GPIO pin for the button
         self.long_press_duration = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
         self.debounce_time = data.get("debounce_time", 0.05)  # Default debounce time in seconds
@@ -70,11 +70,11 @@ class PowerButtonObject:
                     return
                     
                 logging.info("Button pressed")
-                press_start = time.time()
-                
+                press_start: float = time.time()
+
                 # Wait while button is held down
                 while self.button_pressed() and not self.shutdown_event.is_set():
-                    press_duration = time.time() - press_start
+                    press_duration: float = time.time() - press_start
 
                     if press_duration >= self.long_press_duration:
                         logging.info(f"Long press detected ({press_duration:.1f}s) - shutting down")
@@ -85,7 +85,7 @@ class PowerButtonObject:
                     time.sleep(0.1)
                 
                 # Button released
-                press_duration = time.time() - press_start
+                press_duration: float = time.time() - press_start
                 if press_duration < self.long_press_duration:
                     logging.info(f"Short press ({press_duration:.1f}s) - button event logged")
                 
@@ -97,7 +97,7 @@ class PowerButtonObject:
         finally:
             self.cleanup()
 
-    def save(self) -> Dict[str, Any]:
+    def save(self) -> dict[str, Any]:
         """Save the power button configuration"""
         return {
             "button_pin": self.button_pin,

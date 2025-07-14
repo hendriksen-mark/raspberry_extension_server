@@ -7,7 +7,7 @@ runtimeConfig = runtimeConfigHandler.Config()
 
 # Initialize runtime configuration
 runtimeConfig.populate()
-argumentHandler.process_arguments(serverConfig.configDir, runtimeConfig.arg)
+argumentHandler.process_arguments(runtimeConfig.arg)
 
 # Restore configuration
 serverConfig.load_config()

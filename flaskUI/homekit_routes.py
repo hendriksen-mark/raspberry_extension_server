@@ -13,7 +13,7 @@ from ServerObjects.thermostat_object import ThermostatObject
 
 logging = logManager.logger.get_logger(__name__)
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 def find_thermostat(mac: str) -> Any:
     """
@@ -23,7 +23,7 @@ def find_thermostat(mac: str) -> Any:
         thermostat: ThermostatObject = thermostat
         if thermostat.mac.lower() == mac.lower():
             return thermostat
-    data = {"mac": mac}
+    data: dict[str, Any] = {"mac": mac}
     data["id"] = nextFreeId(serverConfig, "thermostats")
     serverConfig["thermostats"][data["id"]] = ThermostatObject(data)
     return serverConfig["thermostats"][data["id"]]
@@ -36,8 +36,8 @@ class ThermostatRoute(Resource):
         """
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
-        
-        mac = format_mac(mac)
+
+        mac: str = format_mac(mac)
 
         thermostat: ThermostatObject = find_thermostat(mac)
         if not thermostat:
@@ -48,12 +48,12 @@ class ThermostatRoute(Resource):
         
 
         elif resource == 'targetTemperature':
-            temp_value = request.args.get('value')
+            temp_value: str = request.args.get('value')
             if not temp_value:
                 return {"error": "Temperature value is required as 'value' parameter"}, 400
             
             try:
-                temperature = float(temp_value)
+                temperature: float = float(temp_value)
                 if not (thermostat.min_temperature <= temperature <= thermostat.max_temperature):
                     return {
                         "error": f"Temperature must be between {thermostat.min_temperature}°C and {thermostat.max_temperature}°C"
@@ -61,7 +61,7 @@ class ThermostatRoute(Resource):
             except ValueError:
                 return {"error": "Invalid temperature value"}, 400
             try:
-                result = thermostat.set_temperature(str(temperature))
+                result: dict[str, Any] = thermostat.set_temperature(str(temperature))
                 logging.info(f"HomeKit: Set targetTemperature for {mac} to {temperature}: {result}")
                 
                 if result["result"] == "ok":
@@ -75,7 +75,7 @@ class ThermostatRoute(Resource):
             
     
         elif resource == 'targetHeatingCoolingState':
-            mode_value = request.args.get('value')
+            mode_value: str = request.args.get('value')
             if not mode_value:
                 return {"error": "Mode value is required as 'value' parameter"}, 400
             
@@ -83,7 +83,7 @@ class ThermostatRoute(Resource):
                 return {"error": "Mode must be 0 (off), 1 (heat), 2 (cool), or 3 (auto)"}, 400
             
             try:
-                result = thermostat.set_mode(mode_value)
+                result: dict[str, Any] = thermostat.set_mode(mode_value)
                 logging.info(f"HomeKit: Set targetHeatingCoolingState for {mac} to {mode_value}: {result}")
                 
                 if result["result"] == "ok":

@@ -1,4 +1,5 @@
 from time import sleep
+from aioesphomeapi import Any
 from bleak import BleakError
 import asyncio
 
@@ -13,7 +14,7 @@ from ServerObjects.klok_object import KlokObject
 from ServerObjects.powerbutton_object import PowerButtonObject
 
 logging = logManager.logger.get_logger(__name__)
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 async def syncWithThermostats() -> None:
     """
@@ -21,7 +22,7 @@ async def syncWithThermostats() -> None:
     """
     while serverConfig["config"]["thermostats"]["enabled"]:
         logging.info("start thermostats sync")
-        interval = serverConfig["config"]["thermostats"]["interval"]
+        interval: int = serverConfig["config"]["thermostats"]["interval"]
         for thermostat in serverConfig["thermostats"].values():
             thermostat: ThermostatObject = thermostat
             try:
@@ -55,7 +56,7 @@ def syncWithThermostats_threaded() -> None:
     """
     Thread wrapper for the async syncWithThermostats function
     """
-    loop = asyncio.new_event_loop()
+    loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(syncWithThermostats())
@@ -71,16 +72,16 @@ async def disconnectThermostats() -> None:
     """
     Disconnect all thermostats.
     """
-    loop = asyncio.new_event_loop()
+    loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
     async def cleanup_all():
-        tasks = []
+        tasks: list[asyncio.Task] = []
         for thermostat in serverConfig["thermostats"].values():
             thermostat: ThermostatObject = thermostat
             try:
                 # Create a timeout wrapper for each disconnect
-                task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
+                task: asyncio.Task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
                 tasks.append(task)
             except Exception as e:
                 logging.error(f"Cleanup: Error preparing disconnect for {thermostat.mac}: {e}")
@@ -110,12 +111,11 @@ def read_dht_temperature():
     This function should be implemented to read from the DHT sensor.
     """
     while serverConfig["config"]["dht"]["enabled"]:
-        interval = serverConfig["config"]["dht"]["interval"]
+        interval: int = serverConfig["config"]["dht"]["interval"]
         try:
-            for key, dht in serverConfig["dht"].items():
-                dht: DHTObject = dht
-                logging.info(f"Reading DHT temperature for {key}...")
-                dht._read_dht_temperature()
+            dht: DHTObject = serverConfig["dht"]
+            logging.info(f"Reading DHT temperature...")
+            dht._read_dht_temperature()
         except Exception as e:
             logging.error(f"Error reading DHT temperature: {e}")
         finally:
@@ -131,11 +131,10 @@ def run_fan_service():
     This function should be implemented to control the fan based on temperature.
     """
     while serverConfig["config"]["fan"]["enabled"]:
-        interval = serverConfig["config"]["fan"]["interval"]
+        interval: int = serverConfig["config"]["fan"]["interval"]
         try:
-            for fan in serverConfig["fan"].values():
-                fan: FanObject = fan
-                fan.run()
+            fan: FanObject = serverConfig["fan"]
+            fan.run()
         except Exception as e:
             logging.error(f"Error in fan service: {e}")
         finally:
@@ -152,9 +151,8 @@ def run_klok_service():
     """
     while serverConfig["config"]["klok"]["enabled"]:
         try:
-            for klok in serverConfig["klok"].values():
-                klok: KlokObject = klok
-                klok.show()
+            klok: KlokObject = serverConfig["klok"]
+            klok.show()
         except Exception as e:
             logging.error(f"Error in klok service: {e}")
         finally:
@@ -167,9 +165,8 @@ def run_powerbutton_service():
     """
     while serverConfig["config"]["powerbutton"]["enabled"]:
         try:
-            for powerbutton in serverConfig["powerbutton"].values():
-                powerbutton: PowerButtonObject = powerbutton
-                powerbutton.run()
+            powerbutton: PowerButtonObject = serverConfig["powerbutton"]
+            powerbutton.run()
         except Exception as e:
             logging.error(f"Error in power button service: {e}")
         finally:

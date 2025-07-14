@@ -18,12 +18,12 @@ def create_app(serverConfig):
     """
     App factory function following diyHue pattern
     """
-    root_dir = serverConfig["config"]["runningDir"]
+    root_dir: str = serverConfig["config"]["runningDir"]
 
-    template_dir = os.path.join(root_dir, 'flaskUI', 'templates')
-    static_dir = os.path.join(root_dir, 'flaskUI', 'assets')
-    
-    app = Flask(__name__, 
+    template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
+    static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
+
+    app = Flask(__name__,
                 template_folder=template_dir, 
                 static_url_path="/assets", 
                 static_folder=static_dir)
@@ -44,18 +44,18 @@ def create_app(serverConfig):
     def user_loader(email):
         if email not in serverConfig["config"]["users"]:
             return None
-        user = User()
+        user: User = User()
         user.id = email
         return user
 
     @login_manager.request_loader
     def request_loader(request):
         from werkzeug.security import check_password_hash
-        
-        email = request.form.get('email')
+
+        email: str = request.form.get('email')
         if email not in serverConfig["config"]["users"]:
             return None
-        user = User()
+        user: User = User()
         user.id = email
         logging.info(f"Authentication attempt for user: {email}")
         user.is_authenticated = check_password_hash(

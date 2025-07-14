@@ -11,7 +11,7 @@ class SystemService:
 
     def _get_all_thermostats_status(self) -> dict[str, Any]:
         """Get status of all thermostats from server config"""
-        thermostats_status = {}
+        thermostats_status: dict[str, Any] = {}
         thermostats: dict[str, Any] = configManager.serverConfig.yaml_config["thermostats"]
 
         for thermostat_id, thermostat in thermostats.items():

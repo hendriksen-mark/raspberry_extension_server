@@ -2,17 +2,18 @@
 DHT sensor related routes
 """
 import logManager
+from typing import Any
 import configManager
 from ServerObjects.dht_object import DHTObject
 
 logging = logManager.logger.get_logger(__name__)
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class DHTRoute():
     def get(self):
         dht: DHTObject = serverConfig["dht"]
-        pin = dht.get_pin()
+        pin: int = dht.get_pin()
         # If no pin is set at all, return default values
         if pin is None:
             logging.warning("DHT_PIN is not set, returning default values.")

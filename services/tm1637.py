@@ -4,24 +4,24 @@ try:
 except ImportError:
     from services.dummy_gpio import DummyGPIO as IO
 import threading
-from time import sleep, localtime
+from time import sleep
 # IO.setwarnings(False)
 IO.setmode(IO.BCM)
 
-HexDigits = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d,
+HexDigits: list[int] = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d,
              0x07, 0x7f, 0x6f, 0x77, 0x7c, 0x39, 0x5e, 0x79, 0x71]
 
-ADDR_AUTO = 0x40
-ADDR_FIXED = 0x44
-STARTADDR = 0xC0
+ADDR_AUTO: int = 0x40
+ADDR_FIXED: int = 0x44
+STARTADDR: int = 0xC0
 
 class TM1637:
-    __doublePoint = False
-    __Clkpin = 0
-    __Datapin = 0
-    __brightness = int()
+    __doublePoint: bool = False
+    __Clkpin: int = 0
+    __Datapin: int = 0
+    __brightness: int = 0
     #1.0  # default to max brightness
-    __currentData = [0, 0, 0, 0]
+    __currentData: list[int] = [0, 0, 0, 0]
 
     def __init__(self, CLK, DIO):
     #, brightness):
@@ -37,11 +37,11 @@ class TM1637:
         IO.cleanup()
 
     def Clear(self):
-        b = self.__brightness
-        point = self.__doublePoint
+        b: int = self.__brightness
+        point: bool = self.__doublePoint
         self.__brightness = 0
         self.__doublePoint = False
-        data = [0x7F, 0x7F, 0x7F, 0x7F]
+        data: list[int] = [0x7F, 0x7F, 0x7F, 0x7F]
         self.Show(data)
         # Restore previous settings:
         self.__brightness = b
@@ -63,8 +63,8 @@ class TM1637:
 
     def SetBrightness(self, percent):
         """Accepts percent brightness from 0 - 1"""
-        max_brightness = 7.0
-        brightness = math.ceil(max_brightness * percent)
+        max_brightness: float = 7.0
+        brightness: int = math.ceil(max_brightness * percent)
         if (brightness < 0):
             brightness = 0
         if(self.__brightness != brightness):
@@ -121,12 +121,12 @@ class TM1637:
 
     def coding(self, data):
         if(self.__doublePoint):
-            pointData = 0x80
+            pointData: int = 0x80
         else:
-            pointData = 0
+            pointData: int = 0
 
         if(data == 0x7F):
-            data = 0
+            data: int = 0
         else:
-            data = HexDigits[data] + pointData
+            data: int = HexDigits[data] + pointData
         return data

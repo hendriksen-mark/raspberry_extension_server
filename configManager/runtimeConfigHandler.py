@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import Any
 from configManager.argumentHandler import parse_arguments
 
 @dataclass
 class Config:
-    arg: Dict[str, Any] = field(default_factory=dict)
+    arg: dict[str, Any] = field(default_factory=dict)
 
     def populate(self) -> None:
         """

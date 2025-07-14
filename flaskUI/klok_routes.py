@@ -7,7 +7,7 @@ from ServerObjects.klok_object import KlokObject
 
 logging = logManager.logger.get_logger(__name__)
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class KlokRoute(Resource):
     def get(self, request_type: str, value: str = None) -> Any:
@@ -22,8 +22,8 @@ class KlokRoute(Resource):
         """
         # Get value from URL parameter or query string
         if value is None:
-            value = request.args.get("value")
-        
+            value: str = request.args.get("value")
+
         logging.info(f"Klok request: request_type={request_type}, value={value}")
         
         # Get the klok service (assuming it's a single service like DHT)
@@ -38,13 +38,13 @@ class KlokRoute(Resource):
             return {"status": "off"}, 200
             
         elif request_type == "status":
-            state = 1 if klok.power_state else 0
+            state: int = 1 if klok.power_state else 0
             return str(state), 200
             
         elif request_type == "Bri":
             if value is not None:
                 try:
-                    brightness_value = int(value)
+                    brightness_value: int = int(value)
                     klok.set_brightness(brightness_value)
                     return {"status": "done"}, 200
                 except ValueError:
@@ -53,7 +53,7 @@ class KlokRoute(Resource):
                 return {"error": "Brightness value is required"}, 400
                 
         elif request_type == "infoBri":
-            bri_percent = klok.get_brightness_percent()
+            bri_percent: int = klok.get_brightness_percent()
             return str(bri_percent), 200
             
         else:

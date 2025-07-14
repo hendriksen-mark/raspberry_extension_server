@@ -4,7 +4,7 @@ DHT sensor service for temperature and humidity monitoring
 from time import sleep
 from threading import Lock
 import logManager
-from typing import Dict, Any
+from typing import Any
 from ServerObjects.thermostat_object import ThermostatObject
 
 import configManager
@@ -26,7 +26,7 @@ except ImportError:
 class DHTObject:
     """DHT sensor service for reading temperature and humidity"""
     
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
         if self.sensor_type not in ["DHT22", "DHT11"]:
             logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
@@ -73,19 +73,19 @@ class DHTObject:
         while self.dht_pin is not None:
             try:
                 humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.dht_pin)
-                serverConfig = configManager.serverConfig.yaml_config
-                MIN_DHT_TEMP = self.MIN_DHT_TEMP
-                MAX_DHT_TEMP = self.MAX_DHT_TEMP
-                MIN_HUMIDITY = self.MIN_HUMIDITY
-                MAX_HUMIDITY = self.MAX_HUMIDITY
-                DHT_TEMP_CHANGE_THRESHOLD = self.DHT_TEMP_CHANGE_THRESHOLD
-                DHT_HUMIDITY_CHANGE_THRESHOLD = self.DHT_HUMIDITY_CHANGE_THRESHOLD
+                serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+                MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
+                MAX_DHT_TEMP: float = self.MAX_DHT_TEMP
+                MIN_HUMIDITY: float = self.MIN_HUMIDITY
+                MAX_HUMIDITY: float = self.MAX_HUMIDITY
+                DHT_TEMP_CHANGE_THRESHOLD: float = self.DHT_TEMP_CHANGE_THRESHOLD
+                DHT_HUMIDITY_CHANGE_THRESHOLD: float = self.DHT_HUMIDITY_CHANGE_THRESHOLD
                 logging.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
                 
                 with self.dht_lock:
                     # Only update if values are valid
                     if temperature is not None and MIN_DHT_TEMP < temperature < MAX_DHT_TEMP:
-                        rounded_temp = round(float(temperature), 1)
+                        rounded_temp: float = round(float(temperature), 1)
                         logged_info = False
                         if self.latest_temperature != rounded_temp:
                             self.latest_temperature = rounded_temp
@@ -106,7 +106,7 @@ class DHTObject:
                         logging.error("Temperature value not updated (None or out of range)")
 
                     if humidity is not None and MIN_HUMIDITY <= humidity <= MAX_HUMIDITY:
-                        rounded_humidity = round(float(humidity), 1)
+                        rounded_humidity: float = round(float(humidity), 1)
                         logged_info = False
                         if self.latest_humidity != rounded_humidity:
                             self.latest_humidity = rounded_humidity
@@ -129,7 +129,7 @@ class DHTObject:
             except Exception as e:
                 logging.error(f"Error reading DHT sensor: {e}")
 
-    def save(self) -> Dict[str, Any]:
+    def save(self) -> dict[str, Any]:
         """Save current DHT state to a dictionary"""
         return {
             "sensor_type": self.sensor_type,

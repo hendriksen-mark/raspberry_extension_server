@@ -8,7 +8,7 @@ import os
 import sys
 import logManager
 import subprocess
-from typing import Dict, Union
+from typing import Union
 
 logging = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
@@ -155,7 +155,7 @@ def restart() -> str:
     return "restart python with args"
 
 @core.route('/info')
-def info() -> Dict[str, str]:
+def info() -> dict[str, str]:
     """
     Get system information.
 
@@ -163,7 +163,7 @@ def info() -> Dict[str, str]:
         None
 
     Returns:
-        Dict[str, str]: The system information.
+        dict[str, str]: The system information.
     """
     uname = os.uname()
     return {

@@ -7,6 +7,7 @@ from threading import Thread
 import os
 import signal
 from typing import Any
+from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
 import configManager
@@ -14,16 +15,16 @@ import logManager
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 logging = logManager.logger.get_logger(__name__)
 werkzeug_logger = logManager.logger.get_logger("werkzeug")
 cherrypy_logger = logManager.logger.get_logger("cherrypy")
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 # Create app using factory pattern (diyHue style)
-app = create_app(serverConfig)
+app: Flask = create_app(serverConfig)
 
-def runHttp(BIND_IP, HOST_HTTP_PORT):
+def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def handle_exit(signum: int, frame: Any) -> None:
@@ -40,8 +41,8 @@ def setup_signal_handlers() -> None:
 
 def main():
     setup_signal_handlers()
-    BIND_IP = configManager.runtimeConfig.arg["BIND_IP"]
-    HOST_HTTP_PORT = configManager.runtimeConfig.arg["HTTP_PORT"]
+    BIND_IP: str = configManager.runtimeConfig.arg["BIND_IP"]
+    HOST_HTTP_PORT: int = configManager.runtimeConfig.arg["HTTP_PORT"]
     updateManager.startupCheck()
 
     Thread(target=stateFetch.syncWithThermostats_threaded).start()

@@ -13,8 +13,8 @@ LOG_FILE = str(serverConfig["config"]["runningDir"] + "/diyhue.log")
 
 class LogWebSocketHandler(WebSocket):
     def opened(self):
-        self._running = True
-        self._thread = threading.Thread(target=self.tail_log)
+        self._running: bool = True
+        self._thread: threading.Thread = threading.Thread(target=self.tail_log)
         self._thread.daemon = True
         self._thread.start()
 
@@ -26,7 +26,7 @@ class LogWebSocketHandler(WebSocket):
             with open(LOG_FILE) as f:
                 f.seek(0, 2)
                 while self._running:
-                    line = f.readline()
+                    line: str = f.readline()
                     if line:
                         try:
                             self.send(line)

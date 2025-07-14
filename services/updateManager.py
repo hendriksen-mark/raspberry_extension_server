@@ -1,12 +1,12 @@
 import requests
 import subprocess
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 
 import configManager
 import logManager
 
-serverConfig = configManager.serverConfig.yaml_config
+serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 logging = logManager.logger.get_logger(__name__)
 
 def githubCheck() -> None:
@@ -14,9 +14,9 @@ def githubCheck() -> None:
     Check for updates on GitHub for both the main diyHue repository and the UI repository.
     Update the bridge configuration based on the availability of updates.
     """
-    creation_time = get_file_creation_time("api.py")
-    publish_time = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_server/branches/master")
-    
+    creation_time: str = get_file_creation_time("api.py")
+    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_server/branches/master")
+
     logging.debug(f"creation_time diyHue : {creation_time}")
     logging.debug(f"publish_time  diyHue : {publish_time}")
 
@@ -40,9 +40,9 @@ def githubUICheck() -> bool:
     Returns:
         bool: True if there is a new update available, False otherwise.
     """
-    creation_time = get_file_creation_time("flaskUI/templates/index.html")
-    publish_time = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_serverUI/releases/latest")
-    
+    creation_time: str = get_file_creation_time("flaskUI/templates/index.html")
+    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_serverUI/releases/latest")
+
     logging.debug(f"creation_time UI : {creation_time}")
     logging.debug(f"publish_time  UI : {publish_time}")
 
@@ -59,8 +59,8 @@ def get_file_creation_time(filepath: str) -> str:
         str: The creation time of the file in the format "%Y-%m-%d %H".
     """
     try:
-        creation_time = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
-        creation_time_arg1 = creation_time.stdout.replace(".", " ").split(" ") if creation_time.stdout else "2999-01-01 01:01:01.000000000 +0100\n".replace(".", " ").split(" ")
+        creation_time: str = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
+        creation_time_arg1: list[str] = creation_time.stdout.replace(".", " ").split(" ") if creation_time.stdout else "2999-01-01 01:01:01.000000000 +0100\n".replace(".", " ").split(" ")
         return parse_creation_time(creation_time_arg1)
     except subprocess.SubprocessError as e:
         logging.error(f"Error getting file creation time: {e}")
@@ -77,9 +77,9 @@ def get_github_publish_time(url: str) -> str:
         str: The publish time in the format "%Y-%m-%d %H".
     """
     try:
-        response = requests.get(url)
+        response: requests.Response = requests.get(url)
         response.raise_for_status()
-        device_data = response.json()
+        device_data: dict[str, Any] = response.json()
         if "commit" in device_data:
             return datetime.strptime(device_data["commit"]["commit"]["author"]["date"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
         elif "published_at" in device_data:
@@ -100,10 +100,10 @@ def parse_creation_time(creation_time_arg1: List[str]) -> str:
     """
     try:
         if len(creation_time_arg1) < 4:
-            creation_time = f"{creation_time_arg1[0]} {creation_time_arg1[1]}".replace('\n', '')
+            creation_time: str = f"{creation_time_arg1[0]} {creation_time_arg1[1]}".replace('\n', '')
             return datetime.strptime(creation_time, "%Y-%m-%d %H:%M:%S").astimezone(timezone.utc).strftime("%Y-%m-%d %H")
         else:
-            creation_time = f"{creation_time_arg1[0]} {creation_time_arg1[1]} {creation_time_arg1[3]}".replace('\n', '')
+            creation_time: str = f"{creation_time_arg1[0]} {creation_time_arg1[1]} {creation_time_arg1[3]}".replace('\n', '')
             return datetime.strptime(creation_time, "%Y-%m-%d %H:%M:%S %z").astimezone(timezone.utc).strftime("%Y-%m-%d %H")
     except ValueError as e:
         logging.error(f"Error parsing creation time: {e}")
@@ -113,7 +113,7 @@ def update_swupdate2_timestamps() -> None:
     """
     Update the timestamps for the last change and last install in the bridge configuration.
     """
-    current_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    current_time: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     serverConfig["config"]["swupdate2"]["lastchange"] = current_time
     serverConfig["config"]["swupdate2"]["bridge"]["lastinstall"] = current_time
 
