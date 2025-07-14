@@ -5,7 +5,7 @@ from time import sleep
 from threading import Lock
 import logManager
 from typing import Dict, Any
-from ServerObjects.thermostat_service import ThermostatService
+from ServerObjects.thermostat_object import ThermostatObject
 
 import configManager
 
@@ -23,7 +23,7 @@ except ImportError:
     Adafruit_DHT = DummyDHT()
 
 
-class DHTService:
+class DHTObject:
     """DHT sensor service for reading temperature and humidity"""
     
     def __init__(self, data: Dict[str, Any]) -> None:
@@ -96,7 +96,7 @@ class DHTService:
                                 logging.info(f"Updated temperature: {self.latest_temperature}°C")
                                 self.last_logged_dht_temp = rounded_temp
                                 for thermostat in serverConfig["thermostats"].values():
-                                    thermostat: ThermostatService = thermostat
+                                    thermostat: ThermostatObject = thermostat
                                     thermostat.update_dht_related_status(temperature=rounded_temp)
                                 logged_info = True
                         
@@ -117,7 +117,7 @@ class DHTService:
                                 logging.info(f"Updated humidity: {self.latest_humidity}%")
                                 self.last_logged_dht_humidity = rounded_humidity
                                 for thermostat in serverConfig["thermostats"].values():
-                                    thermostat: ThermostatService = thermostat
+                                    thermostat: ThermostatObject = thermostat
                                     thermostat.update_dht_related_status(humidity=rounded_humidity)
                                 logged_info = True
                         

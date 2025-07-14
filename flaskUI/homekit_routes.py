@@ -9,7 +9,7 @@ import logManager
 import configManager
 
 from services.utils import validate_mac_address, format_mac, nextFreeId
-from ServerObjects.thermostat_service import ThermostatService
+from ServerObjects.thermostat_object import ThermostatObject
 
 logging = logManager.logger.get_logger(__name__)
 
@@ -20,12 +20,12 @@ def find_thermostat(mac: str) -> Any:
     Find thermostat by MAC address
     """
     for thermostat in serverConfig["thermostats"].values():
-        thermostat: ThermostatService = thermostat
+        thermostat: ThermostatObject = thermostat
         if thermostat.mac.lower() == mac.lower():
             return thermostat
     data = {"mac": mac}
     data["id"] = nextFreeId(serverConfig, "thermostats")
-    serverConfig["thermostats"][data["id"]] = ThermostatService(data)
+    serverConfig["thermostats"][data["id"]] = ThermostatObject(data)
     return serverConfig["thermostats"][data["id"]]
 
 class ThermostatRoute(Resource):
@@ -39,7 +39,7 @@ class ThermostatRoute(Resource):
         
         mac = format_mac(mac)
 
-        thermostat: ThermostatService = find_thermostat(mac)
+        thermostat: ThermostatObject = find_thermostat(mac)
         if not thermostat:
             return {"error": f"Thermostat with MAC {mac} not found"}, 404
         

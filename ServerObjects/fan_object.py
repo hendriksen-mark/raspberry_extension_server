@@ -31,7 +31,7 @@ from services.utils import get_pi_temp
 
 logging = logManager.logger.get_logger(__name__)
 
-class FanService:
+class FanObject:
     def __init__(self, data: Dict[str, Any]) -> None:
         self.id = data.get("id", None)
         self.gpio_pin = data.get("gpio_pin", 18)

@@ -12,7 +12,7 @@ import logManager
 logging = logManager.logger.get_logger(__name__)
 
 
-class ThermostatService:
+class ThermostatObject:
     """Service for managing thermostat operations"""
     
     def __init__(self, data: Dict[str, Any]) -> None:

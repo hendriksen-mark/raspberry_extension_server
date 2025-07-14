@@ -47,8 +47,8 @@ api/
 - Clean separation of initialization logic
 
 ### 4. **Service Layer**
-- `ThermostatService`: Manages all thermostat operations
-- `DHTService`: Handles DHT sensor reading
+- `ThermostatObject`: Manages all thermostat operations
+- `DHTObject`: Handles DHT sensor reading
 - Services are singleton instances for shared state
 
 ### 5. **Blueprint-based Routing**

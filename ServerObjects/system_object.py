@@ -3,7 +3,7 @@ from typing import Any
 class SystemService:
 
     def _get_dht_service(self):
-            from .dht_service import dht_service
+            from .dht_object import dht_service
             return dht_service
 
     def get_all_status(self) -> dict[str, Any]:

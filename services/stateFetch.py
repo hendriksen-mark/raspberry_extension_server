@@ -6,11 +6,11 @@ from eqiva_thermostat import EqivaException
 
 import configManager
 import logManager
-from ServerObjects.dht_service import DHTService
-from ServerObjects.thermostat_service import ThermostatService
-from ServerObjects.fan_service import FanService
-from ServerObjects.klok_service import KlokService
-from ServerObjects.powerbutton_service import PowerButtonService
+from ServerObjects.dht_object import DHTObject
+from ServerObjects.thermostat_object import ThermostatObject
+from ServerObjects.fan_object import FanObject
+from ServerObjects.klok_object import KlokObject
+from ServerObjects.powerbutton_object import PowerButtonObject
 
 logging = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
@@ -23,7 +23,7 @@ async def syncWithThermostats() -> None:
         logging.info("start thermostats sync")
         interval = serverConfig["config"]["thermostats"]["interval"]
         for thermostat in serverConfig["thermostats"].values():
-            thermostat: ThermostatService = thermostat
+            thermostat: ThermostatObject = thermostat
             try:
                 logging.debug("fetch " + thermostat.mac)
                 thermostat.poll_status()
@@ -77,7 +77,7 @@ async def disconnectThermostats() -> None:
     async def cleanup_all():
         tasks = []
         for thermostat in serverConfig["thermostats"].values():
-            thermostat: ThermostatService = thermostat
+            thermostat: ThermostatObject = thermostat
             try:
                 # Create a timeout wrapper for each disconnect
                 task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
@@ -113,7 +113,7 @@ def read_dht_temperature():
         interval = serverConfig["config"]["dht"]["interval"]
         try:
             for key, dht in serverConfig["dht"].items():
-                dht: DHTService = dht
+                dht: DHTObject = dht
                 logging.info(f"Reading DHT temperature for {key}...")
                 dht._read_dht_temperature()
         except Exception as e:
@@ -134,7 +134,7 @@ def run_fan_service():
         interval = serverConfig["config"]["fan"]["interval"]
         try:
             for fan in serverConfig["fan"].values():
-                fan: FanService = fan
+                fan: FanObject = fan
                 fan.run()
         except Exception as e:
             logging.error(f"Error in fan service: {e}")
@@ -153,7 +153,7 @@ def run_klok_service():
     while serverConfig["config"]["klok"]["enabled"]:
         try:
             for klok in serverConfig["klok"].values():
-                klok: KlokService = klok
+                klok: KlokObject = klok
                 klok.show()
         except Exception as e:
             logging.error(f"Error in klok service: {e}")
@@ -168,7 +168,7 @@ def run_powerbutton_service():
     while serverConfig["config"]["powerbutton"]["enabled"]:
         try:
             for powerbutton in serverConfig["powerbutton"].values():
-                powerbutton: PowerButtonService = powerbutton
+                powerbutton: PowerButtonObject = powerbutton
                 powerbutton.run()
         except Exception as e:
             logging.error(f"Error in power button service: {e}")

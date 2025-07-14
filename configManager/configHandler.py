@@ -5,11 +5,11 @@ import logManager
 import yaml
 from copy import deepcopy
 from typing import Any, Dict, Optional
-from ServerObjects.thermostat_service import ThermostatService
-from ServerObjects.dht_service import DHTService
-from ServerObjects.klok_service import KlokService
-from ServerObjects.fan_service import FanService
-from ServerObjects.powerbutton_service import PowerButtonService
+from ServerObjects.thermostat_object import ThermostatObject
+from ServerObjects.dht_object import DHTObject
+from ServerObjects.klok_object import KlokObject
+from ServerObjects.fan_object import FanObject
+from ServerObjects.powerbutton_object import PowerButtonObject
 
 logging = logManager.logger.get_logger(__name__)
 
@@ -126,7 +126,7 @@ class Config:
         thermostats = self._load_yaml_file("thermostats.yaml", {})
         for thermostat, data in thermostats.items():
             data["id"] = thermostat
-            self.yaml_config["thermostats"][thermostat] = ThermostatService(data)
+            self.yaml_config["thermostats"][thermostat] = ThermostatObject(data)
 
     def _load_dht(self) -> None:
         """
@@ -135,7 +135,7 @@ class Config:
         dht_data = self._load_yaml_file("dht.yaml", {})
         for key, value in dht_data.items():
             value["id"] = key
-            self.yaml_config["dht"][key] = DHTService(value)
+            self.yaml_config["dht"][key] = DHTObject(value)
 
     def _load_klok(self) -> None:
         """
@@ -144,7 +144,7 @@ class Config:
         klok_data = self._load_yaml_file("klok.yaml", {})
         for key, value in klok_data.items():
             value["id"] = key
-            self.yaml_config["klok"][key] = KlokService(value)
+            self.yaml_config["klok"][key] = KlokObject(value)
 
     def _load_fan(self) -> None:
         """
@@ -153,7 +153,7 @@ class Config:
         fan_data = self._load_yaml_file("fan.yaml", {})
         for key, value in fan_data.items():
             value["id"] = key
-            self.yaml_config["fan"][key] = FanService(value)
+            self.yaml_config["fan"][key] = FanObject(value)
     
     def _load_powerbutton(self) -> None:
         """
@@ -162,7 +162,7 @@ class Config:
         powerbutton_data = self._load_yaml_file("powerbutton.yaml", {})
         for key, value in powerbutton_data.items():
             value["id"] = key
-            self.yaml_config["powerbutton"][key] = PowerButtonService(value)
+            self.yaml_config["powerbutton"][key] = PowerButtonObject(value)
 
     def load_config(self) -> None:
         """

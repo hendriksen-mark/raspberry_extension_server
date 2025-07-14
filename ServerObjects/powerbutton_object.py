@@ -47,7 +47,7 @@ from threading import Event
 
 logging = logManager.logger.get_logger(__name__)
 
-class PowerButtonService:
+class PowerButtonObject:
     def __init__(self, data: Dict[str, Any]) -> None:
         self.id = data.get("id", None)
         self.button_pin = data.get("button_pin", 3)  # Default GPIO pin for the button

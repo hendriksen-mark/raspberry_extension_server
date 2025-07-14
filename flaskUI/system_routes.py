@@ -11,7 +11,7 @@ import logManager
 import configManager
 from services.utils import get_pi_temp
 from .dht_routes import DHTRoute
-from ServerObjects.dht_service import DHTService
+from ServerObjects.dht_object import DHTObject
 from services.updateManager import githubCheck, githubInstall
 
 logging = logManager.logger.get_logger(__name__)
@@ -77,7 +77,7 @@ class SystemRoute(Resource):
 
 def health_check() -> Any:
     """Health check endpoint"""
-    dht: DHTService = serverConfig["dht"]
+    dht: DHTObject = serverConfig["dht"]
     temp, humidity = dht.get_data()
 
     return {

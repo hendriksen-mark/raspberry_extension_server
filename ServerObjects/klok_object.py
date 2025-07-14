@@ -5,7 +5,7 @@ from services.tm1637 import TM1637
 
 logging = logManager.logger.get_logger(__name__)
 
-class KlokService:
+class KlokObject:
     def __init__(self, data: Dict[str, Any]) -> None:
         self.id = data.get("id", None)
         self.CLK_pin = data.get("CLK_pin", 24)
