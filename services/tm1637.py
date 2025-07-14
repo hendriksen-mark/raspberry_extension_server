@@ -2,49 +2,9 @@ import math
 try:
     import RPi.GPIO as IO  # type: ignore
 except ImportError:
-    class DummyGPIO:
-        BCM = "BCM"
-        OUT = "OUT"
-        IN = "IN"
-        HIGH = 1
-        LOW = 0
-        
-        @staticmethod
-        def setwarnings(state):
-            """Dummy setwarnings"""
-            pass
-        
-        @staticmethod
-        def setmode(mode):
-            """Dummy setmode"""
-            pass
-        
-        @staticmethod
-        def setup(pin, mode):
-            """Dummy setup"""
-            pass
-        
-        @staticmethod
-        def output(pin, state):
-            """Dummy output"""
-            pass
-        
-        @staticmethod
-        def input(pin):
-            """Dummy input"""
-            return 0
-        
-        @staticmethod
-        def cleanup():
-            """Dummy cleanup"""
-            pass
-    
-    IO = DummyGPIO()
-
+    from services.dummy_gpio import DummyGPIO as IO
 import threading
 from time import sleep, localtime
-# from tqdm import tqdm
-
 # IO.setwarnings(False)
 IO.setmode(IO.BCM)
 
@@ -54,8 +14,6 @@ HexDigits = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d,
 ADDR_AUTO = 0x40
 ADDR_FIXED = 0x44
 STARTADDR = 0xC0
-# DEBUG = False
-
 
 class TM1637:
     __doublePoint = False
@@ -90,12 +48,6 @@ class TM1637:
         self.__brightness = b
         self.__doublePoint = point
 
-    def ShowInt(self, i):
-        s = str(i)
-        self.Clear()
-        for i in range(0, len(s)):
-            self.Show1(i, int(s[i]))
-
     def Show(self, data):
         for i in range(0, 4):
             self.__currentData[i] = data[i]
@@ -106,22 +58,6 @@ class TM1637:
         self.writeByte(STARTADDR)
         for i in range(0, 4):
             self.writeByte(self.coding(data[i]))
-        self.br()
-        self.writeByte(0x88 + int(self.__brightness))
-        self.stop()
-
-    def Show1(self, DigitNumber, data):
-        """show one Digit (number 0...3)"""
-        if(DigitNumber < 0 or DigitNumber > 3):
-            return  # error
-
-        self.__currentData[DigitNumber] = data
-
-        self.start()
-        self.writeByte(ADDR_FIXED)
-        self.br()
-        self.writeByte(STARTADDR | DigitNumber)
-        self.writeByte(self.coding(data))
         self.br()
         self.writeByte(0x88 + int(self.__brightness))
         self.stop()
@@ -196,77 +132,9 @@ class TM1637:
             data = HexDigits[data] + pointData
         return data
 
-    def clock(self, military_time):
-        """Clock script modified from:
-            https://github.com/johnlr/raspberrypi-tm1637"""
-        self.ShowDoublepoint(True)
-        while (not self.__stop_event.is_set()):
-            t = localtime()
-            hour = t.tm_hour
-            if not military_time:
-                hour = 12 if (t.tm_hour % 12) == 0 else t.tm_hour % 12
-            d0 = hour // 10 if hour // 10 else 0
-            d1 = hour % 10
-            d2 = t.tm_min // 10
-            d3 = t.tm_min % 10
-            digits = [d0, d1, d2, d3]
-            self.Show(digits)
-            # # Optional visual feedback of running alarm:
-            # print digits
-            # for i in tqdm(range(60 - t.tm_sec)):
-            for i in range(60 - t.tm_sec):
-                if (not self.__stop_event.is_set()):
-                    sleep(1)
-
-    def StartClock(self, military_time=True):
-        # Stop event based on: http://stackoverflow.com/a/6524542/3219667
-        self.__stop_event = threading.Event()
-        self.__clock_thread = threading.Thread(
-            target=self.clock, args=(military_time,))
-        self.__clock_thread.start()
-
     def StopClock(self):
         try:
             print ('Attempting to stop live clock')
             self.__stop_event.set()
         except:
             print ('No clock to close')
-
-
-if __name__ == "__main__":
-    """Confirm the display operation"""
-    display = TM1637(CLK=21, DIO=20)  # removed brightness argument
-
-    display.Clear()
-
-    digits = [1, 2, 3, 4]
-    display.Show(digits)
-    print ("1234  - Working? (Press Key)")
-    scrap = input()  # changed from raw_input to input
-
-    print ("Updating one digit at a time:")
-    display.Clear()
-    display.Show1(1, 3)
-    sleep(0.5)
-    display.Show1(2, 2)
-    sleep(0.5)
-    display.Show1(3, 1)
-    sleep(0.5)
-    display.Show1(0, 4)
-    print ("4321  - (Press Key)")
-    scrap = input()  # changed from raw_input to input
-
-    print ("Add double point\n")
-    display.ShowDoublepoint(True)
-    sleep(0.2)
-    print ("Brightness Off")
-    display.SetBrightness(0)
-    sleep(0.5)
-    print ("Full Brightness")
-    display.SetBrightness(1)
-    sleep(0.5)
-    print ("30% Brightness")
-    display.SetBrightness(0.3)
-    sleep(0.3)
-
-    # See clock.py for how to use the clock functions!

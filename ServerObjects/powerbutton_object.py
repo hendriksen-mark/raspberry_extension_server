@@ -1,44 +1,7 @@
 try:
     import RPi.GPIO as IO  # type: ignore
 except ImportError:
-    class DummyGPIO:
-        BCM = "BCM"
-        OUT = "OUT"
-        IN = "IN"
-        HIGH = 1
-        LOW = 0
-        
-        @staticmethod
-        def setwarnings(state):
-            """Dummy setwarnings"""
-            pass
-        
-        @staticmethod
-        def setmode(mode):
-            """Dummy setmode"""
-            pass
-        
-        @staticmethod
-        def setup(pin, mode):
-            """Dummy setup"""
-            pass
-        
-        @staticmethod
-        def output(pin, state):
-            """Dummy output"""
-            pass
-        
-        @staticmethod
-        def input(pin):
-            """Dummy input"""
-            return 0
-        
-        @staticmethod
-        def cleanup():
-            """Dummy cleanup"""
-            pass
-    
-    IO = DummyGPIO()
+    from services.dummy_gpio import DummyGPIO as IO  # Import a dummy GPIO class for testing
 import time
 import subprocess
 from typing import Dict, Any
@@ -49,7 +12,6 @@ logging = logManager.logger.get_logger(__name__)
 
 class PowerButtonObject:
     def __init__(self, data: Dict[str, Any]) -> None:
-        self.id = data.get("id", None)
         self.button_pin = data.get("button_pin", 3)  # Default GPIO pin for the button
         self.long_press_duration = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
         self.debounce_time = data.get("debounce_time", 0.05)  # Default debounce time in seconds
@@ -134,3 +96,11 @@ class PowerButtonObject:
             logging.error(f"Error in main loop: {e}")
         finally:
             self.cleanup()
+
+    def save(self) -> Dict[str, Any]:
+        """Save the power button configuration"""
+        return {
+            "button_pin": self.button_pin,
+            "long_press_duration": self.long_press_duration,
+            "debounce_time": self.debounce_time
+        }

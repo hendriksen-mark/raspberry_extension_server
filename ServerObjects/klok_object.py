@@ -7,7 +7,6 @@ logging = logManager.logger.get_logger(__name__)
 
 class KlokObject:
     def __init__(self, data: Dict[str, Any]) -> None:
-        self.id = data.get("id", None)
         self.CLK_pin = data.get("CLK_pin", 24)
         self.DIO_pin = data.get("DIO_pin", 23)  # GPIO pin for the fan
         self.brightness = data.get("brightness", 0.0)  # Default brightness
@@ -52,6 +51,18 @@ class KlokObject:
             self.last_doublepoint = self.doublepoint
 
         self.doublepoint = not self.doublepoint
+
+    def toggle_power(self):
+        """Toggle the power state"""
+        self.power_state = not self.power_state
+
+    def set_power(self, state: bool):
+        """Set the power state"""
+        self.power_state = state
+
+    def get_brightness_percent(self) -> int:
+        """Get brightness as percentage"""
+        return int(self.brightness * 100)
 
     def save(self) -> Dict[str, Any]:
         """Save the klok service configuration"""

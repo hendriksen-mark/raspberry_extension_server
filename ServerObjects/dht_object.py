@@ -27,7 +27,6 @@ class DHTObject:
     """DHT sensor service for reading temperature and humidity"""
     
     def __init__(self, data: Dict[str, Any]) -> None:
-        self.id: str = data.get("id", 1)
         self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
         if self.sensor_type not in ["DHT22", "DHT11"]:
             logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")

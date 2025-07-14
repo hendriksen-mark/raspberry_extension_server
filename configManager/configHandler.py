@@ -133,36 +133,28 @@ class Config:
         Load DHT sensor configuration from the YAML file.
         """
         dht_data = self._load_yaml_file("dht.yaml", {})
-        for key, value in dht_data.items():
-            value["id"] = key
-            self.yaml_config["dht"][key] = DHTObject(value)
+        self.yaml_config["dht"] = DHTObject(dht_data)
 
     def _load_klok(self) -> None:
         """
         Load klok configuration from the YAML file.
         """
         klok_data = self._load_yaml_file("klok.yaml", {})
-        for key, value in klok_data.items():
-            value["id"] = key
-            self.yaml_config["klok"][key] = KlokObject(value)
+        self.yaml_config["klok"] = KlokObject(klok_data)
 
     def _load_fan(self) -> None:
         """
         Load fan configuration from the YAML file.
         """
         fan_data = self._load_yaml_file("fan.yaml", {})
-        for key, value in fan_data.items():
-            value["id"] = key
-            self.yaml_config["fan"][key] = FanObject(value)
+        self.yaml_config["fan"] = FanObject(fan_data)
     
     def _load_powerbutton(self) -> None:
         """
         Load power button configuration from the YAML file.
         """
         powerbutton_data = self._load_yaml_file("powerbutton.yaml", {})
-        for key, value in powerbutton_data.items():
-            value["id"] = key
-            self.yaml_config["powerbutton"][key] = PowerButtonObject(value)
+        self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
 
     def load_config(self) -> None:
         """
@@ -178,6 +170,9 @@ class Config:
 
             self._load_thermostats()
             self._load_dht()
+            self._load_klok()
+            self._load_fan()
+            self._load_powerbutton()
 
             logging.info("Config loaded")
         except Exception:
@@ -212,11 +207,21 @@ class Config:
         for object in saveResources:
             filePath = path + object + ".yaml"
             dumpDict = {}
-            for element in self.yaml_config[object]:
-                if element != "0":
-                    savedData = self.yaml_config[object][element].save()
+            
+            # Handle single service objects (not dictionaries)
+            if object in ["dht", "klok", "fan", "powerbutton"]:
+                if hasattr(self.yaml_config[object], 'save'):
+                    savedData = self.yaml_config[object].save()
                     if savedData:
-                        dumpDict[self.yaml_config[object][element].id] = savedData
+                        dumpDict = savedData
+            elif object in ["thermostats"]:
+                # Handle other objects that are dictionaries (like thermostats)
+                for element in self.yaml_config[object]:
+                    if element != "0":
+                        savedData = self.yaml_config[object][element].save()
+                        if savedData:
+                            dumpDict[self.yaml_config[object][element].id] = savedData
+            
             _write_yaml(filePath, dumpDict)
             logging.debug("Dump config file " + filePath)
 
