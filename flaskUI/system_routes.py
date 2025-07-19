@@ -55,25 +55,36 @@ class SystemRoute(Resource):
         
         elif resource == "health":
             return health_check()
+
+        elif resource == "config":
+            response = {
+                "config": serverConfig["config"],
+                "dht": serverConfig["dht"].save(),
+                "thermostats": {key: obj.save() for key, obj in serverConfig["thermostats"].items()},
+                "klok": serverConfig.get("klok", {}).save() if "klok" in serverConfig else None,
+                "fan": serverConfig.get("fan", {}).save() if "fan" in serverConfig else None,
+                "powerbutton": serverConfig.get("powerbutton", {}).save() if "powerbutton" in serverConfig else None
+            }
+            return response, 200
         else:
             return {"error": "Resource not found"}, 404
         
     def put(self, resource: str) -> Any:
-            putDict: dict[str, Any] = request.get_json(force=True)
-            if resource == "config":
-                if "swupdate2" in putDict:
-                    if "checkforupdate" in putDict["swupdate2"] and putDict["swupdate2"]["checkforupdate"] == True:
-                        githubCheck()
-                    if "install" in putDict["swupdate2"] and putDict["swupdate2"]["install"] == True:
-                        githubInstall()
-                if "users" in putDict:
-                    for key, value in putDict["users"].items():
-                        for email, hash in serverConfig["config"]["users"].items():
-                            if putDict["users"][key] == serverConfig["config"]["users"][email]:
-                                serverConfig["config"]["users"][email]["password"] = generate_password_hash(str(value['password']))
-                if "loglevel" in putDict:
-                    logManager.logger.configure_logger(putDict["loglevel"])
-                    logging.info("Change log level to: " + str(logManager.logger.get_level_name()))
+        putDict: dict[str, Any] = request.get_json(force=True)
+        if resource == "config":
+            if "swupdate2" in putDict:
+                if "checkforupdate" in putDict["swupdate2"] and putDict["swupdate2"]["checkforupdate"] == True:
+                    githubCheck()
+                if "install" in putDict["swupdate2"] and putDict["swupdate2"]["install"] == True:
+                    githubInstall()
+            if "users" in putDict:
+                for key, value in putDict["users"].items():
+                    for email, hash in serverConfig["config"]["users"].items():
+                        if putDict["users"][key] == serverConfig["config"]["users"][email]:
+                            serverConfig["config"]["users"][email]["password"] = generate_password_hash(str(value['password']))
+            if "loglevel" in putDict:
+                logManager.logger.configure_logger(putDict["loglevel"])
+                logging.info("Change log level to: " + str(logManager.logger.get_level_name()))
 
 def health_check() -> tuple[dict[str, Any], int]:
     """Health check endpoint"""
