@@ -39,7 +39,7 @@ def create_thermostat(mac: str, postDict: dict[str, Any] = None) -> ThermostatOb
 
 class ThermostatRoute(Resource):
     @async_route
-    async def get(self, mac, resource = None) -> tuple[dict[str, Any], int]:
+    async def get(self, mac, resource = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for thermostat resources
         URL: /MAC_ADDRESS/ or /MAC_ADDRESS/resource
@@ -71,7 +71,10 @@ class ThermostatRoute(Resource):
         
 
         elif resource == 'targetTemperature':
-            temp_value: str = request.args.get('value')
+            if value is None:
+                temp_value: str = request.args.get('value')
+            else:
+                temp_value: str = value
             if not temp_value:
                 return {"error": "Temperature value is required as 'value' parameter"}, 400
             
@@ -98,7 +101,10 @@ class ThermostatRoute(Resource):
             
     
         elif resource == 'targetHeatingCoolingState':
-            mode_value: str = request.args.get('value')
+            if value is None:
+                mode_value: str = request.args.get('value')
+            else:
+                mode_value: str = value
             if not mode_value:
                 return {"error": "Mode value is required as 'value' parameter"}, 400
             

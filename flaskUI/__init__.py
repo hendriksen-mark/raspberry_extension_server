@@ -79,20 +79,21 @@ def create_app(serverConfig) -> Flask:
     
     # Register routes with both optional and required resource patterns
     api.add_resource(SystemRoute,       '/system/',
-                                        '/system/<string:resource>',                strict_slashes=False)
+                                        '/system/<string:resource>',                        strict_slashes=False)
     api.add_resource(DHTRoute,          '/dht/',
-                                        '/dht/<string:resource>',                   strict_slashes=False)
+                                        '/dht/<string:resource>',                           strict_slashes=False)
     api.add_resource(ThermostatRoute,   '/<string:mac>/',
-                                        '/<string:mac>/<string:resource>',          strict_slashes=False)
+                                        '/<string:mac>/<string:resource>',
+                                        '/<string:mac>/<string:resource>/<string:value>',   strict_slashes=False)
     api.add_resource(KlokRoute,         '/klok/',
                                         '/klok/<string:resource>',
-                                        '/klok/<string:resource>/<string:value>',   strict_slashes=False)
+                                        '/klok/<string:resource>/<string:value>',           strict_slashes=False)
     api.add_resource(ConfigRoute,       '/config/',
-                                        '/config/<string:resource>',                strict_slashes=False)
+                                        '/config/<string:resource>',                        strict_slashes=False)
     api.add_resource(FanRoute,          '/fan/',
-                                        '/fan/<string:resource>',                   strict_slashes=False)  # Uncomment if FanRoute is implemented
+                                        '/fan/<string:resource>',                           strict_slashes=False)  # Uncomment if FanRoute is implemented
     api.add_resource(PowerButtonRoute,  '/powerbutton/',
-                                        '/powerbutton/<string:resource>',           strict_slashes=False)  # Uncomment if PowerButtonRoute is implemented
+                                        '/powerbutton/<string:resource>',                   strict_slashes=False)  # Uncomment if PowerButtonRoute is implemented
 
     # Register web interface blueprints
     from flaskUI.core.views import core
