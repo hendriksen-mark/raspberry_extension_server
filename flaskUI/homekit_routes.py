@@ -51,8 +51,18 @@ class ThermostatRoute(Resource):
 
         thermostat: ThermostatObject = find_thermostat(mac)
         if not thermostat:
-            logger.error(f"Thermostat with MAC {mac} not found")
-            return {"error": f"Thermostat with MAC {mac} not found"}, 404
+            logger.info(f"Thermostat with MAC {mac} not found, creating a new one")
+            try:
+                thermostat = create_thermostat(mac)
+                serverConfig["thermostats"][thermostat.id] = thermostat
+                logger.info(f"Created new thermostat with MAC {mac}: {thermostat.save()}")
+                configManager.serverConfig.save_config(backup=False, resource="thermostats")
+            except ValueError as e:
+                logger.error(f"Failed to create thermostat: {e}")
+                return {"error": str(e)}, 400
+            except Exception as e:
+                logger.error(f"Failed to save configuration: {e}")
+                return {"error": "Failed to save configuration"}, 500
 
         # If no resource specified, return available endpoints for this thermostat
         if resource is None:
