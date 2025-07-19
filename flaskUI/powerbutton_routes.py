@@ -1,5 +1,6 @@
 import logging
 from flask import request
+from flask_restful import Resource
 import logManager
 from typing import Any
 import configManager
@@ -23,7 +24,7 @@ def create_powerbutton(postDict: dict[str, Any] = {}) -> PowerButtonObject:
         logger.warning("No POST data provided, creating default powerbutton object")
     return PowerButtonObject(postDict)
 
-class PowerButtonRoute:
+class PowerButtonRoute(Resource):
     def get(self, resource: str) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for powerbutton resources

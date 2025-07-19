@@ -1,5 +1,6 @@
 import logging
 from flask import request
+from flask_restful import Resource
 import logManager
 from typing import Any
 import configManager
@@ -23,7 +24,7 @@ def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
         logger.warning("No POST data provided, creating default fan object")
     return FanObject(postDict)
 
-class FanRoute:
+class FanRoute(Resource):
     def get(self, resource: str) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources

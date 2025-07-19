@@ -3,6 +3,7 @@ DHT sensor related routes
 """
 import logging
 from flask import request
+from flask_restful import Resource
 import logManager
 from typing import Any
 import configManager
@@ -36,7 +37,7 @@ def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
             "warning": warning_message
         }, 200
 
-class DHTRoute():
+class DHTRoute(Resource):
     def get(self, resource: str) -> tuple[dict[str, Any], int]:
         """
             Handle GET requests for DHT sensor data
