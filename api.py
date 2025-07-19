@@ -25,15 +25,25 @@ WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app: Flask = create_app(serverConfig)
 
 def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
-    logger.debug(f"Starting Flask server on {BIND_IP}:{HOST_HTTP_PORT}")
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
     logger.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
+    
+    # Stop all services immediately using threading events
+    stateFetch.stop_all_services()
+    
+    # Clean up specific services
     stateFetch.disconnectThermostats()
+    scheduler.stop_scheduler()
+    LogWS.stop_ws_server()
+    
+    # Give threads a moment to exit gracefully
+    import time
+    time.sleep(2)
+    
     os._exit(0)
-
 
 def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown"""
@@ -41,18 +51,27 @@ def setup_signal_handlers() -> None:
     signal.signal(signal.SIGINT, handle_exit)
 
 def main():
-    setup_signal_handlers()
-    BIND_IP: str = configManager.runtimeConfig.arg["BIND_IP"]
-    HOST_HTTP_PORT: int = configManager.runtimeConfig.arg["HTTP_PORT"]
-    updateManager.startupCheck()
+    try:
+        setup_signal_handlers()
+        BIND_IP: str = configManager.runtimeConfig.arg["BIND_IP"]
+        HOST_HTTP_PORT: int = configManager.runtimeConfig.arg["HTTP_PORT"]
+        updateManager.startupCheck()
 
-    Thread(target=stateFetch.syncWithThermostats_threaded).start()
-    Thread(target=stateFetch.read_dht_temperature).start()
-    Thread(target=stateFetch.run_fan_service).start()
-    Thread(target=stateFetch.run_klok_service).start()
-    Thread(target=scheduler.runScheduler).start()
-    Thread(target=LogWS.start_ws_server).start()
-    runHttp(BIND_IP, HOST_HTTP_PORT)
+        Thread(target=stateFetch.syncWithThermostats_threaded).start()
+        Thread(target=stateFetch.run_dht_service).start()
+        Thread(target=stateFetch.run_fan_service).start()
+        Thread(target=stateFetch.run_klok_service).start()
+        Thread(target=scheduler.runScheduler).start()
+        Thread(target=LogWS.start_ws_server).start()
+        runHttp(BIND_IP, HOST_HTTP_PORT)
+    except KeyboardInterrupt:
+        logger.info("Received KeyboardInterrupt, shutting down gracefully...")
+        handle_exit(signal.SIGINT, None)
+    except Exception as e:
+        logger.error(f"Unexpected error occurred: {e}")
+        handle_exit(signal.SIGTERM, None)
+    finally:
+        logger.info("Application shutdown complete.")
 
 if __name__ == '__main__':
     main()

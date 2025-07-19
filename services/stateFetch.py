@@ -1,7 +1,7 @@
-from time import sleep
 from aioesphomeapi import Any
 from bleak import BleakError
 import asyncio
+import threading
 
 from eqiva_thermostat import EqivaException
 
@@ -17,40 +17,52 @@ from ServerObjects.powerbutton_object import PowerButtonObject
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
+# Global shutdown events for immediate thread termination
+_shutdown_event = threading.Event()
+_thermostat_shutdown = threading.Event()
+_dht_shutdown = threading.Event()
+_fan_shutdown = threading.Event()
+_klok_shutdown = threading.Event()
+_powerbutton_shutdown = threading.Event()
+
 async def syncWithThermostats() -> None:
     """
     Synchronize the state of the thermostats with their actual state.
     """
-    while serverConfig["config"]["thermostats"]["enabled"]:
-        logger.info("start thermostats sync")
-        interval: int = serverConfig["config"]["thermostats"]["interval"]
-        for thermostat in serverConfig["thermostats"].values():
-            thermostat: ThermostatObject = thermostat
-            try:
-                logger.debug("fetch " + thermostat.mac)
-                thermostat.poll_status()
-                thermostat.failed_connection = False
-            except BleakError as e:
-                logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
-                thermostat.failed_connection = True
-                raise
-            except EqivaException as e:
-                logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
-                thermostat.failed_connection = True
-                pass
-            finally:
+    while True:
+        while serverConfig["config"]["thermostats"]["enabled"] and not _thermostat_shutdown.is_set():
+            logger.info("start thermostats sync")
+            interval: int = serverConfig["config"]["thermostats"]["interval"]
+            for thermostat in serverConfig["thermostats"].values():
+                thermostat: ThermostatObject = thermostat
                 try:
-                    await thermostat.safe_disconnect()
-                    logger.debug(f"Polling: Disconnected from {thermostat.mac}")
-                except Exception as e:
-                    logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
-            break
+                    logger.debug("fetch " + thermostat.mac)
+                    thermostat.poll_status()
+                    thermostat.failed_connection = False
+                except BleakError as e:
+                    logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
+                    thermostat.failed_connection = True
+                    raise
+                except EqivaException as e:
+                    logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
+                    thermostat.failed_connection = True
+                    pass
+                finally:
+                    try:
+                        await thermostat.safe_disconnect()
+                        logger.debug(f"Polling: Disconnected from {thermostat.mac}")
+                    except Exception as e:
+                        logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
+                break
 
-        sleep(10)  # wait at least 10 seconds before next sync
-        i = 0
-        while i < (interval - 10 if interval > 10 else 0):  # sync every x seconds
-            i += 1
-            sleep(1)
+            # Use asyncio.sleep with periodic checks for immediate shutdown
+            sleep_time: float = max(10, interval)
+            sleep_interval: float = 0.5  # Check every 0.5 seconds
+            elapsed: float = 0
+            
+            while elapsed < sleep_time and not _thermostat_shutdown.is_set():
+                await asyncio.sleep(min(sleep_interval, sleep_time - elapsed))
+                elapsed += sleep_interval
 
 
 def syncWithThermostats_threaded() -> None:
@@ -69,7 +81,7 @@ def syncWithThermostats_threaded() -> None:
         except Exception as e:
             logger.error(f"Error closing sync loop: {e}")
 
-async def disconnectThermostats() -> None:
+def disconnectThermostats() -> None:
     """
     Disconnect all thermostats.
     """
@@ -106,69 +118,148 @@ async def disconnectThermostats() -> None:
     
     logger.info("Cleanup: All thermostats disconnected.")
 
-def read_dht_temperature() -> None:
+def run_dht_service() -> None:
     """
     Placeholder for DHT temperature reading logic.
     This function should be implemented to read from the DHT sensor.
     """
-    while serverConfig["config"]["dht"]["enabled"]:
-        interval: int = serverConfig["config"]["dht"]["interval"]
-        try:
-            dht: DHTObject = serverConfig["dht"]
-            logger.info(f"Reading DHT temperature...")
-            dht._read_dht_temperature()
-        except Exception as e:
-            logger.error(f"Error reading DHT temperature: {e}")
-        finally:
-            sleep(5)
-        i = 0
-        while i < (interval - 5 if interval > 5 else 0):  # sync every x seconds
-            i += 1
-            sleep(1)
+    while True:
+        while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set():
+            interval: int = serverConfig["config"]["dht"]["interval"]
+            logger.debug(f"Reading DHT temperature every {interval} seconds")
+            try:
+                dht: DHTObject = serverConfig["dht"]
+                if dht:
+                    dht._read_dht_temperature()
+            except Exception as e:
+                logger.error(f"Error reading DHT temperature: {e}")
+            
+            # Use event.wait() instead of sleep loops for immediate shutdown
+            if _dht_shutdown.wait(timeout=max(5, interval)):
+                # Event was set - shutdown requested
+                break
 
 def run_fan_service() -> None:
     """
     Placeholder for fan service logic.
     This function should be implemented to control the fan based on temperature.
     """
-    while serverConfig["config"]["fan"]["enabled"]:
-        interval: int = serverConfig["config"]["fan"]["interval"]
-        try:
-            fan: FanObject = serverConfig["fan"]
-            fan.run()
-        except Exception as e:
-            logger.error(f"Error in fan service: {e}")
-        finally:
-            sleep(5)
-        i = 0
-        while i < (interval - 5 if interval > 5 else 0):  # sync every x seconds
-            i += 1
-            sleep(1)
+    while True:
+        while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set():
+            interval: int = serverConfig["config"]["fan"]["interval"]
+            try:
+                fan: FanObject = serverConfig["fan"]
+                if fan:
+                    fan.run()
+            except Exception as e:
+                logger.error(f"Error in fan service: {e}")
+            
+            # Use event.wait() instead of sleep loops for immediate shutdown
+            if _fan_shutdown.wait(timeout=max(5, interval)):
+                # Event was set - shutdown requested
+                break
+
+def stop_fan_service() -> None:
+    """
+    Stop the fan service.
+    This function should be implemented to clean up fan resources.
+    """
+    _fan_shutdown.set()  # Signal immediate shutdown
+    try:
+        fan: FanObject = serverConfig["fan"]
+        if fan:
+            fan.cleanup()
+            logger.info("Fan service stopped successfully.")
+    except Exception as e:
+        logger.error(f"Error stopping fan service: {e}")
 
 def run_klok_service() -> None:
     """
     Placeholder for klok service logic.
     This function should be implemented to update the klok display.
     """
-    while serverConfig["config"]["klok"]["enabled"]:
-        try:
-            klok: KlokObject = serverConfig["klok"]
-            klok.show()
-        except Exception as e:
-            logger.error(f"Error in klok service: {e}")
-        finally:
-            sleep(0.5)
+    while True:
+        while serverConfig["config"]["klok"]["enabled"] and not _klok_shutdown.is_set():
+            try:
+                klok: KlokObject = serverConfig["klok"]
+                if klok:
+                    klok.show()
+            except Exception as e:
+                logger.error(f"Error in klok service: {e}")
+            
+            # Use event.wait() instead of sleep for immediate shutdown
+            if _klok_shutdown.wait(timeout=0.5):
+                # Event was set - shutdown requested
+                break
+
+def stop_klok_service() -> None:
+    """
+    Stop the klok service.
+    This function should be implemented to clean up klok resources.
+    """
+    _klok_shutdown.set()  # Signal immediate shutdown
+    try:
+        klok: KlokObject = serverConfig["klok"]
+        if klok:
+            klok.display.cleanup()
+            logger.info("Klok service stopped successfully.")
+    except Exception as e:
+        logger.error(f"Error stopping klok service: {e}")
 
 def run_powerbutton_service() -> None:
     """
     Placeholder for power button service logic.
     This function should be implemented to handle power button events.
     """
-    while serverConfig["config"]["powerbutton"]["enabled"]:
+    while serverConfig["config"]["powerbutton"]["enabled"] and not _powerbutton_shutdown.is_set():
         try:
             powerbutton: PowerButtonObject = serverConfig["powerbutton"]
-            powerbutton.run()
+            if powerbutton:
+                powerbutton.run()
         except Exception as e:
             logger.error(f"Error in power button service: {e}")
-        finally:
-            sleep(0.1)
+        
+        # Use event.wait() instead of sleep for immediate shutdown
+        if _powerbutton_shutdown.wait(timeout=0.1):
+            # Event was set - shutdown requested
+            break
+
+def stop_powerbutton_service() -> None:
+    """
+    Stop the power button service.
+    This function should be implemented to clean up power button resources.
+    """
+    _powerbutton_shutdown.set()  # Signal immediate shutdown
+    try:
+        powerbutton: PowerButtonObject = serverConfig["powerbutton"]
+        if powerbutton:
+            powerbutton.cleanup()
+            logger.info("Power button service stopped successfully.")
+    except Exception as e:
+        logger.error(f"Error stopping power button service: {e}")
+
+def stop_dht_service() -> None:
+    """
+    Stop the DHT temperature reading service.
+    """
+    _dht_shutdown.set()  # Signal immediate shutdown
+    logger.info("DHT service stopped.")
+
+def stop_thermostat_service() -> None:
+    """
+    Stop the thermostat synchronization service.
+    """
+    _thermostat_shutdown.set()  # Signal immediate shutdown
+    logger.info("Thermostat service stopped.")
+
+def stop_all_services() -> None:
+    """
+    Stop all services immediately by setting all shutdown events.
+    """
+    _shutdown_event.set()
+    _thermostat_shutdown.set()
+    _dht_shutdown.set()
+    _fan_shutdown.set()
+    _klok_shutdown.set()
+    _powerbutton_shutdown.set()
+    logger.info("All stateFetch services shutdown events set.")

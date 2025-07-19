@@ -12,6 +12,9 @@ serverConfig = configManager.serverConfig.yaml_config
 
 LOG_FILE = logManager.logger._get_log_file_path()
 
+# Global variable to track server state
+_server_running: bool = False
+
 class LogWebSocketHandler(WebSocket):
     def opened(self) -> None:
         self._running: bool = True
@@ -53,10 +56,9 @@ class Root(object):
         pass  # ws4py handles this
 
 def start_ws_server() -> None:
+    global _server_running
     try:
         cherrypy.log.screen = False
-        
-        logger.info("CherryPy logging configured successfully")
         
         # Check if port is available
         import socket
@@ -66,8 +68,9 @@ def start_ws_server() -> None:
         
         if result == 0:
             logger.warning("Port 9000 appears to be already in use")
-        
-        logger.info("Starting CherryPy WebSocket server on port 9000...")
+            raise RuntimeError("Port 9000 is already in use. Please stop the service using this port before starting the WebSocket server.")
+
+        _server_running = True
         
         # This is a blocking call - the server runs here
         cherrypy.quickstart(Root(), '/', config={
@@ -80,3 +83,31 @@ def start_ws_server() -> None:
         logger.error(f"Failed to start CherryPy WebSocket server: {e}")
         logger.exception("Full traceback:")
         raise
+    finally:
+        _server_running = False
+
+def stop_ws_server() -> None:
+    """
+    Gracefully stop the CherryPy WebSocket server.
+    """
+    global _server_running
+    try:
+        if _server_running:
+            logger.info("Stopping CherryPy WebSocket server...")
+            cherrypy.engine.exit()
+            _server_running = False
+            logger.info("CherryPy WebSocket server stopped.")
+        else:
+            logger.info("CherryPy WebSocket server is not running.")
+    except Exception as e:
+        logger.error(f"Error stopping CherryPy WebSocket server: {e}")
+        logger.exception("Full traceback:")
+
+def is_server_running() -> bool:
+    """
+    Check if the WebSocket server is currently running.
+    
+    Returns:
+        bool: True if server is running, False otherwise
+    """
+    return _server_running

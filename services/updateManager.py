@@ -18,8 +18,8 @@ def githubCheck() -> None:
     creation_time: str = get_file_creation_time("api.py")
     publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_server/branches/master")
 
-    logger.debug(f"creation_time diyHue : {creation_time}")
-    logger.debug(f"publish_time  diyHue : {publish_time}")
+    logger.debug(f"creation_time server : {creation_time}")
+    logger.debug(f"publish_time  server : {publish_time}")
 
     if publish_time > creation_time:
         logger.info("update on github")
