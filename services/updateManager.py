@@ -13,7 +13,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 def githubCheck() -> None:
     """
     Check for updates on GitHub for both the main diyHue repository and the UI repository.
-    Update the bridge configuration based on the availability of updates.
+    Update the server configuration based on the availability of updates.
     """
     creation_time: str = get_file_creation_time("api.py")
     publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extention_server/branches/master")
@@ -30,7 +30,6 @@ def githubCheck() -> None:
     else:
         logger.info("no update for server or UI on github")
         serverConfig["config"]["swupdate2"]["state"] = "noupdates"
-        serverConfig["config"]["swupdate2"]["bridge"]["state"] = "noupdates"
 
     serverConfig["config"]["swupdate2"]["checkforupdate"] = False
 
@@ -112,11 +111,10 @@ def parse_creation_time(creation_time_arg1: List[str]) -> str:
 
 def update_swupdate2_timestamps() -> None:
     """
-    Update the timestamps for the last change and last install in the bridge configuration.
+    Update the timestamps for the last change and last install in the server configuration.
     """
     current_time: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     serverConfig["config"]["swupdate2"]["lastchange"] = current_time
-    serverConfig["config"]["swupdate2"]["bridge"]["lastinstall"] = current_time
 
 def githubInstall() -> None:
     """

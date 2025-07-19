@@ -49,18 +49,18 @@ def get_pi_temp() -> float:
     except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError):
         raise RuntimeError('Could not get temperature')
 
-def nextFreeId(bridgeConfig: dict[str, Any], element: str) -> str:
+def nextFreeId(serverConfig: dict[str, Any], element: str) -> str:
     """
-    Find the next free ID for a given element in the bridge configuration.
+    Find the next free ID for a given element in the server configuration.
 
     Args:
-        bridgeConfig (dict[str, Any]): The bridge configuration.
+        serverConfig (dict[str, Any]): The server configuration.
         element (str): The element to find the next free ID for.
 
     Returns:
         str: The next free ID as a string.
     """
     i: int = 1
-    while str(i) in bridgeConfig[element]:
+    while str(i) in serverConfig[element]:
         i += 1
     return str(i)
