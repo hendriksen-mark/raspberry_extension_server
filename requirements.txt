@@ -10,7 +10,6 @@ jsonify
 Werkzeug
 WTForms
 pyyaml
-zeroconf==0.38.3
 flask_cors
 cherrypy
 bleak
