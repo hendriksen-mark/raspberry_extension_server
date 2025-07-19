@@ -1,11 +1,12 @@
 from flask import request
 from typing import Any
 from flask_restful import Resource
+import logging
 import logManager
 import configManager
 from ServerObjects.klok_object import KlokObject
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
@@ -41,7 +42,7 @@ class KlokRoute(Resource):
         if value is None:
             value: str = request.args.get("value")
 
-        logging.info(f"Klok request: request_type={request_type}, value={value}")
+        logger.info(f"Klok request: request_type={request_type}, value={value}")
         
         # Get the klok service (assuming it's a single service like DHT)
         klok: KlokObject = find_klok()
@@ -82,7 +83,7 @@ class KlokRoute(Resource):
         URL: /klok
         """
         postDict = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
-        logging.info(f"POST data received: {postDict}")
+        logger.info(f"POST data received: {postDict}")
 
         # Validate required data for creating klok
         if not postDict:
@@ -91,32 +92,32 @@ class KlokRoute(Resource):
         klok: KlokObject = find_klok()
 
         if klok:
-            logging.info(f"Klok already exists, updating configuration")
+            logger.info(f"Klok already exists, updating configuration")
             # Only allow updating certain safe attributes
             allowed_attributes = {'CLK_pin', 'DIO_pin', 'brightness', 'power_state', 'doublepoint'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(klok, key):
                     setattr(klok, key, value)
                 elif key not in allowed_attributes:
-                    logging.warning(f"Attempted to set non-allowed attribute: {key}")
+                    logger.warning(f"Attempted to set non-allowed attribute: {key}")
         else:
-            logging.info(f"Klok not found, creating a new one")
+            logger.info(f"Klok not found, creating a new one")
             try:
                 klok = create_klok(postDict)
                 serverConfig["klok"] = klok
             except ValueError as e:
-                logging.error(f"Failed to create klok: {e}")
+                logger.error(f"Failed to create klok: {e}")
                 return {"error": str(e)}, 400
 
         if not klok:
             return {"error": "Klok not found or failed to create klok"}, 500
 
         try:
-            logging.info(f"Updated klok configuration: {klok.save()}")
+            logger.info(f"Updated klok configuration: {klok.save()}")
             configManager.serverConfig.save_config(backup=False, resource="klok")
             return klok.save(), 200
         except Exception as e:
-            logging.error(f"Failed to save configuration: {e}")
+            logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
 
     def delete(self) -> Any:
@@ -127,12 +128,12 @@ class KlokRoute(Resource):
         klok: KlokObject = find_klok()
         if klok:
             try:
-                logging.info(f"Deleting klok service")
+                logger.info(f"Deleting klok service")
                 del serverConfig["klok"]
                 configManager.serverConfig.save_config(backup=False, resource="klok")
                 return {"status": "klok service deleted"}, 200
             except Exception as e:
-                logging.error(f"Failed to delete klok service: {e}")
+                logger.error(f"Failed to delete klok service: {e}")
                 return {"error": "Failed to delete klok service"}, 500
         else:
             return {"error": "Klok service not found"}, 404

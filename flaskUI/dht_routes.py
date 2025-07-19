@@ -1,12 +1,13 @@
 """
 DHT sensor related routes
 """
+import logging
 import logManager
 from typing import Any
 import configManager
 from ServerObjects.dht_object import DHTObject
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
@@ -16,7 +17,7 @@ class DHTRoute():
         pin: int = dht.get_pin()
         # If no pin is set at all, return default values
         if pin is None:
-            logging.warning("DHT_PIN is not set, returning default values.")
+            logger.warning("DHT_PIN is not set, returning default values.")
             return {
                 "temperature": 22.0,  # Default temperature
                 "humidity": 50.0,     # Default humidity
@@ -27,15 +28,15 @@ class DHTRoute():
         temp, hum = dht.get_data()
 
         if temp is None or hum is None:
-            logging.warning("DHT sensor data not available, returning default values")
+            logger.warning("DHT sensor data not available, returning default values")
             return {
                 "temperature": 22.0,  # Default temperature
                 "humidity": 50.0,     # Default humidity
                 "warning": "DHT sensor data not available"
             }, 200
         
-        logging.info(f"Returning DHT data")
-        logging.debug(f"Temperature: {temp}°C, Humidity: {hum}%, Pin: {pin}")
+        logger.info(f"Returning DHT data")
+        logger.debug(f"Temperature: {temp}°C, Humidity: {hum}%, Pin: {pin}")
 
         return {
             "temperature": temp,

@@ -7,11 +7,12 @@ from flask import Flask, Request
 from flask_cors import CORS
 from flask_restful import Api
 import os
+import logging
 import logManager
 import flask_login
 from flaskUI.core import User  # dummy import for flask_login module
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
 def create_app(serverConfig) -> Flask:
@@ -57,7 +58,7 @@ def create_app(serverConfig) -> Flask:
             return None
         user: User = User()
         user.id = email
-        logging.info(f"Authentication attempt for user: {email}")
+        logger.info(f"Authentication attempt for user: {email}")
         user.is_authenticated = check_password_hash(
             request.form['password'], 
             serverConfig["config"]["users"][email]["password"]

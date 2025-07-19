@@ -7,9 +7,10 @@ from typing import Any
 from bleak import BleakError
 
 from eqiva_thermostat import Thermostat, Temperature, EqivaException
+import logging
 import logManager
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
 class ThermostatObject:
@@ -69,7 +70,7 @@ class ThermostatObject:
         if current_hum is not None:
             self.currentRelativeHumidity = current_hum
 
-        logging.debug(f"Updated DHT status for {self.mac} thermostat: temp={current_temp}°C, humidity={current_hum}%")
+        logger.debug(f"Updated DHT status for {self.mac} thermostat: temp={current_temp}°C, humidity={current_hum}%")
 
     def get_status(self) -> dict[str, Any]:
         """Get thermostat status for a given MAC address"""
@@ -96,20 +97,20 @@ class ThermostatObject:
         try:
             await self.equiva_thermostat.disconnect()
         except (TimeoutError, asyncio.CancelledError) as e:
-            logging.warning(f"Disconnect timeout/cancelled for {self.equiva_thermostat.address}: {e}")
+            logger.warning(f"Disconnect timeout/cancelled for {self.equiva_thermostat.address}: {e}")
         except Exception as e:
-            logging.error(f"Error disconnecting from {self.equiva_thermostat.address}: {e}")
+            logger.error(f"Error disconnecting from {self.equiva_thermostat.address}: {e}")
 
     async def poll_status(self) -> None:
         """Poll thermostat status"""
-        logging.debug(f"Polling: Attempting to connect to {self.mac}")
+        logger.debug(f"Polling: Attempting to connect to {self.mac}")
         await self.safe_connect()
 
         # Check if this MAC was previously failing and log recovery
 
-        logging.debug(f"Polling: Connected to {self.mac}")
+        logger.debug(f"Polling: Connected to {self.mac}")
         await self.equiva_thermostat.requestStatus()
-        logging.debug(f"Polling: Status requested from {self.mac}")
+        logger.debug(f"Polling: Status requested from {self.mac}")
         mode: dict[str, Any] = self.equiva_thermostat.mode.to_dict()
         valve: float = self.equiva_thermostat.valve
         temp: float = self.equiva_thermostat.temperature.valueC
@@ -122,7 +123,7 @@ class ThermostatObject:
         self.currentHeatingCoolingState = current_mode_status["int"]
         self.last_updated = strftime("%Y-%m-%d %H:%M:%S", localtime())
 
-        logging.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.targetTemperature}C")
+        logger.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.targetTemperature}C")
 
     async def set_temperature(self, temp: str) -> dict[str, Any]:
         """Set thermostat target temperature"""
@@ -131,24 +132,24 @@ class ThermostatObject:
         if not temp:
             return {"result": "error", "message": "Temperature value is required"}
         try:
-            logging.info(f"Set temperature for {mac} to {temp}")
+            logger.info(f"Set temperature for {mac} to {temp}")
             await self.safe_connect()
             await thermostat.setTemperature(temperature=Temperature(valueC=float(temp)))
             return {"result": "ok", "temperature": float(temp)}
         except BleakError:
-            logging.error(f"Device with address {mac} was not found")
+            logger.error(f"Device with address {mac} was not found")
             return {"result": "error", "message": f"Device with address {mac} was not found"}
         except EqivaException as ex:
-            logging.error(f"EqivaException for {mac}: {str(ex)}")
+            logger.error(f"EqivaException for {mac}: {str(ex)}")
             return {"result": "error", "message": str(ex)}
         except ValueError as ex:
-            logging.error(f"Invalid temperature value for {mac}: {str(ex)}")
+            logger.error(f"Invalid temperature value for {mac}: {str(ex)}")
             return {"result": "error", "message": "Invalid temperature value"}
         finally:
             try:
                 await self.safe_disconnect()
             except Exception as e:
-                logging.error(f"Error disconnecting from {mac}: {e}")
+                logger.error(f"Error disconnecting from {mac}: {e}")
     
     async def set_mode(self, mode: str) -> dict[str, Any]:
         """Set thermostat heating/cooling mode"""
@@ -166,19 +167,19 @@ class ThermostatObject:
                 await thermostat.setModeAuto()
             else:
                 return {"result": "error", "message": "Invalid mode value"}
-            logging.info(f"Set mode for {mac} to {mode}")
+            logger.info(f"Set mode for {mac} to {mode}")
             return {"result": "ok", "mode": int(mode)}
         except BleakError:
-            logging.error(f"Device with address {mac} was not found")
+            logger.error(f"Device with address {mac} was not found")
             return {"result": "error", "message": f"Device with address {mac} was not found"}
         except EqivaException as ex:
-            logging.error(f"EqivaException for {mac}: {str(ex)}")
+            logger.error(f"EqivaException for {mac}: {str(ex)}")
             return {"result": "error", "message": str(ex)}
         finally:
             try:
                 await self.safe_disconnect()
             except Exception as e:
-                logging.error(f"Error disconnecting from {mac}: {e}")
+                logger.error(f"Error disconnecting from {mac}: {e}")
 
     def save(self) -> dict[str, Any]:
         """Save current thermostat state to a dictionary"""

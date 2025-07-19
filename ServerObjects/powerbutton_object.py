@@ -5,10 +5,11 @@ except ImportError:
 import time
 import subprocess
 from typing import Any
+import logging
 import logManager
 from threading import Event
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class PowerButtonObject:
     def __init__(self, data: dict[str, Any]) -> None:
@@ -23,7 +24,7 @@ class PowerButtonObject:
     def cleanup(self) -> None:
         """Clean up IO resources"""
         IO.cleanup()
-        logging.info("IO cleanup completed")
+        logger.info("IO cleanup completed")
 
     def button_pressed(self) -> bool:
         """Check if button is currently pressed (LOW = pressed with pull-up)"""
@@ -36,14 +37,14 @@ class PowerButtonObject:
 
     def execute_shutdown(self) -> None:
         """Execute system shutdown"""
-        logging.info("Initiating system shutdown...")
+        logger.info("Initiating system shutdown...")
         try:
             # Sync filesystem
             subprocess.run(['sync'], check=True)
             # Shutdown system
             subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=True)
         except subprocess.CalledProcessError as e:
-            logging.error(f"Shutdown command failed: {e}")
+            logger.error(f"Shutdown command failed: {e}")
 
     def blink_led(self, pin=18, times=3) -> None:
         """Blink LED to indicate shutdown (optional - requires LED on IO 18)"""
@@ -55,11 +56,11 @@ class PowerButtonObject:
                 IO.output(pin, IO.LOW)
                 time.sleep(0.2)
         except Exception as e:
-            logging.debug(f"LED blink failed (optional): {e}")
+            logger.debug(f"LED blink failed (optional): {e}")
 
     def run(self) -> None:
         """Main button monitoring loop"""
-        logging.info("Power button service started. Press and hold for shutdown...")
+        logger.info("Power button service started. Press and hold for shutdown...")
         
         try:
             # Wait for button press (LOW state)
@@ -69,7 +70,7 @@ class PowerButtonObject:
                 if not self.button_pressed():
                     return
                     
-                logging.info("Button pressed")
+                logger.info("Button pressed")
                 press_start: float = time.time()
 
                 # Wait while button is held down
@@ -77,7 +78,7 @@ class PowerButtonObject:
                     press_duration: float = time.time() - press_start
 
                     if press_duration >= self.long_press_duration:
-                        logging.info(f"Long press detected ({press_duration:.1f}s) - shutting down")
+                        logger.info(f"Long press detected ({press_duration:.1f}s) - shutting down")
                         self.blink_led()  # Optional LED feedback
                         self.execute_shutdown()
                         return
@@ -87,13 +88,13 @@ class PowerButtonObject:
                 # Button released
                 press_duration: float = time.time() - press_start
                 if press_duration < self.long_press_duration:
-                    logging.info(f"Short press ({press_duration:.1f}s) - button event logged")
+                    logger.info(f"Short press ({press_duration:.1f}s) - button event logged")
                 
                 # Wait for button to be fully released
                 self.wait_for_button_release()
                 time.sleep(self.debounce_time)
         except Exception as e:
-            logging.error(f"Error in main loop: {e}")
+            logger.error(f"Error in main loop: {e}")
         finally:
             self.cleanup()
 

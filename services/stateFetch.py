@@ -6,6 +6,7 @@ import asyncio
 from eqiva_thermostat import EqivaException
 
 import configManager
+import logging
 import logManager
 from ServerObjects.dht_object import DHTObject
 from ServerObjects.thermostat_object import ThermostatObject
@@ -13,7 +14,7 @@ from ServerObjects.fan_object import FanObject
 from ServerObjects.klok_object import KlokObject
 from ServerObjects.powerbutton_object import PowerButtonObject
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 async def syncWithThermostats() -> None:
@@ -21,28 +22,28 @@ async def syncWithThermostats() -> None:
     Synchronize the state of the thermostats with their actual state.
     """
     while serverConfig["config"]["thermostats"]["enabled"]:
-        logging.info("start thermostats sync")
+        logger.info("start thermostats sync")
         interval: int = serverConfig["config"]["thermostats"]["interval"]
         for thermostat in serverConfig["thermostats"].values():
             thermostat: ThermostatObject = thermostat
             try:
-                logging.debug("fetch " + thermostat.mac)
+                logger.debug("fetch " + thermostat.mac)
                 thermostat.poll_status()
                 thermostat.failed_connection = False
             except BleakError as e:
-                logging.error(f"Polling: BLE error for {thermostat.mac}: {e}")
+                logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
                 thermostat.failed_connection = True
                 raise
             except EqivaException as e:
-                logging.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
+                logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
                 thermostat.failed_connection = True
                 pass
             finally:
                 try:
                     await thermostat.safe_disconnect()
-                    logging.debug(f"Polling: Disconnected from {thermostat.mac}")
+                    logger.debug(f"Polling: Disconnected from {thermostat.mac}")
                 except Exception as e:
-                    logging.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
+                    logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
             break
 
         sleep(10)  # wait at least 10 seconds before next sync
@@ -61,12 +62,12 @@ def syncWithThermostats_threaded() -> None:
     try:
         loop.run_until_complete(syncWithThermostats())
     except Exception as e:
-        logging.error(f"Error in thermostat sync thread: {e}")
+        logger.error(f"Error in thermostat sync thread: {e}")
     finally:
         try:
             loop.close()
         except Exception as e:
-            logging.error(f"Error closing sync loop: {e}")
+            logger.error(f"Error closing sync loop: {e}")
 
 async def disconnectThermostats() -> None:
     """
@@ -84,26 +85,26 @@ async def disconnectThermostats() -> None:
                 task: asyncio.Task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
                 tasks.append(task)
             except Exception as e:
-                logging.error(f"Cleanup: Error preparing disconnect for {thermostat.mac}: {e}")
+                logger.error(f"Cleanup: Error preparing disconnect for {thermostat.mac}: {e}")
         
         if tasks:
             try:
                 await asyncio.gather(*tasks, return_exceptions=True)
             except Exception as e:
-                logging.error(f"Cleanup: Error during gather: {e}")
+                logger.error(f"Cleanup: Error during gather: {e}")
     
     try:
-        logging.info("Disconnecting all thermostats...")
+        logger.info("Disconnecting all thermostats...")
         loop.run_until_complete(cleanup_all())
     except Exception as e:
-        logging.error(f"Cleanup: Error during cleanup: {e}")
+        logger.error(f"Cleanup: Error during cleanup: {e}")
     finally:
         try:
             loop.close()
         except Exception as e:
-            logging.error(f"Cleanup: Error closing loop: {e}")
+            logger.error(f"Cleanup: Error closing loop: {e}")
     
-    logging.info("Cleanup: All thermostats disconnected.")
+    logger.info("Cleanup: All thermostats disconnected.")
 
 def read_dht_temperature() -> None:
     """
@@ -114,10 +115,10 @@ def read_dht_temperature() -> None:
         interval: int = serverConfig["config"]["dht"]["interval"]
         try:
             dht: DHTObject = serverConfig["dht"]
-            logging.info(f"Reading DHT temperature...")
+            logger.info(f"Reading DHT temperature...")
             dht._read_dht_temperature()
         except Exception as e:
-            logging.error(f"Error reading DHT temperature: {e}")
+            logger.error(f"Error reading DHT temperature: {e}")
         finally:
             sleep(5)
         i = 0
@@ -136,7 +137,7 @@ def run_fan_service() -> None:
             fan: FanObject = serverConfig["fan"]
             fan.run()
         except Exception as e:
-            logging.error(f"Error in fan service: {e}")
+            logger.error(f"Error in fan service: {e}")
         finally:
             sleep(5)
         i = 0
@@ -154,7 +155,7 @@ def run_klok_service() -> None:
             klok: KlokObject = serverConfig["klok"]
             klok.show()
         except Exception as e:
-            logging.error(f"Error in klok service: {e}")
+            logger.error(f"Error in klok service: {e}")
         finally:
             sleep(0.5)
 
@@ -168,6 +169,6 @@ def run_powerbutton_service() -> None:
             powerbutton: PowerButtonObject = serverConfig["powerbutton"]
             powerbutton.run()
         except Exception as e:
-            logging.error(f"Error in power button service: {e}")
+            logger.error(f"Error in power button service: {e}")
         finally:
             sleep(0.1)

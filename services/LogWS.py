@@ -3,10 +3,11 @@ from ws4py.websocket import WebSocket
 import cherrypy
 import threading
 import time
+import logging
 import logManager
 import configManager
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
 
 LOG_FILE = str(serverConfig["config"]["runningDir"] + "/diyhue.log")
@@ -31,12 +32,12 @@ class LogWebSocketHandler(WebSocket):
                         try:
                             self.send(line)
                         except Exception as e:
-                            logging.error(f"Error sending log line: {e}")
+                            logger.error(f"Error sending log line: {e}")
                             break
                     else:
                         time.sleep(0.5)
         except Exception as e:
-            logging.error(f"Error tailing log file: {e}")
+            logger.error(f"Error tailing log file: {e}")
 
 cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': 9000})
 WebSocketPlugin(cherrypy.engine).subscribe()

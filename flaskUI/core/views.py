@@ -6,11 +6,12 @@ import configManager
 from flaskUI.core import User
 import os
 import sys
+import logging
 import logManager
 import subprocess
 from typing import Any, Union
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 core = Blueprint('core', __name__)
 
@@ -37,7 +38,7 @@ def restart_python() -> None:
     Returns:
         None
     """
-    logging.info(f"restart {sys.executable} with args: {sys.argv}")
+    logger.info(f"restart {sys.executable} with args: {sys.argv}")
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 @core.route('/')
@@ -198,7 +199,7 @@ def login() -> Union[str, Response]:
         flask_login.login_user(user)
         return redirect(url_for('core.index'))
 
-    logging.info(f"Hashed pass: {generate_password_hash(form.password.data)}")
+    logger.info(f"Hashed pass: {generate_password_hash(form.password.data)}")
     return 'Bad login\n'
 
 @core.route('/logout')

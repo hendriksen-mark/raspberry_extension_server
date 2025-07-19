@@ -1,9 +1,10 @@
+import logging
 import logManager
 from typing import Any
 from datetime import datetime
 from services.tm1637 import TM1637
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class KlokObject:
     def __init__(self, data: dict[str, Any]) -> None:

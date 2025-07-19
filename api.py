@@ -11,14 +11,15 @@ from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
 import configManager
+import logging
 import logManager
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
-logging = logManager.logger.get_logger(__name__)
-werkzeug_logger = logManager.logger.get_logger("werkzeug")
-cherrypy_logger = logManager.logger.get_logger("cherrypy")
+logger: logging.Logger = logManager.logger.get_logger(__name__)
+werkzeug_logger: logging.Logger = logManager.logger.get_logger("werkzeug")
+cherrypy_logger: logging.Logger = logManager.logger.get_logger("cherrypy")
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 # Create app using factory pattern (diyHue style)
@@ -29,7 +30,7 @@ def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
 
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
-    logging.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
+    logger.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
     stateFetch.disconnectThermostats()
     os._exit(0)
 

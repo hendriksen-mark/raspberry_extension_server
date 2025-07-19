@@ -1,6 +1,7 @@
 from .argumentHandler import parse_arguments
 import os
 import subprocess
+import logging
 import logManager
 import yaml
 from copy import deepcopy
@@ -11,7 +12,7 @@ from ServerObjects.klok_object import KlokObject
 from ServerObjects.fan_object import FanObject
 from ServerObjects.powerbutton_object import PowerButtonObject
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data: Any) -> bool:
@@ -85,10 +86,6 @@ class Config:
                 "autoinstall": {
                     "on": False,
                     "updatetime": "T14:00:00"
-                },
-                "bridge": {
-                    "lastinstall": "2020-12-11T17:08:55",
-                    "state": "noupdates"
                 },
                 "checkforupdate": False,
                 "lastchange": "2020-12-13T10:30:15",
@@ -176,9 +173,9 @@ class Config:
             self._load_fan()
             self._load_powerbutton()
 
-            logging.info("Config loaded")
+            logger.info("Config loaded")
         except Exception:
-            logging.exception("CRITICAL! Config file was not loaded")
+            logger.exception("CRITICAL! Config file was not loaded")
             raise SystemExit("CRITICAL! Config file was not loaded")
         serverConfig = self.yaml_config
 
@@ -198,7 +195,7 @@ class Config:
         if resource in ["all", "config"]:
             config: dict[str, Any] = self.yaml_config["config"]
             _write_yaml(path + "config.yaml", config)
-            logging.debug("Dump config file " + path + "config.yaml")
+            logger.debug("Dump config file " + path + "config.yaml")
             if resource == "config":
                 return
         saveResources: list[str] = []
@@ -225,7 +222,7 @@ class Config:
                             dumpDict[self.yaml_config[object][element].id] = savedData
             
             _write_yaml(filePath, dumpDict)
-            logging.debug("Dump config file " + filePath)
+            logger.debug("Dump config file " + filePath)
 
     def reset_config(self) -> None:
         """
@@ -235,7 +232,7 @@ class Config:
         try:
             subprocess.run(f'rm -r {self.configDir}/*.yaml', check=True)
         except subprocess.CalledProcessError:
-            logging.exception("Something went wrong when deleting the config")
+            logger.exception("Something went wrong when deleting the config")
         self.load_config()
 
     def restore_backup(self) -> None:
@@ -245,7 +242,7 @@ class Config:
         try:
             subprocess.run(f'rm -r {self.configDir}/*.yaml', check=True)
         except subprocess.CalledProcessError:
-            logging.exception("Something went wrong when deleting the config")
+            logger.exception("Something went wrong when deleting the config")
         subprocess.run(f'cp -r {self.configDir}/backup/*.yaml {self.configDir}/', shell=True, check=True)
         self.load_config()
 

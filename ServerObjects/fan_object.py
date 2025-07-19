@@ -4,10 +4,11 @@ try:
 except ImportError:
     from services.dummy_import import DummyPigpio as pigpio  # Import a dummy pigpio class for testing
 
+import logging
 import logManager
 from services.utils import get_pi_temp
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
     def __init__(self, data: dict[str, Any]) -> None:
@@ -48,7 +49,7 @@ class FanObject:
         
         # Only log when temperature changes significantly or this is the first reading
         if self.last_logged_temp is None or abs(temp - self.last_logged_temp) >= self.temp_change_threshold:
-            logging.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
+            logger.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
             self.last_logged_temp = temp
 
     def save(self) -> dict[str, Any]:

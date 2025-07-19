@@ -2,13 +2,14 @@
 DHT sensor service for temperature and humidity monitoring
 """
 from threading import Lock
+import logging
 import logManager
 from typing import Any
 from ServerObjects.thermostat_object import ThermostatObject
 
 import configManager
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 try:
     import Adafruit_DHT  # type: ignore
@@ -22,7 +23,7 @@ class DHTObject:
     def __init__(self, data: dict[str, Any]) -> None:
         self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
         if self.sensor_type not in ["DHT22", "DHT11"]:
-            logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
+            logger.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
             self.sensor_type = "DHT22"
         self.dht_pin: int = data.get("dht_pin", None)
         self.latest_temperature: float = data.get("latest_temperature", None)
@@ -39,13 +40,13 @@ class DHTObject:
         self._thread_started = False
 
         if self.sensor_type == "DHT22":
-            logging.info("Using DHT22 sensor")
+            logger.info("Using DHT22 sensor")
             self.sensor = Adafruit_DHT.DHT22
         elif self.sensor_type == "DHT11":
-            logging.info("Using DHT11 sensor")
+            logger.info("Using DHT11 sensor")
             self.sensor = Adafruit_DHT.DHT11
         else:
-            logging.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
+            logger.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
             self.sensor = Adafruit_DHT.DHT22
     
     def get_pin(self) -> int | None:
@@ -73,7 +74,7 @@ class DHTObject:
                 MAX_HUMIDITY: float = self.MAX_HUMIDITY
                 DHT_TEMP_CHANGE_THRESHOLD: float = self.DHT_TEMP_CHANGE_THRESHOLD
                 DHT_HUMIDITY_CHANGE_THRESHOLD: float = self.DHT_HUMIDITY_CHANGE_THRESHOLD
-                logging.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
+                logger.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
                 
                 with self.dht_lock:
                     # Only update if values are valid
@@ -85,7 +86,7 @@ class DHTObject:
                             # Only log when temperature changes significantly or this is the first reading
                             if (self.last_logged_dht_temp is None or 
                                 abs(rounded_temp - self.last_logged_dht_temp) >= DHT_TEMP_CHANGE_THRESHOLD):
-                                logging.info(f"Updated temperature: {self.latest_temperature}°C")
+                                logger.info(f"Updated temperature: {self.latest_temperature}°C")
                                 self.last_logged_dht_temp = rounded_temp
                                 for thermostat in serverConfig["thermostats"].values():
                                     thermostat: ThermostatObject = thermostat
@@ -94,9 +95,9 @@ class DHTObject:
                         
                         # Always log current temperature for debugging (unless we just logged at info level)
                         if not logged_info:
-                            logging.debug(f"Temperature: {rounded_temp}°C")
+                            logger.debug(f"Temperature: {rounded_temp}°C")
                     else:
-                        logging.error("Temperature value not updated (None or out of range)")
+                        logger.error("Temperature value not updated (None or out of range)")
 
                     if humidity is not None and MIN_HUMIDITY <= humidity <= MAX_HUMIDITY:
                         rounded_humidity: float = round(float(humidity), 1)
@@ -106,7 +107,7 @@ class DHTObject:
                             # Only log when humidity changes significantly or this is the first reading
                             if (self.last_logged_dht_humidity is None or 
                                 abs(rounded_humidity - self.last_logged_dht_humidity) >= DHT_HUMIDITY_CHANGE_THRESHOLD):
-                                logging.info(f"Updated humidity: {self.latest_humidity}%")
+                                logger.info(f"Updated humidity: {self.latest_humidity}%")
                                 self.last_logged_dht_humidity = rounded_humidity
                                 for thermostat in serverConfig["thermostats"].values():
                                     thermostat: ThermostatObject = thermostat
@@ -115,12 +116,12 @@ class DHTObject:
                         
                         # Always log current humidity for debugging (unless we just logged at info level)
                         if not logged_info:
-                            logging.debug(f"Humidity: {rounded_humidity}%")
+                            logger.debug(f"Humidity: {rounded_humidity}%")
                     else:
-                        logging.error("Humidity value not updated (None or out of range)")
+                        logger.error("Humidity value not updated (None or out of range)")
                         
             except Exception as e:
-                logging.error(f"Error reading DHT sensor: {e}")
+                logger.error(f"Error reading DHT sensor: {e}")
 
     def save(self) -> dict[str, Any]:
         """Save current DHT state to a dictionary"""

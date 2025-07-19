@@ -5,12 +5,13 @@ from flask import request
 from bleak import BleakError
 from typing import Any
 from flask_restful import Resource
+import logging
 import logManager
 import configManager
 from services.utils import validate_mac_address, format_mac, nextFreeId, async_route
 from ServerObjects.thermostat_object import ThermostatObject
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
@@ -50,7 +51,7 @@ class ThermostatRoute(Resource):
 
         thermostat: ThermostatObject = find_thermostat(mac)
         if not thermostat:
-            logging.error(f"Thermostat with MAC {mac} not found")
+            logger.error(f"Thermostat with MAC {mac} not found")
             return {"error": f"Thermostat with MAC {mac} not found"}, 404
 
         if resource == 'status':
@@ -72,7 +73,7 @@ class ThermostatRoute(Resource):
                 return {"error": "Invalid temperature value"}, 400
             try:
                 result: dict[str, Any] = await thermostat.set_temperature(str(temperature))
-                logging.info(f"HomeKit: Set targetTemperature for {mac} to {temperature}: {result}")
+                logger.info(f"HomeKit: Set targetTemperature for {mac} to {temperature}: {result}")
                 
                 if result["result"] == "ok":
                     return {"success": True, "temperature": temperature}, 200
@@ -80,7 +81,7 @@ class ThermostatRoute(Resource):
                     return result, 400
                     
             except BleakError:
-                logging.error(f"Device with address {mac} was not found")
+                logger.error(f"Device with address {mac} was not found")
                 return {"error": f"Device with address {mac} was not found"}, 404
             
     
@@ -94,7 +95,7 @@ class ThermostatRoute(Resource):
             
             try:
                 result: dict[str, Any] = await thermostat.set_mode(mode_value)
-                logging.info(f"HomeKit: Set targetHeatingCoolingState for {mac} to {mode_value}: {result}")
+                logger.info(f"HomeKit: Set targetHeatingCoolingState for {mac} to {mode_value}: {result}")
                 
                 if result["result"] == "ok":
                     return {"success": True, "mode": int(mode_value)}, 200
@@ -102,7 +103,7 @@ class ThermostatRoute(Resource):
                     return result, 400
                     
             except BleakError:
-                logging.error(f"Device with address {mac} was not found")
+                logger.error(f"Device with address {mac} was not found")
                 return {"error": f"Device with address {mac} was not found"}, 404
         else:
             return {"error": "Resource not found"}, 404
@@ -121,39 +122,39 @@ class ThermostatRoute(Resource):
         thermostat: ThermostatObject = find_thermostat(mac)
 
         postDict = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
-        logging.info(f"POST data received: {postDict}")
+        logger.info(f"POST data received: {postDict}")
 
         # Validate required data for creating thermostat
         if not thermostat and not postDict:
             return {"error": "JSON data required for creating new thermostat"}, 400
 
         if thermostat:
-            logging.info(f"Thermostat with MAC {mac} already exists, updating it")
+            logger.info(f"Thermostat with MAC {mac} already exists, updating it")
             # Only allow updating certain safe attributes
             allowed_attributes = {'targetHeatingCoolingState', 'targetTemperature', 'min_temperature', 'max_temperature'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(thermostat, key):
                     setattr(thermostat, key, value)
                 elif key not in allowed_attributes:
-                    logging.warning(f"Attempted to set non-allowed attribute: {key}")
+                    logger.warning(f"Attempted to set non-allowed attribute: {key}")
         else:
-            logging.info(f"Thermostat with MAC {mac} not found, creating a new one")
+            logger.info(f"Thermostat with MAC {mac} not found, creating a new one")
             try:
                 thermostat = create_thermostat(mac, postDict)
                 serverConfig["thermostats"][thermostat.id] = thermostat
             except ValueError as e:
-                logging.error(f"Failed to create thermostat: {e}")
+                logger.error(f"Failed to create thermostat: {e}")
                 return {"error": str(e)}, 400
 
         if not thermostat:
             return {"error": f"Thermostat with MAC {mac} not found"}, 404
 
         try:
-            logging.info(f"Updated thermostat with MAC {mac}: {thermostat.save()}")
+            logger.info(f"Updated thermostat with MAC {mac}: {thermostat.save()}")
             configManager.serverConfig.save_config(backup=False, resource="thermostats")
             return thermostat.save(), 200
         except Exception as e:
-            logging.error(f"Failed to save configuration: {e}")
+            logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
 
     @async_route
@@ -171,12 +172,12 @@ class ThermostatRoute(Resource):
 
         if thermostat:
             try:
-                logging.info(f"Deleting thermostat with MAC {mac}")
+                logger.info(f"Deleting thermostat with MAC {mac}")
                 del serverConfig["thermostats"][thermostat.id]
                 configManager.serverConfig.save_config(backup=False, resource="thermostats")
                 return {"success": True}, 200
             except Exception as e:
-                logging.error(f"Failed to delete thermostat: {e}")
+                logger.error(f"Failed to delete thermostat: {e}")
                 return {"error": "Failed to delete thermostat"}, 500
         else:
             return {"error": f"Thermostat with MAC {mac} not found"}, 404

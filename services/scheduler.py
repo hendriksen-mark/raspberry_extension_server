@@ -3,11 +3,12 @@ from time import sleep
 from typing import Any
 
 import configManager
+import logging
 import logManager
 from services import updateManager
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 def runScheduler() -> None:
     """

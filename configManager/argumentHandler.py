@@ -1,11 +1,12 @@
 import argparse
 import socket
+import logging
 import logManager
 from os import getenv
 from typing import Union, Optional
 import pathlib
 
-logging = logManager.logger.get_logger(__name__)
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 def getIpAddress() -> Optional[str]:
     """
@@ -19,7 +20,7 @@ def getIpAddress() -> Optional[str]:
             s.connect(("8.8.8.8", 80))
             return s.getsockname()[0]
     except socket.error as e:
-        logging.error(f"Socket error: {e}")
+        logger.error(f"Socket error: {e}")
         return None
 
 def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool]:
@@ -48,7 +49,7 @@ def process_arguments(args: dict[str, Union[str, bool]]) -> None:
     """
     log_level = "DEBUG" if args["DEBUG"] else "INFO"
     logManager.logger.configure_logger(log_level)
-    logging.info(f"Debug logging {'enabled' if args['DEBUG'] else 'disabled'}!")
+    logger.info(f"Debug logging {'enabled' if args['DEBUG'] else 'disabled'}!")
 
 def parse_arguments() -> dict[str, Union[str, int, bool]]:
     """
@@ -80,7 +81,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
 
-    logging.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
+    logger.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
 
     argumentDict["DOCKER"] = args.docker or get_environment_variable('DOCKER', True)
 
