@@ -2,17 +2,16 @@
 """
 Main entry point for the Eqiva Smart Radiator Thermostat API
 """
-
+import logging
+import logManager
+logManager.logger.enable_file_logging()
+import configManager
 from threading import Thread
 import os
 import signal
 from typing import Any
 from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
-
-import configManager
-import logging
-import logManager
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
