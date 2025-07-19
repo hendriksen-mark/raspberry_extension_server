@@ -39,10 +39,10 @@ def create_thermostat(mac: str, postDict: dict[str, Any] = None) -> ThermostatOb
 
 class ThermostatRoute(Resource):
     @async_route
-    async def get(self, mac, resource) -> tuple[dict[str, Any], int]:
+    async def get(self, mac, resource = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for thermostat resources
-        URL: /MAC_ADDRESS/resource
+        URL: /MAC_ADDRESS/ or /MAC_ADDRESS/resource
         """
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
@@ -53,6 +53,18 @@ class ThermostatRoute(Resource):
         if not thermostat:
             logger.error(f"Thermostat with MAC {mac} not found")
             return {"error": f"Thermostat with MAC {mac} not found"}, 404
+
+        # If no resource specified, return available endpoints for this thermostat
+        if resource is None:
+            return {
+                "mac": mac,
+                "available_endpoints": [
+                    "status", 
+                    "targetTemperature", 
+                    "mode"
+                ],
+                "description": f"Thermostat {mac} control endpoints"
+            }, 200
 
         if resource == 'status':
             return thermostat.get_status(), 200
@@ -109,7 +121,7 @@ class ThermostatRoute(Resource):
             return {"error": "Resource not found"}, 404
 
     @async_route
-    async def post(self, mac: str, resource: str) -> tuple[dict[str, Any], int]:
+    async def post(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for thermostat resources
         URL: /MAC_ADDRESS/resource
@@ -158,7 +170,7 @@ class ThermostatRoute(Resource):
             return {"error": "Failed to save configuration"}, 500
 
     @async_route
-    async def delete(self, mac: str, resource: str) -> tuple[dict[str, Any], int]:
+    async def delete(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for thermostat resources
         URL: /MAC_ADDRESS/resource

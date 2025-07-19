@@ -19,10 +19,10 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class SystemRoute(Resource):
-    def get(self, resource: str) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for system resources
-        URL: /system/resource
+        URL: /system/ or /system/resource
         """
         if resource == 'pi_temp':
             try:

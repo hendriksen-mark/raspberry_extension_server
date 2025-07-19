@@ -25,7 +25,7 @@ def create_powerbutton(postDict: dict[str, Any] = {}) -> PowerButtonObject:
     return PowerButtonObject(postDict)
 
 class PowerButtonRoute(Resource):
-    def get(self, resource: str) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for powerbutton resources
         """
@@ -34,12 +34,9 @@ class PowerButtonRoute(Resource):
         if powerbutton is None:
             return {"error": "PowerButton service not found in server configuration"}, 404
             
-        if resource == "info":
-            return powerbutton.save(), 200
+        return powerbutton.save(), 200
 
-        return {"error": "Unknown powerbutton resource"}, 400
-
-    def post(self, resource: str) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for powerbutton resources
         """
@@ -79,8 +76,8 @@ class PowerButtonRoute(Resource):
         except KeyError as e:
             logger.error(f"KeyError: {e}")
             return {"error": "PowerButton configuration not found"}, 404
-    
-    def delete(self, resource: str) -> tuple[dict[str, Any], int]:
+
+    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for powerbutton resources
         """

@@ -38,14 +38,10 @@ def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
         }, 200
 
 class DHTRoute(Resource):
-    def get(self, resource: str) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
             Handle GET requests for DHT sensor data
         """
-        valid_resources: list[str] = ["info", "status"]
-        if resource not in valid_resources:
-            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
-        
         logger.info(f"DHT GET request: resource: {resource}")
         dht: DHTObject = find_dht()
 
@@ -53,7 +49,20 @@ class DHTRoute(Resource):
             logger.error("DHT service not found in server configuration, returning default values")
             return get_default_sensor_data("DHT sensor not configured")
         
-        if resource == "status":
+        if resource == "info":
+            # Return DHT configuration info
+            try:
+                dht_info: dict[str, Any] = dht.save()
+                logger.info(f"Returning DHT info: {dht_info}")
+                return dht_info, 200
+            except KeyError as e:
+                logger.error(f"KeyError: {e}")
+                return {"error": "DHT sensor configuration not found"}, 404
+            except Exception as e:
+                logger.error(f"Failed to retrieve DHT info: {e}")
+                return {"error": "Failed to retrieve DHT info"}, 500
+        
+        else:
             pin: int = dht.get_pin()
             # If no pin is set at all, return default values
             if pin is None:
@@ -75,25 +84,8 @@ class DHTRoute(Resource):
                 "humidity": hum,
                 "pin": pin
             }, 200
-        
-        elif resource == "info":
-            # Return DHT configuration info
-            try:
-                dht_info: dict[str, Any] = dht.save()
-                logger.info(f"Returning DHT info: {dht_info}")
-                return dht_info, 200
-            except KeyError as e:
-                logger.error(f"KeyError: {e}")
-                return {"error": "DHT sensor configuration not found"}, 404
-            except Exception as e:
-                logger.error(f"Failed to retrieve DHT info: {e}")
-                return {"error": "Failed to retrieve DHT info"}, 500
-        
-        else:
-            logger.error(f"Unknown DHT resource: {resource}")
-            return {"error": "Unknown DHT resource"}, 400
 
-    def post(self, resource: str) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Update DHT sensor configuration
         """
@@ -133,7 +125,7 @@ class DHTRoute(Resource):
             logger.error(f"KeyError: {e}")
             return {"error": "DHT sensor configuration not found"}, 404
         
-    def delete(self, resource: str) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Delete DHT sensor configuration
         """

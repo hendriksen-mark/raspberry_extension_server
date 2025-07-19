@@ -25,18 +25,32 @@ def create_klok(postDict: dict[str, Any] = {}) -> KlokObject:
     return KlokObject(postDict)
 
 class KlokRoute(Resource):
-    def get(self, resource: str, value: str = None) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for klok resources
         URL patterns:
+        - /klok/
         - /klok/on
         - /klok/off  
         - /klok/status
         - /klok/Bri/<value>
         - /klok/infoBri
         """
+        # If no resource specified, return available endpoints
+        if resource is None:
+            return {
+                "available_endpoints": [
+                    "on",
+                    "off",
+                    "status",
+                    "Bri/<value>",
+                    "infoBri"
+                ],
+                "description": "Klok (clock) control endpoints"
+            }, 200
+            
         # Validate request type
-        valid_resources: list[str] = ["on", "off", "status", "Bri", "infoBri", "info"]
+        valid_resources: list[str] = ["on", "off", "status", "Bri", "infoBri"]
         if resource not in valid_resources:
             return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
         
@@ -80,12 +94,9 @@ class KlokRoute(Resource):
             bri_percent: int = klok.get_brightness_percent()
             return str(bri_percent), 200
         
-        elif resource == "info":
-            return klok.save(), 200
-        
-        return {"error": "Unknown klok resource"}, 400
+        return klok.save(), 200
 
-    def post(self, resource: str) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for klok resources
         URL: /klok
@@ -127,11 +138,11 @@ class KlokRoute(Resource):
             logger.error(f"KeyError: {e}")
             return {"error": "Klok sensor configuration not found"}, 404
 
-    def delete(self, resource: str) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for klok resources
         URL: /klok
-        """
+        """ 
         klok: KlokObject = find_klok()
         if klok:
             try:

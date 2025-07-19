@@ -25,39 +25,24 @@ def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
     return FanObject(postDict)
 
 class FanRoute(Resource):
-    def get(self, resource: str) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources
         URL patterns:
+        - /fan/
         - /fan/on
         - /fan/off  
         - /fan/status
         """
-        # Validate request type
-        valid_resources = ["on", "off", "status"]
-        if resource not in valid_resources:
-            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
-        
         # Get the fan service
         fan: FanObject = find_fan()
 
         if fan is None:
             return {"error": "Fan service not found in server configuration"}, 404
 
-        if resource == "on":
-            fan.set_power(True)
-            return {"status": "on"}, 200
-            
-        elif resource == "off":
-            fan.set_power(False)
-            return {"status": "off"}, 200
-            
-        elif resource == "status":
-            return fan.get_status(), 200
-
-        return {"error": "Unknown resource"}, 400
+        return fan.save(), 200
     
-    def post(self, resource: str) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Update fan configuration
         URL: /fan/<resource>
@@ -99,7 +84,7 @@ class FanRoute(Resource):
             logger.error(f"KeyError: {e}")
             return {"error": "Fan configuration not found"}, 404
 
-    def delete(self, resource: str) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Delete fan service
         URL: /fan/<resource>

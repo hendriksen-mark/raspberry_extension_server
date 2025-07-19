@@ -12,14 +12,14 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class ConfigRoute(Resource):
-    def get(self, resource: str) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for configuration resources
-        URL: /config/resource
+        URL: /config/ or /config/resource
         """
         return serverConfig["config"], 200
 
-    def put(self, resource: str) -> tuple[dict[str, Any], int]:
+    def put(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Update configuration for a specific resource
         """
@@ -27,61 +27,58 @@ class ConfigRoute(Resource):
             putDict: dict[str, Any] = request.get_json(force=True)
             if not putDict:
                 return {"error": "No data provided"}, 400
-                
-            if resource == "config":
-                changes_made: list[str] = []
 
-                # Handle software updates
-                if "swupdate2" in putDict:
-                    swupdate: dict[str, Any] = putDict["swupdate2"]
-                    if swupdate.get("checkforupdate"):
-                        githubCheck()
-                        changes_made.append("checked for updates")
-                    if swupdate.get("install"):
-                        githubInstall()
-                        changes_made.append("installed updates")
-                
-                # Handle user password updates
-                if "users" in putDict:
-                    self._update_user_passwords(putDict["users"])
-                    changes_made.append("updated user passwords")
-                
-                # Handle log level changes
-                if "loglevel" in putDict:
-                    logManager.logger.configure_logger(putDict["loglevel"])
-                    logger.info(f"Changed log level to: {logManager.logger.get_level_name()}")
-                    changes_made.append(f"changed log level to {putDict['loglevel']}")
-                
-                # Handle service configuration updates
-                service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
-                for service in service_configs:
-                    if service in putDict:
-                        service_changes: list[str] = self._update_service_config(service, putDict[service])
-                        if service_changes:
-                            changes_made.extend([f"{service}: {change}" for change in service_changes])
-                
-                # Save configuration if changes were made
-                if changes_made:
-                    try:
-                        configManager.serverConfig.save_config(backup=False, resource="config")
-                        logger.info(f"Configuration updated - Changes: {', '.join(changes_made)}")
-                        return {
-                            "message": "Configuration updated successfully",
-                            "changes": changes_made,
-                            "config": serverConfig["config"]
-                        }, 200
-                    except Exception as e:
-                        logger.error(f"Failed to save configuration: {e}")
-                        return {"error": "Failed to save configuration"}, 500
-                else:
-                    return {"message": "No changes made", "config": serverConfig["config"]}, 200
+            changes_made: list[str] = []
+
+            # Handle software updates
+            if "swupdate2" in putDict:
+                swupdate: dict[str, Any] = putDict["swupdate2"]
+                if swupdate.get("checkforupdate"):
+                    githubCheck()
+                    changes_made.append("checked for updates")
+                if swupdate.get("install"):
+                    githubInstall()
+                    changes_made.append("installed updates")
+
+            # Handle user password updates
+            if "users" in putDict:
+                self._update_user_passwords(putDict["users"])
+                changes_made.append("updated user passwords")
+
+            # Handle log level changes
+            if "loglevel" in putDict:
+                logManager.logger.configure_logger(putDict["loglevel"])
+                logger.info(f"Changed log level to: {logManager.logger.get_level_name()}")
+                changes_made.append(f"changed log level to {putDict['loglevel']}")
+
+            # Handle service configuration updates
+            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
+            for service in service_configs:
+                if service in putDict:
+                    service_changes: list[str] = self._update_service_config(service, putDict[service])
+                    if service_changes:
+                        changes_made.extend([f"{service}: {change}" for change in service_changes])
+
+            # Save configuration if changes were made
+            if changes_made:
+                try:
+                    configManager.serverConfig.save_config(backup=False, resource="config")
+                    logger.info(f"Configuration updated - Changes: {', '.join(changes_made)}")
+                    return {
+                        "message": "Configuration updated successfully",
+                        "changes": changes_made,
+                        "config": serverConfig["config"]
+                    }, 200
+                except Exception as e:
+                    logger.error(f"Failed to save configuration: {e}")
+                    return {"error": "Failed to save configuration"}, 500
             else:
-                return {"error": "Resource not found"}, 404
-                
+                return {"message": "No changes made", "config": serverConfig["config"]}, 200
+
         except Exception as e:
             logger.error(f"Error processing PUT request: {e}")
             return {"error": "Failed to process request"}, 500
-    
+
     def _update_user_passwords(self, users_data: dict[str, Any]) -> None:
         """Update user passwords"""
         for key, value in users_data.items():
