@@ -59,8 +59,8 @@ class SystemRoute(Resource):
                         "machine": uname.machine,
                         "os_version": uname.version,
                         "os_release": uname.release,
-                        "server": run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.strip(),
-                        "webui": run("stat -c %y flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.strip()
+                        "server": run(f"stat {"-c %y" if uname.sysname == "Linux" else "-f %Sm"} {serverConfig['config']['runningDir']}/api.py", shell=True, capture_output=True, text=True).stdout.strip(),
+                        "webui": run(f"stat {"-c %y" if uname.sysname == "Linux" else "-f %Sm"} {serverConfig['config']['runningDir']}/flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.strip()
                     }
                 return response
             except Exception as e:
