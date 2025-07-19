@@ -28,11 +28,11 @@ def create_app(serverConfig) -> Flask:
                        template_folder=template_dir,
                        static_url_path="/assets",
                        static_folder=static_dir)
-    
+
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
     app.config['RESTFUL_JSON'] = {'ensure_ascii': False}
-    
+
     # CORS setup
     cors: CORS = CORS(app, resources={r"*": {"origins": "*"}})
 
@@ -40,7 +40,7 @@ def create_app(serverConfig) -> Flask:
     login_manager: flask_login.LoginManager = flask_login.LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "core.login"
-    
+
     @login_manager.user_loader
     def user_loader(email: str) -> User | None:
         if email not in serverConfig["config"]["users"]:
@@ -60,11 +60,11 @@ def create_app(serverConfig) -> Flask:
         user.id = email
         logger.info(f"Authentication attempt for user: {email}")
         user.is_authenticated = check_password_hash(
-            request.form['password'], 
+            request.form['password'],
             serverConfig["config"]["users"][email]["password"]
         )
         return user
-    
+
     # Flask-RESTful API setup
     api: Api = Api(app)
 
@@ -76,7 +76,7 @@ def create_app(serverConfig) -> Flask:
     from .config_routes import ConfigRoute
     from .fan_routes import FanRoute
     from .powerbutton_routes import PowerButtonRoute
-    
+
     # Register routes with both optional and required resource patterns
     api.add_resource(SystemRoute,       '/system/',
                                         '/system/<string:resource>',                        strict_slashes=False)
@@ -91,14 +91,14 @@ def create_app(serverConfig) -> Flask:
     api.add_resource(ConfigRoute,       '/config/',
                                         '/config/<string:resource>',                        strict_slashes=False)
     api.add_resource(FanRoute,          '/fan/',
-                                        '/fan/<string:resource>',                           strict_slashes=False)  # Uncomment if FanRoute is implemented
+                                        '/fan/<string:resource>',                           strict_slashes=False)
     api.add_resource(PowerButtonRoute,  '/powerbutton/',
-                                        '/powerbutton/<string:resource>',                   strict_slashes=False)  # Uncomment if PowerButtonRoute is implemented
+                                        '/powerbutton/<string:resource>',                   strict_slashes=False)
 
     # Register web interface blueprints
     from flaskUI.core.views import core
     from flaskUI.error_pages.handlers import error_pages
     app.register_blueprint(core)
     app.register_blueprint(error_pages)
-    
+
     return app

@@ -10,7 +10,7 @@ import configManager
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig = configManager.serverConfig.yaml_config
 
-LOG_FILE = str(serverConfig["config"]["runningDir"] + "/diyhue.log")
+LOG_FILE = logManager.logger._get_log_file_path()
 
 class LogWebSocketHandler(WebSocket):
     def opened(self) -> None:
@@ -19,7 +19,7 @@ class LogWebSocketHandler(WebSocket):
         self._thread.daemon = True
         self._thread.start()
 
-    def closed(self, code, reason=None) -> None:
+    def closed(self, code: int, reason: str = None) -> None:
         self._running = False
 
     def tail_log(self) -> None:
@@ -53,9 +53,30 @@ class Root(object):
         pass  # ws4py handles this
 
 def start_ws_server() -> None:
-    cherrypy.quickstart(Root(), '/', config={
-        '/ws': {
-            'tools.websocket.on': True,
-            'tools.websocket.handler_cls': LogWebSocketHandler
-        }
-    })
+    try:
+        cherrypy.log.screen = False
+        
+        logger.info("CherryPy logging configured successfully")
+        
+        # Check if port is available
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('0.0.0.0', 9000))
+        sock.close()
+        
+        if result == 0:
+            logger.warning("Port 9000 appears to be already in use")
+        
+        logger.info("Starting CherryPy WebSocket server on port 9000...")
+        
+        # This is a blocking call - the server runs here
+        cherrypy.quickstart(Root(), '/', config={
+            '/ws': {
+                'tools.websocket.on': True,
+                'tools.websocket.handler_cls': LogWebSocketHandler
+            }
+        })
+    except Exception as e:
+        logger.error(f"Failed to start CherryPy WebSocket server: {e}")
+        logger.exception("Full traceback:")
+        raise

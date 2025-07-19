@@ -25,6 +25,7 @@ WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app: Flask = create_app(serverConfig)
 
 def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
+    logger.debug(f"Starting Flask server on {BIND_IP}:{HOST_HTTP_PORT}")
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def handle_exit(signum: int, frame: Any) -> None:
@@ -50,9 +51,8 @@ def main():
     Thread(target=stateFetch.run_fan_service).start()
     Thread(target=stateFetch.run_klok_service).start()
     Thread(target=scheduler.runScheduler).start()
-    #Thread(target=LogWS.start_ws_server).start()
+    Thread(target=LogWS.start_ws_server).start()
     runHttp(BIND_IP, HOST_HTTP_PORT)
 
 if __name__ == '__main__':
     main()
-    # Initialize services and setup signal handlers
