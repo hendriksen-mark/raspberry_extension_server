@@ -29,6 +29,7 @@ class ThermostatObject:
         self.equiva_thermostat = Thermostat(self.mac)
         self.min_temperature = data.get("min_temperature", 5.0)  # Minimum temperature setting
         self.max_temperature = data.get("max_temperature", 30.0)  # Maximum
+        self.DHT_connected: bool = False  # DHT connection status
 
     def calculate_heating_cooling_state(self, mode: dict[str, Any], valve: int = None) -> int:
         """
@@ -62,6 +63,8 @@ class ThermostatObject:
 
     def update_dht_related_status(self, **kwargs) -> None:
         """Update DHT-related status for all MAC addresses"""
+        if not self.DHT_connected:
+            self.DHT_connected = True
 
         current_temp: float = kwargs.get('temperature')
         current_hum: float = kwargs.get('humidity')
@@ -78,12 +81,13 @@ class ThermostatObject:
             "targetHeatingCoolingState": self.targetHeatingCoolingState,
             "targetTemperature": self.targetTemperature,
             "currentHeatingCoolingState": self.currentHeatingCoolingState,
-            "currentTemperature": self.currentTemperature
+            "currentTemperature": self.targetTemperature
         }
         
         # Add humidity if available
-        if self.currentRelativeHumidity > 0:
+        if self.DHT_connected:
             response["currentRelativeHumidity"] = self.currentRelativeHumidity
+            response["currentTemperature"] = self.currentTemperature
 
         return response
 
