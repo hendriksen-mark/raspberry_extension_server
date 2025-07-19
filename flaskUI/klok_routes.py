@@ -16,14 +16,16 @@ def find_klok() -> KlokObject:
     """
     return serverConfig.get("klok")
 
-def create_klok(postDict: dict[str, Any] = None) -> KlokObject:
+def create_klok(postDict: dict[str, Any] = {}) -> KlokObject:
     """
     Create a new klok object
     """
-    return KlokObject(postDict) if postDict else KlokObject({})
+    if not postDict:
+        logger.warning("No POST data provided, creating default klok object")
+    return KlokObject(postDict)
 
 class KlokRoute(Resource):
-    def get(self, request_type: str, value: str = None) -> Any:
+    def get(self, resource: str, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for klok resources
         URL patterns:
@@ -34,35 +36,36 @@ class KlokRoute(Resource):
         - /klok/infoBri
         """
         # Validate request type
-        valid_request_types = ["on", "off", "status", "Bri", "infoBri"]
-        if request_type not in valid_request_types:
-            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_request_types)}, 400
+        valid_resources: list[str] = ["on", "off", "status", "Bri", "infoBri", "info"]
+        if resource not in valid_resources:
+            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
         
         # Get value from URL parameter or query string
         if value is None:
             value: str = request.args.get("value")
 
-        logger.info(f"Klok request: request_type={request_type}, value={value}")
-        
+        logger.info(f"Klok GET request: resource={resource}, value={value}")
+
         # Get the klok service (assuming it's a single service like DHT)
         klok: KlokObject = find_klok()
 
         if klok is None:
+            logger.error("Klok service not found in server configuration")
             return {"error": "Klok service not found in server configuration"}, 404
 
-        if request_type == "on":
+        if resource == "on":
             klok.set_power(True)
             return {"status": "on"}, 200
             
-        elif request_type == "off":
+        elif resource == "off":
             klok.set_power(False)
             return {"status": "off"}, 200
             
-        elif request_type == "status":
+        elif resource == "status":
             state: int = 1 if klok.power_state else 0
             return str(state), 200
             
-        elif request_type == "Bri":
+        elif resource == "Bri":
             if value is not None:
                 try:
                     brightness_value: int = int(value)
@@ -73,28 +76,29 @@ class KlokRoute(Resource):
             else:
                 return {"error": "Brightness value is required"}, 400
                 
-        elif request_type == "infoBri":
+        elif resource == "infoBri":
             bri_percent: int = klok.get_brightness_percent()
             return str(bri_percent), 200
         
-    def post(self) -> Any:
+        elif resource == "info":
+            return klok.save(), 200
+        
+        return {"error": "Unknown klok resource"}, 400
+
+    def post(self, resource: str) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for klok resources
         URL: /klok
         """
-        postDict = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
-
-        # Validate required data for creating klok
-        if not postDict:
-            return {"error": "JSON data required"}, 400
 
         klok: KlokObject = find_klok()
 
         if klok:
             logger.info(f"Klok already exists, updating configuration")
             # Only allow updating certain safe attributes
-            allowed_attributes = {'CLK_pin', 'DIO_pin', 'brightness', 'power_state', 'doublepoint'}
+            allowed_attributes: set[str] = {'CLK_pin', 'DIO_pin', 'brightness', 'power_state', 'doublepoint'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(klok, key):
                     setattr(klok, key, value)
@@ -103,7 +107,7 @@ class KlokRoute(Resource):
         else:
             logger.info(f"Klok not found, creating a new one")
             try:
-                klok = create_klok(postDict)
+                klok: KlokObject = create_klok(postDict)
                 serverConfig["klok"] = klok
             except ValueError as e:
                 logger.error(f"Failed to create klok: {e}")
@@ -119,8 +123,11 @@ class KlokRoute(Resource):
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
+        except KeyError as e:
+            logger.error(f"KeyError: {e}")
+            return {"error": "Klok sensor configuration not found"}, 404
 
-    def delete(self) -> Any:
+    def delete(self, resource: str) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for klok resources
         URL: /klok
@@ -131,9 +138,10 @@ class KlokRoute(Resource):
                 logger.info(f"Deleting klok service")
                 del serverConfig["klok"]
                 configManager.serverConfig.save_config(backup=False, resource="klok")
-                return {"status": "klok service deleted"}, 200
+                return {"success": True}, 200
             except Exception as e:
                 logger.error(f"Failed to delete klok service: {e}")
                 return {"error": "Failed to delete klok service"}, 500
         else:
-            return {"error": "Klok service not found"}, 404
+            logger.error("Klok service not found in server configuration")
+            return {"error": "Klok service not found in server configuration"}, 404

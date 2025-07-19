@@ -70,17 +70,20 @@ def create_app(serverConfig) -> Flask:
 
     # Register other routes
     from .system_routes import SystemRoute
-    #from .dht_routes import DHTRoute
+    from .dht_routes import DHTRoute
     from .homekit_routes import ThermostatRoute
     from .klok_routes import KlokRoute
-    api.add_resource(SystemRoute, '/<string:resource>', strict_slashes=False)
-    #api.add_resource(DHTRoute, '/dht', strict_slashes=False)
-    api.add_resource(ThermostatRoute, '/<string:mac>/<string:resource>', strict_slashes=False)
-    api.add_resource(KlokRoute, 
-                    '/klok/<string:request_type>', 
-                    '/klok/<string:request_type>/<string:value>', 
-                    strict_slashes=False)
-    #api.add_resource(ConfigRoute, '/config/<string:resource>', strict_slashes=False)  # legacy route
+    from .config_routes import ConfigRoute
+    from .fan_routes import FanRoute  # Uncomment if FanRoute is implemented
+    #from .powerbutton_routes import PowerButtonRoute  # Uncomment if PowerButtonRoute is implemented
+    api.add_resource(SystemRoute,       '/system/<string:resource>',                strict_slashes=False)
+    api.add_resource(DHTRoute,          '/dht/<string:resource>',                   strict_slashes=False)
+    api.add_resource(ThermostatRoute,   '/<string:mac>/<string:resource>',          strict_slashes=False)
+    api.add_resource(KlokRoute,         '/klok/<string:resource>',
+                                        '/klok/<string:resource>/<string:value>',   strict_slashes=False)
+    api.add_resource(ConfigRoute,       '/config/<string:resource>',                strict_slashes=False)
+    api.add_resource(FanRoute,          '/fan/<string:resource>',                   strict_slashes=False)  # Uncomment if FanRoute is implemented
+    # api.add_resource(PowerButtonRoute,  '/powerbutton/<string:resource>',           strict_slashes=False)  # Uncomment if PowerButtonRoute is implemented
 
     # Register web interface blueprints
     from flaskUI.core.views import core

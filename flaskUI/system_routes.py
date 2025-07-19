@@ -1,10 +1,8 @@
 """
 System and configuration routes
 """
-from flask import request
 from typing import Any
 from flask_restful import Resource
-from werkzeug.security import generate_password_hash
 from subprocess import run
 import os
 import logging
@@ -12,19 +10,16 @@ import logManager
 from ServerObjects.fan_object import FanObject
 from ServerObjects.klok_object import KlokObject
 from ServerObjects.powerbutton_object import PowerButtonObject
+from ServerObjects.dht_object import DHTObject
 import configManager
 from services.utils import get_pi_temp
-from .dht_routes import DHTRoute
-from ServerObjects.dht_object import DHTObject
-from services.updateManager import githubCheck, githubInstall
 
-# Get logger with proper type hint for IDE syntax highlighting
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class SystemRoute(Resource):
-    def get(self, resource: str) -> Any:
+    def get(self, resource: str) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for system resources
         URL: /system/resource
@@ -37,13 +32,10 @@ class SystemRoute(Resource):
                 logger.error(f"Error reading Pi temperature: {e}")
                 return {"error": "Could not read Pi temperature"}, 503
             
-        elif resource == "dht":
-            return DHTRoute().get()
-            
         elif resource == "all":
             try:
                 getResources: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
-                response = {}
+                response: dict[str, Any] = {}
                 
                 # Handle thermostats (always a dict of objects)
                 if "thermostats" in serverConfig:
@@ -52,7 +44,7 @@ class SystemRoute(Resource):
                 # Handle single objects that might be dicts or objects
                 for resource_name in ["dht", "klok", "fan", "powerbutton"]:
                     if resource_name in serverConfig:
-                        resource_obj = serverConfig[resource_name]
+                        resource_obj: dict[str, Any] = serverConfig[resource_name]
                         if hasattr(resource_obj, 'save'):
                             response[resource_name] = resource_obj.save()
                         else:
@@ -61,7 +53,7 @@ class SystemRoute(Resource):
                             
                 uname = os.uname()
                 response["config"] = serverConfig["config"]
-                response["pi_temp"] = get_pi_temp()
+                response["pi_temp"] = get_pi_temp() if uname.sysname == "Linux" else "Unsupported OS"
                 response["info"] = {
                         "sysname": uname.sysname,
                         "machine": uname.machine,
@@ -80,7 +72,7 @@ class SystemRoute(Resource):
 
         elif resource == "config":
             try:
-                response = {
+                response: dict[str, Any] = {
                     "config": serverConfig["config"],
                     "thermostats": {key: obj.save() for key, obj in serverConfig["thermostats"].items()} if len(serverConfig.get("thermostats", {})) > 0 else "No Thermostats Configured"
                 }
@@ -116,23 +108,6 @@ class SystemRoute(Resource):
                 return {"error": "Failed to retrieve configuration"}, 500
         else:
             return {"error": "Resource not found"}, 404
-        
-    def put(self, resource: str) -> Any:
-        putDict: dict[str, Any] = request.get_json(force=True)
-        if resource == "config":
-            if "swupdate2" in putDict:
-                if "checkforupdate" in putDict["swupdate2"] and putDict["swupdate2"]["checkforupdate"] == True:
-                    githubCheck()
-                if "install" in putDict["swupdate2"] and putDict["swupdate2"]["install"] == True:
-                    githubInstall()
-            if "users" in putDict:
-                for key, value in putDict["users"].items():
-                    for email, hash in serverConfig["config"]["users"].items():
-                        if putDict["users"][key] == serverConfig["config"]["users"][email]:
-                            serverConfig["config"]["users"][email]["password"] = generate_password_hash(str(value['password']))
-            if "loglevel" in putDict:
-                logManager.logger.configure_logger(putDict["loglevel"])
-                logger.info("Change log level to: " + str(logManager.logger.get_level_name()))
 
 def health_check() -> tuple[dict[str, Any], int]:
     """Health check endpoint"""
@@ -142,14 +117,14 @@ def health_check() -> tuple[dict[str, Any], int]:
     if dht_obj and hasattr(dht_obj, 'get_data'):
         logger.info("DHT object found, retrieving data")
         temp, humidity = dht_obj.get_data()
-        dht_pin = dht_obj.get_pin() if hasattr(dht_obj, 'get_pin') else None
+        dht_pin: int | None = dht_obj.get_pin() if hasattr(dht_obj, 'get_pin') else None
     else:
         # If it's a dict, extract values directly
         logger.info("DHT object not found or not callable, checking dict")
         logger.debug(f"DHT object content: {dht_obj}")
-        temp = dht_obj.get('temperature') if dht_obj else None
-        humidity = dht_obj.get('humidity') if dht_obj else None
-        dht_pin = dht_obj.get('pin') if dht_obj else None
+        temp: float | None = dht_obj.get('temperature') if dht_obj else None
+        humidity: float | None = dht_obj.get('humidity') if dht_obj else None
+        dht_pin: int | None = dht_obj.get('pin') if dht_obj else None
 
     return {
         "status": "healthy",
