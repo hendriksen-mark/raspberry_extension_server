@@ -244,6 +244,7 @@ class ThermostatObject:
             "first_seen": self.first_seen,
             "min_temperature": self.min_temperature,
             "max_temperature": self.max_temperature,
+            "last_updated": self.last_updated,
         }
 
     def is_online(self) -> bool:
