@@ -94,7 +94,16 @@ class ThermostatObject:
 
     async def safe_connect(self) -> None:
         """Safely connect to thermostat"""
-        await self.equiva_thermostat.connect()
+        try:
+            await self.equiva_thermostat.connect()
+            # Connection successful, reset failed connection flag
+            if self.failed_connection:
+                logger.info(f"Connection recovered for {self.mac}")
+                self.failed_connection = False
+        except Exception as e:
+            logger.error(f"Failed to connect to {self.mac}: {e}")
+            self.failed_connection = True
+            raise
 
     async def safe_disconnect(self) -> None:
         """Safely disconnect from thermostat"""
@@ -107,27 +116,36 @@ class ThermostatObject:
 
     async def poll_status(self) -> None:
         """Poll thermostat status"""
-        logger.debug(f"Polling: Attempting to connect to {self.mac}")
-        await self.safe_connect()
+        try:
+            logger.debug(f"Polling: Attempting to connect to {self.mac}")
+            await self.safe_connect()
 
-        # Check if this MAC was previously failing and log recovery
+            logger.debug(f"Polling: Connected to {self.mac}")
+            await self.equiva_thermostat.requestStatus()
+            logger.debug(f"Polling: Status requested from {self.mac}")
+            mode: dict[str, Any] = self.equiva_thermostat.mode.to_dict()
+            valve: float = self.equiva_thermostat.valve
+            temp: float = self.equiva_thermostat.temperature.valueC
 
-        logger.debug(f"Polling: Connected to {self.mac}")
-        await self.equiva_thermostat.requestStatus()
-        logger.debug(f"Polling: Status requested from {self.mac}")
-        mode: dict[str, Any] = self.equiva_thermostat.mode.to_dict()
-        valve: float = self.equiva_thermostat.valve
-        temp: float = self.equiva_thermostat.temperature.valueC
+            target_mode_status = self.calculate_heating_cooling_state(mode)
+            current_mode_status = self.calculate_heating_cooling_state(mode, valve)
 
-        target_mode_status = self.calculate_heating_cooling_state(mode)
-        current_mode_status = self.calculate_heating_cooling_state(mode, valve)
+            self.targetHeatingCoolingState = target_mode_status["int"]
+            self.targetTemperature = temp
+            self.currentHeatingCoolingState = current_mode_status["int"]
+            self.last_updated = strftime("%Y-%m-%d %H:%M:%S", localtime())
 
-        self.targetHeatingCoolingState = target_mode_status["int"]
-        self.targetTemperature = temp
-        self.currentHeatingCoolingState = current_mode_status["int"]
-        self.last_updated = strftime("%Y-%m-%d %H:%M:%S", localtime())
-
-        logger.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.targetTemperature}C")
+            logger.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.targetTemperature}C")
+        
+        except Exception as e:
+            logger.error(f"Polling failed for {self.mac}: {e}")
+            self.failed_connection = True
+            raise
+        finally:
+            try:
+                await self.safe_disconnect()
+            except Exception as e:
+                logger.error(f"Error disconnecting from {self.mac}: {e}")
 
     async def set_temperature(self, temp: str) -> dict[str, Any]:
         """Set thermostat target temperature"""
@@ -142,13 +160,19 @@ class ThermostatObject:
             return {"result": "ok", "temperature": float(temp)}
         except BleakError:
             logger.error(f"Device with address {mac} was not found")
+            self.failed_connection = True
             return {"result": "error", "message": f"Device with address {mac} was not found"}
         except EqivaException as ex:
             logger.error(f"EqivaException for {mac}: {str(ex)}")
+            self.failed_connection = True
             return {"result": "error", "message": str(ex)}
         except ValueError as ex:
             logger.error(f"Invalid temperature value for {mac}: {str(ex)}")
             return {"result": "error", "message": "Invalid temperature value"}
+        except Exception as ex:
+            logger.error(f"Unexpected error for {mac}: {str(ex)}")
+            self.failed_connection = True
+            return {"result": "error", "message": "Connection failed"}
         finally:
             try:
                 await self.safe_disconnect()
@@ -175,10 +199,16 @@ class ThermostatObject:
             return {"result": "ok", "mode": int(mode)}
         except BleakError:
             logger.error(f"Device with address {mac} was not found")
+            self.failed_connection = True
             return {"result": "error", "message": f"Device with address {mac} was not found"}
         except EqivaException as ex:
             logger.error(f"EqivaException for {mac}: {str(ex)}")
+            self.failed_connection = True
             return {"result": "error", "message": str(ex)}
+        except Exception as ex:
+            logger.error(f"Unexpected error for {mac}: {str(ex)}")
+            self.failed_connection = True
+            return {"result": "error", "message": "Connection failed"}
         finally:
             try:
                 await self.safe_disconnect()
@@ -215,3 +245,12 @@ class ThermostatObject:
             "min_temperature": self.min_temperature,
             "max_temperature": self.max_temperature,
         }
+
+    def is_online(self) -> bool:
+        """Check if the thermostat is currently online (not failed connection)"""
+        return not self.failed_connection
+    
+    def reset_connection_status(self) -> None:
+        """Reset the failed connection status - useful for manual retry"""
+        self.failed_connection = False
+        logger.info(f"Connection status reset for {self.mac}")
