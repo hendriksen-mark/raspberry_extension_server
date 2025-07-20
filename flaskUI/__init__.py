@@ -71,7 +71,7 @@ def create_app(serverConfig) -> Flask:
     # Register other routes
     from .system_routes import SystemRoute
     from .dht_routes import DHTRoute
-    from .homekit_routes import ThermostatRoute
+    from .thermostat_routes import ThermostatRoute
     from .klok_routes import KlokRoute
     from .config_routes import ConfigRoute
     from .fan_routes import FanRoute

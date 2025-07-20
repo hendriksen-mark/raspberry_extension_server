@@ -25,7 +25,8 @@ class ThermostatObject:
         self.currentHeatingCoolingState: int = data.get("currentHeatingCoolingState", 0)  # Default current state
         self.currentTemperature: float = data.get("currentTemperature", 0.0)  # Default DHT temperature
         self.currentRelativeHumidity: float = data.get("currentRelativeHumidity", 0.0)  # Default DHT humidity
-        self.last_updated: str = data.get("last_updated", strftime("%Y-%m-%d %H:%M:%S", localtime()))  # Last update timestamp
+        self.last_updated: str = data.get("last_updated", None)  # Last update timestamp
+        self.first_seen: str = data.get("first_seen", strftime("%Y-%m-%d %H:%M:%S", localtime()))
         self.equiva_thermostat = Thermostat(self.mac)
         self.min_temperature = data.get("min_temperature", 5.0)  # Minimum temperature setting
         self.max_temperature = data.get("max_temperature", 30.0)  # Maximum
@@ -83,8 +84,7 @@ class ThermostatObject:
             "currentHeatingCoolingState": self.currentHeatingCoolingState,
             "currentTemperature": self.targetTemperature
         }
-        
-        # Add humidity if available
+
         if self.DHT_connected:
             response["currentRelativeHumidity"] = self.currentRelativeHumidity
             response["currentTemperature"] = self.currentTemperature
@@ -185,11 +185,33 @@ class ThermostatObject:
             except Exception as e:
                 logger.error(f"Error disconnecting from {mac}: {e}")
 
+    def get_all_data(self) -> dict[str, Any]:
+        """Get all thermostat data"""
+        return {
+            "mac": self.mac,
+            "targetHeatingCoolingState": self.targetHeatingCoolingState,
+            "targetTemperature": self.targetTemperature,
+            "currentHeatingCoolingState": self.currentHeatingCoolingState,
+            "currentTemperature": self.currentTemperature,
+            "currentRelativeHumidity": self.currentRelativeHumidity,
+            "last_updated": self.last_updated,
+            "first_seen": self.first_seen,
+            "DHT_connected": self.DHT_connected,
+            "failed_connection": self.failed_connection,
+            "min_temperature": self.min_temperature,
+            "max_temperature": self.max_temperature,
+        }
+
     def save(self) -> dict[str, Any]:
         """Save current thermostat state to a dictionary"""
-        result: dict[str, Any] = self.get_status()
-        result.update({
+        return {
             "mac": self.mac,
-            "last_updated": self.last_updated
-        })
-        return result
+            "targetHeatingCoolingState": self.targetHeatingCoolingState,
+            "targetTemperature": self.targetTemperature,
+            "currentHeatingCoolingState": self.currentHeatingCoolingState,
+            "currentTemperature": self.currentTemperature,
+            "currentRelativeHumidity": self.currentRelativeHumidity,
+            "first_seen": self.first_seen,
+            "min_temperature": self.min_temperature,
+            "max_temperature": self.max_temperature,
+        }

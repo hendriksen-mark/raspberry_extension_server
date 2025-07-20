@@ -94,7 +94,7 @@ class KlokRoute(Resource):
             bri_percent: int = klok.get_brightness_percent()
             return str(bri_percent), 200
         
-        return klok.save(), 200
+        return klok.get_all_data(), 200
 
     def post(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
         """

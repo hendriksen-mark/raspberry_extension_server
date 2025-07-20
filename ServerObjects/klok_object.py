@@ -8,15 +8,15 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class KlokObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.CLK_pin = data.get("CLK_pin", 24)
-        self.DIO_pin = data.get("DIO_pin", 23)  # GPIO pin for the fan
-        self.brightness = data.get("brightness", 0.0)  # Default brightness
-        self.last_brightness = None  # Track last brightness to avoid unnecessary updates
-        self.last_time = None
-        self.last_doublepoint = None
-        self.doublepoint = True  # Initialize doublepoint state
-        self.power_state = True
-        self.display = TM1637(self.CLK_pin, self.DIO_pin)
+        self.CLK_pin: float = data.get("CLK_pin", 24)
+        self.DIO_pin: float = data.get("DIO_pin", 23)  # GPIO pin for the fan
+        self.brightness: float = data.get("brightness", 0.0)  # Default brightness
+        self.last_brightness: float | None = None  # Track last brightness to avoid unnecessary updates
+        self.last_time: datetime | None = None
+        self.last_doublepoint: bool | None = None
+        self.doublepoint: bool = True  # Initialize doublepoint state
+        self.power_state: bool = True
+        self.display: TM1637 = TM1637(self.CLK_pin, self.DIO_pin)
 
     def set_brightness(self, value: int) -> None:
         """Set the brightness of the display."""
@@ -64,6 +64,15 @@ class KlokObject:
     def get_brightness_percent(self) -> int:
         """Get brightness as percentage"""
         return int(self.brightness * 100)
+    
+    def get_all_data(self) -> dict[str, Any]:
+        """Get all klok service data"""
+        return {
+            "CLK_pin": self.CLK_pin,
+            "DIO_pin": self.DIO_pin,
+            "brightness": self.get_brightness_percent(),
+            "power_state": self.power_state
+        }
 
     def save(self) -> dict[str, Any]:
         """Save the klok service configuration"""

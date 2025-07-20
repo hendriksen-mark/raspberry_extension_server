@@ -34,7 +34,7 @@ class PowerButtonRoute(Resource):
         if powerbutton is None:
             return {"error": "PowerButton service not found in server configuration"}, 404
             
-        return powerbutton.save(), 200
+        return powerbutton.get_all_data(), 200
 
     def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """

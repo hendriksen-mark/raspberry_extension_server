@@ -39,13 +39,15 @@ class SystemRoute(Resource):
                 
                 # Handle thermostats (always a dict of objects)
                 if "thermostats" in serverConfig:
-                    response["thermostats"] = {key: obj.save() for key, obj in serverConfig["thermostats"].items()}
+                    response["thermostats"] = {key: obj.get_all_data() for key, obj in serverConfig["thermostats"].items()}
                 
                 # Handle single objects that might be dicts or objects
                 for resource_name in ["dht", "klok", "fan", "powerbutton"]:
                     if resource_name in serverConfig:
                         resource_obj: dict[str, Any] = serverConfig[resource_name]
-                        if hasattr(resource_obj, 'save'):
+                        if hasattr(resource_obj, 'get_all_data'):
+                            response[resource_name] = resource_obj.get_all_data()
+                        elif hasattr(resource_obj, 'save'):
                             response[resource_name] = resource_obj.save()
                         else:
                             # If it's still a dict, return it as is

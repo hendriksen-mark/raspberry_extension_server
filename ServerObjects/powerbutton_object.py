@@ -13,13 +13,13 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class PowerButtonObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.button_pin = data.get("button_pin", 3)  # Default GPIO pin for the button
-        self.long_press_duration = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
-        self.debounce_time = data.get("debounce_time", 0.05)  # Default debounce time in seconds
-        self.shutdown_event = Event()
+        self.button_pin: float = data.get("button_pin", 3)  # Default GPIO pin for the button
+        self.long_press_duration: float = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
+        self.debounce_time: float = data.get("debounce_time", 0.05)  # Default debounce time in seconds
+        self.shutdown_event: Event = Event()
         IO.setmode(IO.BCM)
         IO.setup(self.button_pin, IO.IN, pull_up_down=IO.PUD_UP)
-        self.last_press_time = time.time()
+        self.last_press_time: float = time.time()
 
     def cleanup(self) -> None:
         """Clean up IO resources"""
@@ -98,10 +98,14 @@ class PowerButtonObject:
         finally:
             self.cleanup()
 
-    def save(self) -> dict[str, Any]:
-        """Save the power button configuration"""
+    def get_all_data(self) -> dict[str, Any]:
+        """Get all power button service data"""
         return {
             "button_pin": self.button_pin,
             "long_press_duration": self.long_press_duration,
             "debounce_time": self.debounce_time
         }
+
+    def save(self) -> dict[str, Any]:
+        """Save the power button configuration"""
+        return self.get_all_data()

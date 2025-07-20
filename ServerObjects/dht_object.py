@@ -122,11 +122,22 @@ class DHTObject:
         except Exception as e:
             logger.error(f"Error reading DHT sensor: {e}")
 
+    def get_all_data(self) -> dict[str, Any]:
+        """Get all DHT data as a dictionary"""
+        with self.dht_lock:
+            return {
+                "sensor_type": self.sensor_type,
+                "dht_pin": self.dht_pin,
+                "latest_temperature": self.latest_temperature,
+                "latest_humidity": self.latest_humidity,
+                "MIN_DHT_TEMP": self.MIN_DHT_TEMP,
+                "MAX_DHT_TEMP": self.MAX_DHT_TEMP,
+                "MIN_HUMIDITY": self.MIN_HUMIDITY,
+                "MAX_HUMIDITY": self.MAX_HUMIDITY,
+                "DHT_TEMP_CHANGE_THRESHOLD": self.DHT_TEMP_CHANGE_THRESHOLD,
+                "DHT_HUMIDITY_CHANGE_THRESHOLD": self.DHT_HUMIDITY_CHANGE_THRESHOLD
+            }
+
     def save(self) -> dict[str, Any]:
         """Save current DHT state to a dictionary"""
-        return {
-            "sensor_type": self.sensor_type,
-            "dht_pin": self.dht_pin,
-            "latest_temperature": self.latest_temperature,
-            "latest_humidity": self.latest_humidity
-        }
+        return self.get_all_data()

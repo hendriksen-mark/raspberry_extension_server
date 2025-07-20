@@ -12,15 +12,15 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.gpio_pin = data.get("gpio_pin", 18)
-        self.pwm_frequency = data.get("pwm_frequency", 25000)  # Default PWM frequency
-        self.min_temperature = data.get("min_temperature", 25)  # Minimum temperature setting
-        self.max_temperature = data.get("max_temperature", 80)  # Maximum temperature setting
-        self.min_speed = data.get("min_speed", 0)  # Minimum speed setting
-        self.max_speed = data.get("max_speed", 255)  # Maximum speed setting
-        self.cleanup_done = False
-        self.last_logged_temp = None
-        self.temp_change_threshold = 0.5  # Only log when temperature changes by more than 0.5°C
+        self.gpio_pin: float = data.get("gpio_pin", 18)
+        self.pwm_frequency: float = data.get("pwm_frequency", 25000)  # Default PWM frequency
+        self.min_temperature: float = data.get("min_temperature", 25)  # Minimum temperature setting
+        self.max_temperature: float = data.get("max_temperature", 80)  # Maximum temperature setting
+        self.min_speed: float = data.get("min_speed", 0)  # Minimum speed setting
+        self.max_speed: float = data.get("max_speed", 255)  # Maximum speed setting
+        self.cleanup_done: bool = False
+        self.last_logged_temp: float | None = None
+        self.temp_change_threshold: float = data.get("temp_change_threshold", 0.5)  # Only log when temperature changes by more than 0.5°C
         self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("Could not connect to pigpio daemon. Make sure pigpiod is running.")
@@ -52,15 +52,20 @@ class FanObject:
             logger.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
             self.last_logged_temp = temp
 
-    def save(self) -> dict[str, Any]:
-        """Save the fan service configuration"""
+    def get_all_data(self) -> dict[str, Any]:
+        """Get all fan service data"""
         return {
             "gpio_pin": self.gpio_pin,
             "pwm_frequency": self.pwm_frequency,
             "min_temperature": self.min_temperature,
             "max_temperature": self.max_temperature,
             "min_speed": self.min_speed,
-            "max_speed": self.max_speed
+            "max_speed": self.max_speed,
+            "temp_change_threshold": self.temp_change_threshold,
         }
+
+    def save(self) -> dict[str, Any]:
+        """Save the fan service configuration"""
+        return self.get_all_data()
 
 

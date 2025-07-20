@@ -40,7 +40,7 @@ class FanRoute(Resource):
         if fan is None:
             return {"error": "Fan service not found in server configuration"}, 404
 
-        return fan.save(), 200
+        return fan.get_all_data(), 200
     
     def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """

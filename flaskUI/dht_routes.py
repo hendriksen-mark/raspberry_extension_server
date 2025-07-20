@@ -52,7 +52,7 @@ class DHTRoute(Resource):
         if resource == "info":
             # Return DHT configuration info
             try:
-                dht_info: dict[str, Any] = dht.save()
+                dht_info: dict[str, Any] = dht.get_all_data()
                 logger.info(f"Returning DHT info: {dht_info}")
                 return dht_info, 200
             except KeyError as e:
