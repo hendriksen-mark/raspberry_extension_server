@@ -71,7 +71,7 @@ class ThermostatRoute(Resource):
                 "available_endpoints": [
                     "status", 
                     "targetTemperature", 
-                    "mode"
+                    "targetHeatingCoolingState"
                 ],
                 "description": f"Thermostat {mac} control endpoints"
             }, 200
