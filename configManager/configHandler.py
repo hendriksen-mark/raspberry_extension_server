@@ -82,6 +82,9 @@ class Config:
             "powerbutton": {
                 "enabled": False
             },
+            "webserver": {
+                "interval": 2000
+            },
             "swupdate2": {
                 "autoinstall": {
                     "on": False,
