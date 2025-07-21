@@ -19,7 +19,7 @@ class ThermostatObject:
     def __init__(self, data: dict[str, Any]) -> None:
         self.id: str = data.get("id", None)  # Unique identifier for the thermostat
         self.mac: str = data.get("mac", None)  # MAC address of the thermostat
-        self.failed_connection: bool = False  # Track failed connection
+        self.failed_connection: bool = True  # Track failed connection
         self.targetHeatingCoolingState: int = data.get("targetHeatingCoolingState", 0)  # Default target state
         self.targetTemperature: float = data.get("targetTemperature", 0.0)  # Default target temperature
         self.currentHeatingCoolingState: int = data.get("currentHeatingCoolingState", 0)  # Default current state
@@ -74,7 +74,7 @@ class ThermostatObject:
         if current_hum is not None:
             self.currentRelativeHumidity = current_hum
 
-        logger.debug(f"Updated DHT status for {self.mac} thermostat: temp={current_temp}°C, humidity={current_hum}%")
+        logger.debug(f"Updated DHT status for {self.mac} thermostat: temp={self.currentTemperature}°C, humidity={self.currentRelativeHumidity}%")
 
     def get_status(self) -> dict[str, Any]:
         """Get thermostat status for a given MAC address"""
