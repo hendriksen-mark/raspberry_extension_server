@@ -123,7 +123,7 @@ def run_dht_service() -> None:
     This function should be implemented to read from the DHT sensor.
     """
     while True:
-        while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set():
+        while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set() and "dht" in serverConfig:
             interval: int = serverConfig["config"]["dht"]["interval"]
             logger.debug(f"Reading DHT temperature every {interval} seconds")
             try:
@@ -144,7 +144,7 @@ def run_fan_service() -> None:
     This function should be implemented to control the fan based on temperature.
     """
     while True:
-        while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set():
+        while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set() and "fan" in serverConfig:
             interval: int = serverConfig["config"]["fan"]["interval"]
             try:
                 fan: FanObject = serverConfig["fan"]
@@ -178,7 +178,7 @@ def run_klok_service() -> None:
     This function should be implemented to update the klok display.
     """
     while True:
-        while serverConfig["config"]["klok"]["enabled"] and not _klok_shutdown.is_set():
+        while serverConfig["config"]["klok"]["enabled"] and not _klok_shutdown.is_set() and "klok" in serverConfig:
             try:
                 klok: KlokObject = serverConfig["klok"]
                 if klok:
@@ -210,7 +210,7 @@ def run_powerbutton_service() -> None:
     Placeholder for power button service logic.
     This function should be implemented to handle power button events.
     """
-    while serverConfig["config"]["powerbutton"]["enabled"] and not _powerbutton_shutdown.is_set():
+    while serverConfig["config"]["powerbutton"]["enabled"] and not _powerbutton_shutdown.is_set() and "powerbutton" in serverConfig:
         try:
             powerbutton: PowerButtonObject = serverConfig["powerbutton"]
             if powerbutton:
