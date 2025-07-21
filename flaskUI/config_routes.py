@@ -96,9 +96,9 @@ class ConfigRoute(Resource):
             serverConfig["config"][service] = {}
 
         # Update enabled status
-        if "enable" in service_data:
+        if "enabled" in service_data:
             old_value: bool | None = serverConfig["config"][service].get("enabled")
-            new_value: bool | None = service_data["enable"]
+            new_value: bool | None = service_data["enabled"]
             if old_value != new_value:
                 serverConfig["config"][service]["enabled"] = new_value
                 changes.append(f"enabled: {old_value} -> {new_value}")
