@@ -25,6 +25,7 @@ class ConfigRoute(Resource):
         """
         try:
             putDict: dict[str, Any] = request.get_json(force=True)
+            logger.debug(f"PUT request for resource: {resource}, data: {putDict}")
             if not putDict:
                 return {"error": "No data provided"}, 400
 
@@ -52,7 +53,7 @@ class ConfigRoute(Resource):
                 changes_made.append(f"changed log level to {putDict['loglevel']}")
 
             # Handle service configuration updates
-            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
+            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver"]
             for service in service_configs:
                 if service in putDict:
                     service_changes: list[str] = self._update_service_config(service, putDict[service])
@@ -104,7 +105,7 @@ class ConfigRoute(Resource):
                 changes.append(f"enabled: {old_value} -> {new_value}")
         
         # Update interval (if applicable)
-        if "interval" in service_data and service in ["thermostats", "dht", "fan"]:
+        if "interval" in service_data and service in ["thermostats", "dht", "fan", "webserver"]:
             old_value: float | None = serverConfig["config"][service].get("interval")
             new_value: float | None = service_data["interval"]
             if old_value != new_value:
