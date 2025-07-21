@@ -83,7 +83,7 @@ class Config:
                 "enabled": False
             },
             "webserver": {
-                "interval": 2000
+                "interval": 2
             },
             "swupdate2": {
                 "autoinstall": {
