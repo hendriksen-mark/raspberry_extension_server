@@ -209,10 +209,18 @@ class Config:
 
             # Handle single service objects (not dictionaries)
             if object in ["dht", "klok", "fan", "powerbutton"]:
-                if hasattr(self.yaml_config[object], 'save'):
+                if object in self.yaml_config and hasattr(self.yaml_config[object], 'save'):
                     savedData: dict[str, Any] = self.yaml_config[object].save()
                     if savedData:
                         dumpDict.update(savedData)
+                # If the object doesn't exist in config (was deleted), remove the YAML file
+                elif object not in self.yaml_config and os.path.exists(filePath):
+                    try:
+                        os.remove(filePath)
+                        logger.debug(f"Removed config file {filePath}")
+                        continue  # Skip writing the file since we removed it
+                    except OSError as e:
+                        logger.error(f"Failed to remove config file {filePath}: {e}")
             elif object in ["thermostats"]:
                 # Handle other objects that are dictionaries (like thermostats)
                 for element in self.yaml_config[object]:
