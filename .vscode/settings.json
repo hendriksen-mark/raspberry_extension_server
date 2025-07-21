@@ -1,3 +1,20 @@
 {
-    "python.autoComplete.extraPaths": ["./"]
+    "python.autoComplete.extraPaths": ["./"],
+    "files.watcherExclude": {
+        "**/__pycache__/**": true,
+        "**/*.pyc": true,
+        "**/node_modules/**": true,
+        "**/.git/**": true,
+        "**/venv/**": true,
+        "**/env/**": true
+    },
+    "python.analysis.ignore": [
+        "__pycache__",
+        "*.pyc"
+    ],
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    "python.defaultInterpreterPath": "./venv/bin/python"
 }

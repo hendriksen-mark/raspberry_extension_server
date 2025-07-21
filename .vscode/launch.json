@@ -4,7 +4,6 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-    
     {
       "name": "Launch server",
       "type": "debugpy",
@@ -19,7 +18,17 @@
         "xxx.xxx.xxx.xxx"
       ],
       "console": "integratedTerminal",
-      "sudo": true
+      "stopOnEntry": false,
+      "justMyCode": false,
+      "autoReload": {
+        "enable": true
+      },
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      },
+      "subProcess": true,
+      "redirectOutput": true,
+      "showReturnValue": true,
     },
     {
       "name": "install ui",
