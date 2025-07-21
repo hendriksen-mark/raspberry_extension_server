@@ -1,3 +1,6 @@
+import random
+
+
 class DummyGPIO:
         BCM: str = "BCM"
         OUT: str = "OUT"
@@ -43,8 +46,10 @@ class DummyDHT:
 
         @staticmethod
         def read_retry(sensor: int, pin: int) -> tuple[float, float]:
-            return 22.0, 50.0
-        
+            temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
+            humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
+            return humidity, temp
+
 class DummyPigpioInstance:
         def __init__(self) -> None:
             self.connected = True
