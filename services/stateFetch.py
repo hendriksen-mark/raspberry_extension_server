@@ -42,7 +42,7 @@ async def syncWithThermostats() -> None:
                 except BleakError as e:
                     logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
                     thermostat.failed_connection = True
-                    raise
+                    pass
                 except EqivaException as e:
                     logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
                     thermostat.failed_connection = True
@@ -53,7 +53,6 @@ async def syncWithThermostats() -> None:
                         logger.debug(f"Polling: Disconnected from {thermostat.mac}")
                     except Exception as e:
                         logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
-                break
 
             # Use asyncio.sleep with periodic checks for immediate shutdown
             sleep_time: float = max(10, interval)
