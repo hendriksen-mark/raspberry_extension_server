@@ -96,7 +96,7 @@ class DHTRoute(Resource):
 
         if dht:
             logger.info(f"DHT already exists, updating configuration")
-            allowed_attributes = ["pin", "sensor_type", "temperature_offset", "humidity_offset"]
+            allowed_attributes = ["dht_pin", "sensor_type", "MIN_DHT_TEMP", "MAX_DHT_TEMP", "MIN_HUMIDITY", "MAX_HUMIDITY", "DHT_TEMP_CHANGE_THRESHOLD", "DHT_HUMIDITY_CHANGE_THRESHOLD"]
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(dht, key):
                     setattr(dht, key, value)
