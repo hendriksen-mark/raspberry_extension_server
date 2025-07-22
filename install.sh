@@ -53,68 +53,119 @@ else
     echo -e "Invalid selection. Using default: $branchSelection"
 fi
 
-# Check for Python 3
-if ! command -v python3 &>/dev/null; then
-    apt-get install -y python3 python3-pip
-fi
 
-echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
-# installing Raspberry Extension Server
-echo -e "\033[36m Installing Raspberry Extension Server.\033[0m"
-curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
-unzip -qo server.zip
-cd raspberry_extension_server-$branchSelection/
+echo -e "\033[36mPlease choose a install method\033[0m"
+echo -e "\033[33mSelect Install Method by entering the corresponding Number: [Default: 1]\033[0m"
+echo -e "[1] Install as host service (Recommended)"
+echo -e "[2] Install with Docker"
+echo -n "I go with Nr.: "
+installMethod=""
+read installMethod
 
-echo -e "\033[36m Installing Python Dependencies.\033[0m"
-python3 -m pip install --upgrade pip --break-system-packages
-pip3 install -r requirements.txt --break-system-packages
-
-
-if [ -d "/opt/raspberry_extension_server" ]; then
-
-  systemctl stop raspberry_extension_server.service
-  echo -e "\033[33m Existing installation found, performing upgrade.\033[0m"
-
-  cp -r /opt/raspberry_extension_server/config /tmp/raspberry_extension_server_backup
-  rm -rf /opt/raspberry_extension_server/*
-  cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
-
+if [[ "$installMethod" =~ ^[1-2]$ ]]; then
+    echo -e "Install method $installMethod selected"
 else
-  if cat /proc/net/tcp | grep -c "00000000:0050" > /dev/null; then
-      echo -e "\033[31m ERROR!! Port 80 already in use. Close the application that use this port and try again.\033[0m"
-      exit 1
-  fi
-  if cat /proc/net/tcp | grep -c "00000000:01BB" > /dev/null; then
-      echo -e "\033[31m ERROR!! Port 443 already in use. Close the application that use this port and try again.\033[0m"
-      exit 1
-  fi
-  mkdir /opt/raspberry_extension_server
+    installMethod="1"
+    echo -e "Invalid selection. Using default: $installMethod"
 fi
 
+case $installMethod in
+        1)
+        installMethod="host"
+        echo -e "Host selected"
+        ;;
+        2)
+        installMethod="docker"
+        echo -e "Docker selected"
+        ;;
+				*)
+        installMethod="host"
+        echo -e "Host selected"
+        ;;
+esac
 
-cp -r flaskUI /opt/raspberry_extension_server/
-cp -r ServerObjects /opt/raspberry_extension_server/
-cp -r services /opt/raspberry_extension_server/
-cp -r configManager /opt/raspberry_extension_server/
-cp -r api.py /opt/raspberry_extension_server/
-cp -r githubInstall.sh /opt/raspberry_extension_server/
+if [ "$installMethod" == "host" ]; then
+  echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
+  # Check for Python 3
+  if ! command -v python3 &>/dev/null; then
+      apt-get install -y python3 python3-pip
+  fi
 
-# Copy web interface files
+  echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
+  # installing Raspberry Extension Server
+  echo -e "\033[36m Installing Raspberry Extension Server.\033[0m"
+  curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
+  unzip -qo server.zip
+  cd raspberry_extension_server-$branchSelection/
 
-curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
-unzip -qo serverUI.zip
-mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
-cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
-rm -r dist
+  echo -e "\033[36m Installing Python Dependencies.\033[0m"
+  python3 -m pip install --upgrade pip --break-system-packages
+  pip3 install -r requirements.txt --break-system-packages
 
-# Update service file with selected branch
-sed "s/Environment=branch=.*/Environment=branch=$branchSelection/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
-cp /tmp/raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
-cd ../../
-rm -rf serverUI.zip raspberry_extension_server_ui-$branchSelection
-chmod 644 /lib/systemd/system/raspberry_extension_server.service
-systemctl daemon-reload
-systemctl enable raspberry_extension_server.service
-systemctl start raspberry_extension_server.service
+
+  if [ -d "/opt/raspberry_extension_server" ]; then
+
+    systemctl stop raspberry_extension_server.service
+    echo -e "\033[33m Existing installation found, performing upgrade.\033[0m"
+
+    cp -r /opt/raspberry_extension_server/config /tmp/raspberry_extension_server_backup
+    rm -rf /opt/raspberry_extension_server/*
+    cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
+
+  else
+    if cat /proc/net/tcp | grep -c "00000000:0050" > /dev/null; then
+        echo -e "\033[31m ERROR!! Port 80 already in use. Close the application that use this port and try again.\033[0m"
+        exit 1
+    fi
+    if cat /proc/net/tcp | grep -c "00000000:01BB" > /dev/null; then
+        echo -e "\033[31m ERROR!! Port 443 already in use. Close the application that use this port and try again.\033[0m"
+        exit 1
+    fi
+    mkdir /opt/raspberry_extension_server
+  fi
+
+
+  cp -r flaskUI /opt/raspberry_extension_server/
+  cp -r ServerObjects /opt/raspberry_extension_server/
+  cp -r services /opt/raspberry_extension_server/
+  cp -r configManager /opt/raspberry_extension_server/
+  cp -r api.py /opt/raspberry_extension_server/
+  cp -r githubInstall.sh /opt/raspberry_extension_server/
+
+  # Copy web interface files
+
+  curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
+  unzip -qo serverUI.zip
+  mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
+  cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
+  rm -r dist
+
+  # Update service file with selected branch
+  sed "s/Environment=branch=.*/Environment=branch=$branchSelection/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
+  cp /tmp/raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
+  cd ../../
+  rm -rf serverUI.zip raspberry_extension_server_ui-$branchSelection
+  chmod 644 /lib/systemd/system/raspberry_extension_server.service
+  systemctl daemon-reload
+  systemctl enable raspberry_extension_server.service
+  systemctl start raspberry_extension_server.service
+else
+    echo -e "\033[36mInstalling Raspberry Extension Server with Docker.\033[0m"
+    if ! command -v docker &>/dev/null; then
+        echo -e "\033[31mDocker is not installed. Please install Docker first.\033[0m"
+        exit 1
+    fi
+    interface=$(ip route | grep default | awk '{print $5}')
+    mac=`cat /sys/class/net/$interface/address`
+    ip=`ip addr show $interface | grep 'inet ' | awk '{print $2}' | cut -d/ -f1`
+    curl -fsSL https://raw.githubusercontent.com/hendriksen-mark/raspberry_extension_server/refs/heads/$branchSelection/.build/Dockerfile -o Dockerfile
+    docker stop raspberry_extension_server
+    docker rm raspberry_extension_server
+    docker buildx create --name mybuilder --use
+    docker buildx inspect --bootstrap
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    docker buildx build --builder mybuilder --platform=linux/amd64/v3 --build-arg TARGETPLATFORM=linux/amd64/v3 --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f Dockerfile --load .
+    docker run -d --name raspberry_extension_server --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e MAC=$mac -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
+fi
 
 echo -e "\033[32m Installation completed.\033[0m"
