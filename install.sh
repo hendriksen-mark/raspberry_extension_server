@@ -111,14 +111,11 @@ if [ "$installMethod" == "host" ]; then
     cp -r /opt/raspberry_extension_server/config /tmp/raspberry_extension_server_backup
     rm -rf /opt/raspberry_extension_server/*
     cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
+    rm -r /tmp/raspberry_extension_server_backup
 
   else
-    if cat /proc/net/tcp | grep -c "00000000:0050" > /dev/null; then
-        echo -e "\033[31m ERROR!! Port 80 already in use. Close the application that use this port and try again.\033[0m"
-        exit 1
-    fi
-    if cat /proc/net/tcp | grep -c "00000000:01BB" > /dev/null; then
-        echo -e "\033[31m ERROR!! Port 443 already in use. Close the application that use this port and try again.\033[0m"
+    if cat /proc/net/tcp | grep -c "00000000:13BA" > /dev/null; then
+        echo -e "\033[31m ERROR!! Port 5002 already in use. Close the application that use this port and try again.\033[0m"
         exit 1
     fi
     mkdir /opt/raspberry_extension_server
@@ -149,8 +146,8 @@ if [ "$installMethod" == "host" ]; then
   # Update service file with selected branch
   sed "s/Environment=branch=.*/Environment=branch=$branchSelection/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
   cp /tmp/raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
-  cd ../../
-  rm -rf serverUI.zip raspberry_extension_server_ui-$branchSelection
+  cd /tmp
+  rm -rf serverUI.zip raspberry_extension_server-$branchSelection raspberry_extension_server.service
   chmod 644 /lib/systemd/system/raspberry_extension_server.service
   systemctl daemon-reload
   systemctl enable raspberry_extension_server.service
