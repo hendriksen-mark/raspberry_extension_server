@@ -132,6 +132,9 @@ if [ "$installMethod" == "host" ]; then
   cp -r api.py /opt/raspberry_extension_server/
   cp -r githubInstall.sh /opt/raspberry_extension_server/
 
+  # Set proper ownership for the pi user
+  chown -R pi:pi /opt/raspberry_extension_server/
+
   # Copy web interface files
 
   curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
@@ -139,6 +142,9 @@ if [ "$installMethod" == "host" ]; then
   mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
   cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
   rm -r dist
+
+  # Set proper ownership for all files
+  chown -R pi:pi /opt/raspberry_extension_server/
 
   # Update service file with selected branch
   sed "s/Environment=branch=.*/Environment=branch=$branchSelection/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
