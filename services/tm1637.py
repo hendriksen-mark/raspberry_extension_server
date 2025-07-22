@@ -1,4 +1,5 @@
 import math
+import time
 try:
     import RPi.GPIO as IO  # type: ignore
 except ImportError:
@@ -96,7 +97,9 @@ class TM1637:
         IO.output(self.__Clkpin, IO.HIGH)
         IO.setup(self.__Datapin, IO.IN)
 
-        while(IO.input(self.__Datapin)):
+        # Add timeout to prevent infinite blocking
+        timeout = time.time() + 0.1  # 100ms timeout
+        while(IO.input(self.__Datapin) and time.time() < timeout):
             sleep(0.001)
             if(IO.input(self.__Datapin)):
                 IO.setup(self.__Datapin, IO.OUT)
