@@ -37,7 +37,7 @@ async def syncWithThermostats() -> None:
                 thermostat: ThermostatObject = thermostat
                 try:
                     logger.debug("fetch " + thermostat.mac)
-                    thermostat.poll_status()
+                    await thermostat.poll_status()
                     thermostat.failed_connection = False
                 except BleakError as e:
                     logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
