@@ -21,10 +21,10 @@ COPY requirements.txt ./
 RUN apt update
 RUN dpkg --configure -a
 RUN apt install --no-install-recommends -y \
-        python3 python3-pip python3-dev python3-setuptools gcc bluez git
+        curl unzip python3 python3-pip python3-dev python3-setuptools gcc bluez git
 RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages
 
-## Install diyHue
+## Install Raspberry Extension Server
 COPY ./flaskUI/ /opt/raspberry_extension_server/flaskUI/
 COPY ./ServerObjects/ /opt/raspberry_extension_server/ServerObjects/
 COPY ./services/ /opt/raspberry_extension_server/services/
