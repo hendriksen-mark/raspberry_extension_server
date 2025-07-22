@@ -72,7 +72,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     ap.add_argument("--config_path", help="Set certificate and config files location", type=str)
     ap.add_argument("--ip", help="The IP address of the host system (Docker)", type=str)
     ap.add_argument("--http-port", help="The port to listen on for HTTP (Docker)", type=int)
-    ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='update_to_ui')
+    ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='master')
 
     args: argparse.Namespace = ap.parse_args()
 
@@ -82,8 +82,12 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["HOST_IP"] = args.ip or get_environment_variable('IP') or argumentDict["BIND_IP"] if argumentDict["BIND_IP"] != '0.0.0.0' else getIpAddress()
     argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
-    argumentDict["BRANCH"] = args.branch or get_environment_variable('BRANCH') or 'update_to_ui'
+    argumentDict["BRANCH"] = args.branch or get_environment_variable('BRANCH') or 'master'
 
     logger.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
+    logger.info("Using Config Path %s" % argumentDict["CONFIG_PATH"])
+    logger.info("Running Path %s" % argumentDict["RUNNING_PATH"])
+    logger.info("Using Branch %s" % argumentDict["BRANCH"])
+    logger.info("Debug logging %s!" % ("enabled" if argumentDict["DEBUG"] else "disabled"))
 
     return argumentDict
