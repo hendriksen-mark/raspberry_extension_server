@@ -85,10 +85,4 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
     argumentDict["BRANCH"] = get_environment_variable('BRANCH') or args.branch or 'master'
 
-    logger.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
-    logger.info("Using Config Path %s" % argumentDict["CONFIG_PATH"])
-    logger.info("Running Path %s" % argumentDict["RUNNING_PATH"])
-    logger.info("Using Branch %s" % argumentDict["BRANCH"])
-    logger.info("Debug logging %s!" % ("enabled" if argumentDict["DEBUG"] else "disabled"))
-
     return argumentDict

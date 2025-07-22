@@ -25,6 +25,7 @@ WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app: Flask = create_app(serverConfig)
 
 def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
+    logger.info(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def handle_exit(signum: int, frame: Any) -> None:
