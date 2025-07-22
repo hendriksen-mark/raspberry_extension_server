@@ -26,6 +26,11 @@ class TM1637:
     def __init__(self, CLK: int, DIO: int) -> None:
         self.__Clkpin = CLK
         self.__Datapin = DIO
+        # Clean up any previous setup on these specific pins
+        try:
+            IO.cleanup([self.__Clkpin, self.__Datapin])
+        except:
+            pass  # Ignore if pins weren't previously setup
         IO.setup(self.__Clkpin, IO.OUT)
         IO.setup(self.__Datapin, IO.OUT)
 
