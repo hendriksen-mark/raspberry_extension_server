@@ -56,13 +56,19 @@ class SystemRoute(Resource):
                 uname = os.uname()
                 response["config"] = serverConfig["config"]
                 response["pi_temp"] = get_pi_temp() if uname.sysname == "Linux" else "Unsupported OS"
+                
+                # Build stat command based on OS
+                stat_flag = "-c %y" if uname.sysname == "Linux" else "-f %Sm"
+                server_cmd = f"stat {stat_flag} {serverConfig['config']['runningDir']}/api.py"
+                webui_cmd = f"stat {stat_flag} {serverConfig['config']['runningDir']}/flaskUI/templates/index.html"
+                
                 response["info"] = {
                         "sysname": uname.sysname,
                         "machine": uname.machine,
                         "os_version": uname.version,
                         "os_release": uname.release,
-                        "server": run(f"stat {"-c %y" if uname.sysname == "Linux" else "-f %Sm"} {serverConfig['config']['runningDir']}/api.py", shell=True, capture_output=True, text=True).stdout.strip(),
-                        "webui": run(f"stat {"-c %y" if uname.sysname == "Linux" else "-f %Sm"} {serverConfig['config']['runningDir']}/flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.strip()
+                        "server": run(server_cmd, shell=True, capture_output=True, text=True).stdout.strip(),
+                        "webui": run(webui_cmd, shell=True, capture_output=True, text=True).stdout.strip()
                     }
                 return response
             except Exception as e:
