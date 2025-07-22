@@ -16,7 +16,7 @@ def githubCheck() -> None:
     Update the server configuration based on the availability of updates.
     """
     creation_time: str = get_file_creation_time("api.py")
-    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extension_server/branches/master")
+    publish_time: str = get_github_publish_time(f"https://api.github.com/repos/hendriksen-mark/raspberry_extension_server/branches/{serverConfig['config']['branch']}")
 
     logger.debug(f"creation_time server : {creation_time}")
     logger.debug(f"publish_time  server : {publish_time}")
@@ -121,7 +121,7 @@ def githubInstall() -> None:
     Install updates from GitHub if they are ready to be installed.
     """
     if serverConfig["config"]["swupdate2"]["state"] in ["allreadytoinstall", "anyreadytoinstall"]:
-        subprocess.Popen(f"sh githubInstall.sh {serverConfig['config']['ipaddress']} {serverConfig['config']['swupdate2']['state']}", shell=True, close_fds=True)
+        subprocess.Popen(f"sh githubInstall.sh {serverConfig['config']['ipaddress']} {serverConfig['config']['swupdate2']['state']} {serverConfig['config']['branch']}", shell=True, close_fds=True)
         serverConfig["config"]["swupdate2"]["state"] = "installing"
 
 def startupCheck() -> None:

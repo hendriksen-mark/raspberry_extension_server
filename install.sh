@@ -1,103 +1,120 @@
-#!/bin/bash
-#curl -fsSL https://raw.githubusercontent.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat/main/install.sh | bash
+#!/usr/bin/env bash
 
-set -e
+arch=`uname -m`
 
-cd ~
+cd /tmp
 
-echo "== Raspberry Extension Server Project Installer =="
+### Choose Branch for Install
+echo -e "\033[36mFetching available branches...\033[0m"
 
-# Check for git
-if ! command -v git &>/dev/null; then
-    echo "git is not installed. Installing git..."
-    sudo apt-get update
-    sudo apt-get install -y git
+# Fetch branches from GitHub API
+branches_json=$(curl -s https://api.github.com/repos/hendriksen-mark/raspberry_extension_server/branches)
+
+# Check if curl was successful
+if [ $? -ne 0 ] || [ -z "$branches_json" ]; then
+    echo -e "\033[31mError: Could not fetch branches from GitHub. Using default branches.\033[0m"
+    branches=("main" "dev")
+else
+    # Parse branch names from JSON using grep and sed
+    branches=($(echo "$branches_json" | grep '"name":' | sed 's/.*"name": *"\([^"]*\)".*/\1/'))
 fi
 
-# Clone repo if not present
-REPO_URL="https://github.com/hendriksen-mark/raspberry_extension_server.git"
-REPO_DIR="raspberry_extension_server"
-if [ ! -d "$REPO_DIR" ]; then
-    echo "Cloning repository..."
-    git clone "$REPO_URL" "$REPO_DIR"
-fi
+# Display available branches
+echo -e "\033[36mPlease choose a Branch to install\033[0m"
+echo -e "\033[33mSelect Branch by entering the corresponding Number: [Default: ${branches[0]}]\033[0m"
 
-cd "$REPO_DIR"
+for i in "${!branches[@]}"; do
+    branch_name="${branches[$i]}"
+    case $branch_name in
+        "main"|"master")
+            echo -e "[$((i+1))] $branch_name - most stable Release"
+            ;;
+        "dev"|"development")
+            echo -e "[$((i+1))] $branch_name - test latest features and fixes - Work in Progress!"
+            ;;
+        *)
+            echo -e "[$((i+1))] $branch_name"
+            ;;
+    esac
+done
+
+echo -e "\033[36mNote: Please report any Bugs or Errors with Logs to our GitHub, Discourse or Slack. Thank you!\033[0m"
+echo -n "I go with Nr.: "
+
+branchSelection=""
+read userSelection
+
+# Validate user input and set branch selection
+if [[ "$userSelection" =~ ^[0-9]+$ ]] && [ "$userSelection" -ge 1 ] && [ "$userSelection" -le "${#branches[@]}" ]; then
+    branchSelection="${branches[$((userSelection-1))]}"
+    echo -e "$branchSelection selected"
+else
+    branchSelection="${branches[0]}"
+    echo -e "Invalid selection. Using default: $branchSelection"
+fi
 
 # Check for Python 3
 if ! command -v python3 &>/dev/null; then
-    echo "Python 3 is not installed. Please install Python 3 and rerun this script."
-    exit 1
+    apt-get install -y python3 python3-pip
 fi
 
-# Check for pip
-if ! command -v pip3 &>/dev/null; then
-    echo "pip3 is not installed. Installing pip3..."
-    sudo apt-get update
-    sudo apt-get install -y python3-pip
-fi
+echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
+# installing Raspberry Extension Server
+echo -e "\033[36m Installing Raspberry Extension Server.\033[0m"
+curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
+unzip -qo server.zip
+cd raspberry_extension_server-$branchSelection/
 
-# Check for uxterm
-if ! command -v uxterm &>/dev/null; then
-    echo "uxterm is not installed. Installing uxterm..."
-    sudo apt-get update
-    sudo apt-get install -y xterm
-fi
+echo -e "\033[36m Installing Python Dependencies.\033[0m"
+python3 -m pip install --upgrade pip
+pip3 install -r ../requirements.txt --break-system-packages
 
-# Optional: create and activate a virtual environment
-if [ ! -d "venv" ]; then
-    echo "Creating Python virtual environment..."
-    python3 -m venv venv
-fi
-echo "Activating virtual environment..."
-source venv/bin/activate
 
-# Upgrade pip
-pip install --upgrade pip
+if [ -d "/opt/raspberry_extension_server" ]; then
 
-# Install requirements
-echo "Installing Python dependencies..."
-pip3 install -r requirements.txt
+  systemctl stop raspberry_extension_server.service
+  echo -e "\033[33m Existing installation found, performing upgrade.\033[0m"
 
-# Install RPi.GPIO only on Linux systems (Raspberry Pi)
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "Installing RPi.GPIO for Linux/Raspberry Pi..."
-    pip3 install RPi.GPIO
+  cp -r /opt/raspberry_extension_server/config /tmp/raspberry_extension_server_backup
+  rm -rf /opt/raspberry_extension_server/*
+  cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
+
 else
-    echo "Skipping RPi.GPIO installation (not on Linux)"
+  if cat /proc/net/tcp | grep -c "00000000:0050" > /dev/null; then
+      echo -e "\033[31m ERROR!! Port 80 already in use. Close the application that use this port and try again.\033[0m"
+      exit 1
+  fi
+  if cat /proc/net/tcp | grep -c "00000000:01BB" > /dev/null; then
+      echo -e "\033[31m ERROR!! Port 443 already in use. Close the application that use this port and try again.\033[0m"
+      exit 1
+  fi
+  mkdir /opt/raspberry_extension_server
 fi
 
-# Create systemd service for API
-SERVICE_FILE="/etc/systemd/system/eqiva-api.service"
-if [ ! -f "$SERVICE_FILE" ]; then
-    echo "Creating systemd service to start API on boot..."
-    cat <<EOF | sudo tee $SERVICE_FILE > /dev/null
-[Unit]
-Description=Eqiva Smart Radiator Thermostat API
-After=network.target
 
-[Service]
-Type=simple
-WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/venv/bin/python3 $(pwd)/api.py
-Restart=always
-User=$(whoami)
-Environment=PYTHONUNBUFFERED=1
+cp -r flaskUI /opt/raspberry_extension_server/
+cp -r ServerObjects /opt/raspberry_extension_server/
+cp -r services /opt/raspberry_extension_server/
+cp -r configManager /opt/raspberry_extension_server/
+cp -r api.py /opt/raspberry_extension_server/
+cp -r githubInstall.sh /opt/raspberry_extension_server/
 
-[Install]
-WantedBy=multi-user.target
-EOF
+# Copy web interface files
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable eqiva-api.service
-    sudo systemctl start eqiva-api.service
-    echo "Systemd service eqiva-api.service created and started."
-else
-    echo "Systemd service eqiva-api.service already exists."
-fi
+curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
+unzip -qo serverUI.zip
+mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
+cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
+rm -r dist
 
-echo "== Installation complete =="
-echo "To activate the virtual environment in the future, run:"
-echo "  source venv/bin/activate"
-echo "To update this project in the future, run:"
-echo "  git pull"
+# Update service file with selected branch
+sed "s/Environment=branch=.*/Environment=branch=$branchSelection/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
+cp /tmp/raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
+cd ../../
+rm -rf serverUI.zip raspberry_extension_server_ui-$branchSelection
+chmod 644 /lib/systemd/system/raspberry_extension_server.service
+systemctl daemon-reload
+systemctl enable raspberry_extension_server.service
+systemctl start raspberry_extension_server.service
+
+echo -e "\033[32m Installation completed.\033[0m"

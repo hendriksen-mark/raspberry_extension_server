@@ -47,6 +47,7 @@ class Config:
     argsDict: dict[str, Any] = parse_arguments()
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
+    branch: str = argsDict["BRANCH"]
 
     def __init__(self) -> None:
         """
@@ -169,6 +170,7 @@ class Config:
             self.yaml_config["config"] = config
             self.yaml_config["config"]["configDir"] = self.configDir
             self.yaml_config["config"]["runningDir"] = self.runningDir
+            self.yaml_config["config"]["branch"] = self.branch.tolower()
 
             self._load_thermostats()
             self._load_dht()

@@ -9,6 +9,8 @@ WorkingDirectory=/home/pi/raspberry_extension_server
 ExecStart=python3 /home/pi/raspberry_extension_server/api.py
 Restart=on-failure
 Environment=LOG_LEVEL=INFO
+Environment=branch=main
+
 
 [Install]
 WantedBy=multi-user.target
