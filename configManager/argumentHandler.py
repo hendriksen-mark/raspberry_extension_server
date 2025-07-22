@@ -59,8 +59,8 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
         dict: A dictionary containing the parsed arguments and their values.
     """
     argumentDict: dict[str, Union[str, int, bool]] = {
-        "BIND_IP": '0.0.0.0', "HOST_IP": '', "HTTP_PORT": 80,
-        "FULLMAC": '', "MAC": '', "DEBUG": False, "DOCKER": False
+        "BIND_IP": '0.0.0.0', "HOST_IP": '', "HTTP_PORT": 5002,
+        "FULLMAC": '', "MAC": '', "DEBUG": False, "BRANCH": '',
     }
     ap = argparse.ArgumentParser()
 
@@ -68,7 +68,6 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     ap.add_argument("--debug", action='store_true', help="Enables debug output")
     ap.add_argument("--bind-ip", help="The IP address to listen on", type=str)
     ap.add_argument("--config_path", help="Set certificate and config files location", type=str)
-    ap.add_argument("--docker", action='store_true', help="Enables setup for use in docker container")
     ap.add_argument("--ip", help="The IP address of the host system (Docker)", type=str)
     ap.add_argument("--http-port", help="The port to listen on for HTTP (Docker)", type=int)
     ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='master')
@@ -84,7 +83,5 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["BRANCH"] = args.branch or get_environment_variable('BRANCH') or 'master'
 
     logger.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
-
-    argumentDict["DOCKER"] = args.docker or get_environment_variable('DOCKER', True)
 
     return argumentDict

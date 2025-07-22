@@ -5,20 +5,24 @@ WORKDIR /opt/raspberry_extension_server
 
 # Architecture automatically set by docker eg. linux/amd64, linux/arm/v7, linux/arm64
 ARG TARGETPLATFORM
+ARG BRANCH
+ENV BRANCH=$BRANCH
 
 # ============================ Actual image from here ====================
 FROM debian:stable-slim AS prod
 WORKDIR /opt/raspberry_extension_server
 ARG TARGETPLATFORM
+ARG BRANCH
+ENV BRANCH=$BRANCH
 
 COPY requirements.txt ./
 
 ## Install requirements
-RUN apt update \
-    && dpkg --configure -a \
-    && apt install --no-install-recommends -y \
-        python3 python3-pip python3-dev python3-setuptools gcc bluez git \
-    && pip3 install -r requirements.txt --no-cache-dir --break-system-packages
+RUN apt update
+RUN dpkg --configure -a
+RUN apt install --no-install-recommends -y \
+        python3 python3-pip python3-dev python3-setuptools gcc bluez git
+RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages
 
 ## Install diyHue
 COPY ./flaskUI/ /opt/raspberry_extension_server/flaskUI/
@@ -45,4 +49,4 @@ RUN curl -sL -A "Mozilla/5.0" https://github.com/hendriksen-mark/raspberry_exten
 ## Expose ports
 EXPOSE 5002
 
-CMD [ "python3", "-u", "/opt/raspberry_extension_server/api.py", "--docker" ]
+CMD [ "python3", "-u", "/opt/raspberry_extension_server/api.py" ]
