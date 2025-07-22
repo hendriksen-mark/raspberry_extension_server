@@ -62,6 +62,7 @@ def main():
         Thread(target=stateFetch.run_dht_service).start()
         Thread(target=stateFetch.run_fan_service).start()
         Thread(target=stateFetch.run_klok_service).start()
+        Thread(target=stateFetch.run_powerbutton_service).start()
         Thread(target=scheduler.runScheduler).start()
         Thread(target=LogWS.start_ws_server).start()
         runHttp(BIND_IP, HOST_HTTP_PORT)

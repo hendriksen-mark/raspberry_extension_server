@@ -65,7 +65,18 @@ class DHTObject:
         If the sensor returns invalid values (None or out of range), do not update globals.
         """
         try:
-            humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.dht_pin)
+            # Use read() instead of read_retry() to avoid long blocking calls
+            # read_retry() defaults to 15 retries with 2-second delays (up to 30 seconds!)
+            humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
+            
+            # If read() fails, try up to 2 more times with minimal delay
+            retry_count = 0
+            while (humidity is None or temperature is None) and retry_count < 2:
+                import time
+                time.sleep(0.1)  # Very short delay (100ms instead of 2 seconds)
+                humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
+                retry_count += 1
+            
             serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
             MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
             MAX_DHT_TEMP: float = self.MAX_DHT_TEMP
