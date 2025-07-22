@@ -5,7 +5,7 @@ except ImportError:
     from services.dummy_import import DummyGPIO as IO
 
 from time import sleep
-# IO.setwarnings(False)
+IO.setwarnings(False)
 IO.setmode(IO.BCM)
 
 HexDigits: list[int] = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d,
