@@ -17,7 +17,7 @@ COPY requirements.txt ./
 RUN apt update \
     && dpkg --configure -a \
     && apt install --no-install-recommends -y \
-        python3 python3-pip python3-dev python3-setuptools gcc bluez \
+        python3 python3-pip python3-dev python3-setuptools gcc bluez git \
     && pip3 install -r requirements.txt --no-cache-dir --break-system-packages
 
 ## Install diyHue

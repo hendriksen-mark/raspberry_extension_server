@@ -183,7 +183,7 @@ else
     docker buildx create --name mybuilder --use
     docker buildx inspect --bootstrap
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker buildx build --builder mybuilder --platform=$PLATFORM --build-arg TARGETPLATFORM=$PLATFORM --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
+    docker buildx build --builder mybuilder --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
     docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
     cd ..
     rm -rf server.zip raspberry_extension_server_ui-$branchSelection
