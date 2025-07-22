@@ -156,10 +156,25 @@ else
         curl -fsSL https://get.docker.com -o get-docker.sh
         sudo sh get-docker.sh
         sudo apt-get -y install libffi-dev libssl-dev python3-dev python3 python3-pip
+    else
+        echo -e "\033[32mDocker is already installed.\033[0m"
     fi
     interface=$(ip route | grep default | awk '{print $5}')
-    mac=`cat /sys/class/net/$interface/address`
     ip=`ip addr show $interface | grep 'inet ' | awk '{print $2}' | cut -d/ -f1`
+    ARCH=$(uname -m)
+    PLATFORM=""
+
+    case "$ARCH" in
+      armv7l)  PLATFORM="linux/arm/v7" ;;
+      armv6l)  PLATFORM="linux/arm/v6" ;;
+      aarch64) PLATFORM="linux/arm64" ;;
+      x86_64)  PLATFORM="linux/amd64" ;;
+      i386|i686) PLATFORM="linux/386" ;;
+      *)       PLATFORM="linux/$ARCH" ;;
+    esac
+
+    echo -e "\033[36m Platform: $PLATFORM\033[0m"
+    echo -e "\033[36m IP: $ip\033[0m"
     curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
     unzip -qo server.zip
     cd raspberry_extension_server-$branchSelection/
@@ -168,8 +183,8 @@ else
     docker buildx create --name mybuilder --use
     docker buildx inspect --bootstrap
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker buildx build --builder mybuilder --platform=linux/amd64/v3 --build-arg TARGETPLATFORM=linux/amd64/v3 --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
-    docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e MAC=$mac -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
+    docker buildx build --builder mybuilder --platform=$platform --build-arg TARGETPLATFORM=$platform --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
+    docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
     cd ..
     rm -rf server.zip raspberry_extension_server_ui-$branchSelection
 fi
