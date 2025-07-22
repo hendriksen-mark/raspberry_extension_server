@@ -205,8 +205,8 @@ def run_klok_service() -> None:
         except Exception as e:
             logger.error(f"Error in klok service: {e}")
         
-        # Use event.wait() with longer timeout for better performance
-        if _klok_shutdown.wait(timeout=1.0):
+        # Use event.wait() with shorter timeout for responsive doublepoint updates
+        if _klok_shutdown.wait(timeout=0.1):
             # Event was set - shutdown requested
             break
 

@@ -2,6 +2,7 @@ import logging
 import logManager
 from typing import Any
 from datetime import datetime
+import time
 from services.tm1637 import TM1637
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -16,6 +17,7 @@ class KlokObject:
         self.last_doublepoint: bool | None = None
         self.doublepoint: bool = True  # Initialize doublepoint state
         self.power_state: bool = True
+        self.last_doublepoint_toggle: float = time.time()  # Track when doublepoint was last toggled
         self.display: TM1637 = TM1637(self.CLK_pin, self.DIO_pin)
 
     def set_brightness(self, value: int) -> None:
@@ -46,12 +48,16 @@ class KlokObject:
             self.display.SetBrightness(self.brightness)
             self.last_brightness = self.brightness
 
-        # Toggle and update doublepoint every loop
+        # Toggle doublepoint every 0.5 seconds based on time, not call frequency
+        current_time_seconds: float = time.time()
+        if current_time_seconds - self.last_doublepoint_toggle >= 0.5:
+            self.doublepoint = not self.doublepoint
+            self.last_doublepoint_toggle = current_time_seconds
+
+        # Update doublepoint only if changed
         if self.last_doublepoint != self.doublepoint:
             self.display.ShowDoublepoint(self.doublepoint)
             self.last_doublepoint = self.doublepoint
-
-        self.doublepoint = not self.doublepoint
 
     def toggle_power(self) -> None:
         """Toggle the power state"""
