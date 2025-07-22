@@ -167,7 +167,7 @@ else
     docker buildx inspect --bootstrap
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
     docker buildx build --builder mybuilder --platform=linux/amd64/v3 --build-arg TARGETPLATFORM=linux/amd64/v3 --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f Dockerfile --load .
-    docker run -d --name raspberry_extension_server --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e MAC=$mac -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
+    docker run -d --name raspberry_extension_server --priveleged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e MAC=$mac -e IP=$ip -e DEBUG=true raspberry_extension_server/raspberry_extension_server:ci
 fi
 
 echo -e "\033[32m Installation completed.\033[0m"
