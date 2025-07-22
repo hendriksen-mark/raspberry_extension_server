@@ -1,4 +1,4 @@
-from aioesphomeapi import Any
+from typing import Any
 from bleak import BleakError
 import asyncio
 import threading
