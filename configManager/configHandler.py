@@ -170,7 +170,7 @@ class Config:
             self.yaml_config["config"] = config
             self.yaml_config["config"]["configDir"] = self.configDir
             self.yaml_config["config"]["runningDir"] = self.runningDir
-            self.yaml_config["config"]["branch"] = self.branch.tolower()
+            self.yaml_config["config"]["branch"] = self.branch.lower()
 
             self._load_thermostats()
             self._load_dht()
