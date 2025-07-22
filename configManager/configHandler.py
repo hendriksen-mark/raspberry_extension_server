@@ -48,6 +48,7 @@ class Config:
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
     branch: str = argsDict["BRANCH"]
+    ip: str = argsDict["HOST_IP"]
 
     def __init__(self) -> None:
         """
@@ -171,6 +172,7 @@ class Config:
             self.yaml_config["config"]["configDir"] = self.configDir
             self.yaml_config["config"]["runningDir"] = self.runningDir
             self.yaml_config["config"]["branch"] = self.branch.lower()
+            self.yaml_config["config"]["ipaddress"] = self.ip
 
             self._load_thermostats()
             self._load_dht()

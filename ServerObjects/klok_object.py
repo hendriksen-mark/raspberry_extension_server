@@ -8,8 +8,8 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class KlokObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.CLK_pin: float = data.get("CLK_pin", 24)
-        self.DIO_pin: float = data.get("DIO_pin", 23)  # GPIO pin for the fan
+        self.CLK_pin: int = data.get("CLK_pin", 24)
+        self.DIO_pin: int = data.get("DIO_pin", 23)  # GPIO pin for the fan
         self.brightness: float = data.get("brightness", 0.0)  # Default brightness
         self.last_brightness: float | None = None  # Track last brightness to avoid unnecessary updates
         self.last_time: datetime | None = None

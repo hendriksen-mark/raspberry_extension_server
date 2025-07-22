@@ -12,12 +12,12 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.gpio_pin: float = data.get("gpio_pin", 18)
-        self.pwm_frequency: float = data.get("pwm_frequency", 25000)  # Default PWM frequency
-        self.min_temperature: float = data.get("min_temperature", 25)  # Minimum temperature setting
-        self.max_temperature: float = data.get("max_temperature", 80)  # Maximum temperature setting
-        self.min_speed: float = data.get("min_speed", 0)  # Minimum speed setting
-        self.max_speed: float = data.get("max_speed", 255)  # Maximum speed setting
+        self.gpio_pin: int = data.get("gpio_pin", 18)
+        self.pwm_frequency: int = data.get("pwm_frequency", 25000)  # Default PWM frequency
+        self.min_temperature: int = data.get("min_temperature", 25)  # Minimum temperature setting
+        self.max_temperature: int = data.get("max_temperature", 80)  # Maximum temperature setting
+        self.min_speed: int = data.get("min_speed", 0)  # Minimum speed setting
+        self.max_speed: int = data.get("max_speed", 255)  # Maximum speed setting
         self.cleanup_done: bool = False
         self.last_logged_temp: float | None = None
         self.temp_change_threshold: float = data.get("temp_change_threshold", 0.5)  # Only log when temperature changes by more than 0.5°C

@@ -13,7 +13,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class PowerButtonObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.button_pin: float = data.get("button_pin", 3)  # Default GPIO pin for the button
+        self.button_pin: int = data.get("button_pin", 3)  # Default GPIO pin for the button
         self.long_press_duration: float = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
         self.debounce_time: float = data.get("debounce_time", 0.05)  # Default debounce time in seconds
         self.shutdown_event: Event = Event()
