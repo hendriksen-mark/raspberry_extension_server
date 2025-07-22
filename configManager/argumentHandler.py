@@ -23,7 +23,7 @@ def getIpAddress() -> Optional[str]:
         logger.error(f"Socket error: {e}")
         return None
 
-def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool]:
+def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool, None]:
     """
     Retrieve the value of an environment variable.
 
@@ -32,11 +32,13 @@ def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool
         boolean (bool): If True, interpret the value as a boolean.
 
     Returns:
-        str or bool: The value of the environment variable, or False if boolean is True and the value is not "true".
+        str or bool or None: The value of the environment variable, or None if not found.
     """
     value: Optional[str] = getenv(var)
-    if boolean and value:
-        value = value.lower() == "true"
+    if value is None:
+        return None
+    if boolean:
+        return value.lower() == "true"
     return value
 
 def process_arguments(args: dict[str, Union[str, bool]]) -> None:
@@ -70,7 +72,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     ap.add_argument("--config_path", help="Set certificate and config files location", type=str)
     ap.add_argument("--ip", help="The IP address of the host system (Docker)", type=str)
     ap.add_argument("--http-port", help="The port to listen on for HTTP (Docker)", type=int)
-    ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='master')
+    ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='update_to_ui')
 
     args: argparse.Namespace = ap.parse_args()
 
@@ -80,7 +82,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["HOST_IP"] = args.ip or get_environment_variable('IP') or argumentDict["BIND_IP"] if argumentDict["BIND_IP"] != '0.0.0.0' else getIpAddress()
     argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
-    argumentDict["BRANCH"] = args.branch or get_environment_variable('BRANCH') or 'master'
+    argumentDict["BRANCH"] = args.branch or get_environment_variable('BRANCH') or 'update_to_ui'
 
     logger.info("Using Host %s:%s" % (argumentDict["HOST_IP"], argumentDict["HTTP_PORT"]))
 
