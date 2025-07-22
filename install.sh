@@ -144,10 +144,9 @@ if [ "$installMethod" == "host" ]; then
   chown -R pi:pi /opt/raspberry_extension_server/
 
   # Update service file with selected branch
-  sed "s/Environment=\"BRANCH=.*\"/Environment=\"BRANCH=$branchSelection\"/" raspberry_extension_server.service > /tmp/raspberry_extension_server.service
-  cp /tmp/raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
-  cd /tmp
-  rm -rf serverUI.zip raspberry_extension_server-$branchSelection raspberry_extension_server.service
+  sed "s/BRANCH=.*/BRANCH=$branchSelection/" .env > /opt/raspberry_extension_server/.env
+  cp raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
+  rm -rf /tmp/serverUI.zip /tmp/raspberry_extension_server-$branchSelection
   chmod 644 /lib/systemd/system/raspberry_extension_server.service
   systemctl daemon-reload
   systemctl enable raspberry_extension_server.service

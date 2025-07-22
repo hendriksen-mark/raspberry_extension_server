@@ -8,8 +8,7 @@ User=pi
 WorkingDirectory=/opt/raspberry_extension_server
 ExecStart=python3 /opt/raspberry_extension_server/api.py
 Restart=on-failure
-Environment="LOG_LEVEL=DEBUG"
-Environment="BRANCH=main"
+EnvironmentFile=/opt/raspberry_extension_server/.env
 
 
 [Install]
