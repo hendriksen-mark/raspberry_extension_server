@@ -6,6 +6,8 @@ import logging
 import logManager
 from typing import Any
 from ServerObjects.thermostat_object import ThermostatObject
+import signal
+import time
 
 import configManager
 
@@ -64,18 +66,28 @@ class DHTObject:
         and update the global variables.
         If the sensor returns invalid values (None or out of range), do not update globals.
         """
+        def timeout_handler(signum, frame):
+            raise TimeoutError("DHT read operation timed out")
+        
         try:
-            # Use read() instead of read_retry() to avoid long blocking calls
-            # read_retry() defaults to 15 retries with 2-second delays (up to 30 seconds!)
-            humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
+            # Set a 2-second timeout for the entire DHT operation
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(2)
             
-            # If read() fails, try up to 2 more times with minimal delay
-            retry_count = 0
-            while (humidity is None or temperature is None) and retry_count < 2:
-                import time
-                time.sleep(0.1)  # Very short delay (100ms instead of 2 seconds)
+            try:
+                # Use read() instead of read_retry() to avoid long blocking calls
+                # read_retry() defaults to 15 retries with 2-second delays (up to 30 seconds!)
                 humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
-                retry_count += 1
+                
+                # If read() fails, try one more time with a very short delay
+                if humidity is None or temperature is None:
+                    time.sleep(0.1)  # Very short delay (100ms)
+                    humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
+                
+            finally:
+                # Always restore the alarm
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
             
             serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
             MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
@@ -130,6 +142,8 @@ class DHTObject:
                 else:
                     logger.error("Humidity value not updated (None or out of range)")
                     
+        except TimeoutError:
+            logger.warning("DHT read operation timed out after 2 seconds")
         except Exception as e:
             logger.error(f"Error reading DHT sensor: {e}")
 
