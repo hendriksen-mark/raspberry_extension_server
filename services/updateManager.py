@@ -41,7 +41,7 @@ def githubUICheck() -> bool:
         bool: True if there is a new update available, False otherwise.
     """
     creation_time: str = get_file_creation_time("flaskUI/templates/index.html")
-    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extension_serverUI/releases/latest")
+    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extension_server_ui/releases/latest")
 
     logger.debug(f"creation_time UI : {creation_time}")
     logger.debug(f"publish_time  UI : {publish_time}")
