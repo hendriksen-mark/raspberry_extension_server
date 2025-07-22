@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/raspberry_extension_server
-ExecStart=python3 /home/pi/raspberry_extension_server/api.py
+WorkingDirectory=/opt/raspberry_extension_server
+ExecStart=python3 /opt/raspberry_extension_server/api.py
 Restart=on-failure
 Environment=LOG_LEVEL=INFO
 Environment=branch=main
