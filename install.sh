@@ -152,8 +152,10 @@ if [ "$installMethod" == "host" ]; then
 else
     echo -e "\033[36mInstalling Raspberry Extension Server with Docker.\033[0m"
     if ! command -v docker &>/dev/null; then
-        echo -e "\033[31mDocker is not installed. Please install Docker first.\033[0m"
-        exit 1
+        echo -e "\033[31mDocker is not installed. Installing Docker.\033[0m"
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo apt-get -y install libffi-dev libssl-dev python3-dev python3 python3-pip
     fi
     interface=$(ip route | grep default | awk '{print $5}')
     mac=`cat /sys/class/net/$interface/address`
