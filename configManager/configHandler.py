@@ -96,11 +96,24 @@ class Config:
                 "lastchange": "2020-12-13T10:30:15",
                 "state": "noupdates",
                 "install": False
-            }
+            },
+            "loglevel": "INFO",
+            "branch": "master",
         }
         for key, value in defaults.items():
             if key not in config:
                 config[key] = value
+        return config
+
+    def _upgrade_config(self, config: dict[str, Any]) -> None:
+        """
+        Upgrade the configuration if necessary.
+
+        Args:
+            config (Dict[str, Any]): The configuration dictionary.
+        """
+        if "branch" not in config or config["branch"] != self.branch:
+            config["branch"] = self.branch
         return config
 
     def _load_yaml_file(self, filename: str, default: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:
@@ -168,6 +181,7 @@ class Config:
         try:
             config: dict[str, Any] = self._load_yaml_file("config.yaml", {})
             config: dict[str, Any] = self._set_default_config_values(config)
+            config = self._upgrade_config(config)
             self.yaml_config["config"] = config
             self.yaml_config["config"]["configDir"] = self.configDir
             self.yaml_config["config"]["runningDir"] = self.runningDir
