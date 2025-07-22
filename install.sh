@@ -66,7 +66,7 @@ unzip -qo server.zip
 cd raspberry_extension_server-$branchSelection/
 
 echo -e "\033[36m Installing Python Dependencies.\033[0m"
-python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip --break-system-packages
 pip3 install -r requirements.txt --break-system-packages
 
 
