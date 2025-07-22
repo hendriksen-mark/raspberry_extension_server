@@ -25,43 +25,65 @@ _fan_shutdown = threading.Event()
 _klok_shutdown = threading.Event()
 _powerbutton_shutdown = threading.Event()
 
+# Async event for thermostat shutdown
+_thermostat_shutdown_async = asyncio.Event()
+
+def _ensure_async_event_loop():
+    """Ensure async events are properly initialized for current event loop"""
+    global _thermostat_shutdown_async
+    try:
+        # Check if event is still valid for current loop
+        if _thermostat_shutdown_async._loop is not asyncio.get_running_loop():
+            _thermostat_shutdown_async = asyncio.Event()
+    except RuntimeError:
+        # No running loop, create new event
+        _thermostat_shutdown_async = asyncio.Event()
+
 async def syncWithThermostats() -> None:
     """
     Synchronize the state of the thermostats with their actual state.
     """
-    while True:
-        while serverConfig["config"]["thermostats"]["enabled"] and not _thermostat_shutdown.is_set():
-            logger.info("start thermostats sync")
-            interval: int = serverConfig["config"]["thermostats"]["interval"]
-            for thermostat in serverConfig["thermostats"].values():
-                thermostat: ThermostatObject = thermostat
+    _ensure_async_event_loop()  # Ensure async event is valid for this loop
+    
+    while serverConfig["config"]["thermostats"]["enabled"] and not _thermostat_shutdown.is_set():
+        logger.info("start thermostats sync")
+        interval: int = serverConfig["config"]["thermostats"]["interval"]
+        
+        for thermostat in serverConfig["thermostats"].values():
+            if _thermostat_shutdown.is_set():
+                break
+            thermostat: ThermostatObject = thermostat
+            try:
+                logger.debug("fetch " + thermostat.mac)
+                await thermostat.poll_status()
+                thermostat.failed_connection = False
+            except BleakError as e:
+                logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
+                thermostat.failed_connection = True
+                pass
+            except EqivaException as e:
+                logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
+                thermostat.failed_connection = True
+                pass
+            finally:
                 try:
-                    logger.debug("fetch " + thermostat.mac)
-                    await thermostat.poll_status()
-                    thermostat.failed_connection = False
-                except BleakError as e:
-                    logger.error(f"Polling: BLE error for {thermostat.mac}: {e}")
-                    thermostat.failed_connection = True
-                    pass
-                except EqivaException as e:
-                    logger.error(f"Polling: EqivaException for {thermostat.mac}: {e}")
-                    thermostat.failed_connection = True
-                    pass
-                finally:
-                    try:
-                        await thermostat.safe_disconnect()
-                        logger.debug(f"Polling: Disconnected from {thermostat.mac}")
-                    except Exception as e:
-                        logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
+                    await thermostat.safe_disconnect()
+                    logger.debug(f"Polling: Disconnected from {thermostat.mac}")
+                except Exception as e:
+                    logger.error(f"Polling: Error disconnecting from {thermostat.mac}: {e}")
 
-            # Use asyncio.sleep with periodic checks for immediate shutdown
-            sleep_time: float = max(10, interval)
-            sleep_interval: float = 0.5  # Check every 0.5 seconds
-            elapsed: float = 0
-            
-            while elapsed < sleep_time and not _thermostat_shutdown.is_set():
-                await asyncio.sleep(min(sleep_interval, sleep_time - elapsed))
-                elapsed += sleep_interval
+        # Simple sleep with shutdown check - much more efficient
+        sleep_time: float = max(10, interval)
+        try:
+            await asyncio.wait_for(
+                _thermostat_shutdown_async.wait(),
+                timeout=sleep_time
+            )
+            # If we get here, shutdown was requested
+            break
+        except asyncio.TimeoutError:
+            # Timeout is expected - continue the loop
+            continue
 
 
 def syncWithThermostats_threaded() -> None:
@@ -122,41 +144,39 @@ def run_dht_service() -> None:
     Placeholder for DHT temperature reading logic.
     This function should be implemented to read from the DHT sensor.
     """
-    while True:
-        while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set() and "dht" in serverConfig:
-            interval: int = serverConfig["config"]["dht"]["interval"]
-            logger.debug(f"Reading DHT temperature every {interval} seconds")
-            try:
-                dht: DHTObject = serverConfig["dht"]
-                if dht:
-                    dht._read_dht_temperature()
-            except Exception as e:
-                logger.error(f"Error reading DHT temperature: {e}")
-            
-            # Use event.wait() instead of sleep loops for immediate shutdown
-            if _dht_shutdown.wait(timeout=max(5, interval)):
-                # Event was set - shutdown requested
-                break
+    while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set() and "dht" in serverConfig:
+        interval: int = serverConfig["config"]["dht"]["interval"]
+        logger.debug(f"Reading DHT temperature every {interval} seconds")
+        try:
+            dht: DHTObject = serverConfig["dht"]
+            if dht:
+                dht._read_dht_temperature()
+        except Exception as e:
+            logger.error(f"Error reading DHT temperature: {e}")
+        
+        # Use event.wait() instead of sleep loops for immediate shutdown
+        if _dht_shutdown.wait(timeout=max(5, interval)):
+            # Event was set - shutdown requested
+            break
 
 def run_fan_service() -> None:
     """
     Placeholder for fan service logic.
     This function should be implemented to control the fan based on temperature.
     """
-    while True:
-        while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set() and "fan" in serverConfig:
-            interval: int = serverConfig["config"]["fan"]["interval"]
-            try:
-                fan: FanObject = serverConfig["fan"]
-                if fan:
-                    fan.run()
-            except Exception as e:
-                logger.error(f"Error in fan service: {e}")
-            
-            # Use event.wait() instead of sleep loops for immediate shutdown
-            if _fan_shutdown.wait(timeout=max(5, interval)):
-                # Event was set - shutdown requested
-                break
+    while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set() and "fan" in serverConfig:
+        interval: int = serverConfig["config"]["fan"]["interval"]
+        try:
+            fan: FanObject = serverConfig["fan"]
+            if fan:
+                fan.run()
+        except Exception as e:
+            logger.error(f"Error in fan service: {e}")
+        
+        # Use event.wait() instead of sleep loops for immediate shutdown
+        if _fan_shutdown.wait(timeout=max(5, interval)):
+            # Event was set - shutdown requested
+            break
 
 def stop_fan_service() -> None:
     """
@@ -177,19 +197,18 @@ def run_klok_service() -> None:
     Placeholder for klok service logic.
     This function should be implemented to update the klok display.
     """
-    while True:
-        while serverConfig["config"]["klok"]["enabled"] and not _klok_shutdown.is_set() and "klok" in serverConfig:
-            try:
-                klok: KlokObject = serverConfig["klok"]
-                if klok:
-                    klok.show()
-            except Exception as e:
-                logger.error(f"Error in klok service: {e}")
-            
-            # Use event.wait() instead of sleep for immediate shutdown
-            if _klok_shutdown.wait(timeout=0.5):
-                # Event was set - shutdown requested
-                break
+    while serverConfig["config"]["klok"]["enabled"] and not _klok_shutdown.is_set() and "klok" in serverConfig:
+        try:
+            klok: KlokObject = serverConfig["klok"]
+            if klok:
+                klok.show()
+        except Exception as e:
+            logger.error(f"Error in klok service: {e}")
+        
+        # Use event.wait() with longer timeout for better performance
+        if _klok_shutdown.wait(timeout=1.0):
+            # Event was set - shutdown requested
+            break
 
 def stop_klok_service() -> None:
     """
@@ -249,6 +268,13 @@ def stop_thermostat_service() -> None:
     Stop the thermostat synchronization service.
     """
     _thermostat_shutdown.set()  # Signal immediate shutdown
+    try:
+        # Try to set async event if there's a running loop
+        loop = asyncio.get_running_loop()
+        loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
+    except RuntimeError:
+        # No running loop, event will be recreated when needed
+        pass
     logger.info("Thermostat service stopped.")
 
 def stop_all_services() -> None:
@@ -257,6 +283,13 @@ def stop_all_services() -> None:
     """
     _shutdown_event.set()
     _thermostat_shutdown.set()
+    try:
+        # Try to set async event if there's a running loop
+        loop = asyncio.get_running_loop()
+        loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
+    except RuntimeError:
+        # No running loop, event will be recreated when needed
+        pass
     _dht_shutdown.set()
     _fan_shutdown.set()
     _klok_shutdown.set()
