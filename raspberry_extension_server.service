@@ -9,7 +9,7 @@ WorkingDirectory=/opt/raspberry_extension_server
 ExecStart=python3 /opt/raspberry_extension_server/api.py
 Restart=on-failure
 Environment=LOG_LEVEL=INFO
-Environment=branch=main
+Environment=BRANCH=main
 
 
 [Install]
