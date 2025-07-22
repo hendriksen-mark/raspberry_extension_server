@@ -185,7 +185,7 @@ else
     docker stop raspberry_extension_server 2>/dev/null || true
     docker rm raspberry_extension_server 2>/dev/null || true
     docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .
-    docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
+    docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/raspberry_extension_server/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
     cd ..
     rm -rf server.zip raspberry_extension_server_ui-$branchSelection
 fi

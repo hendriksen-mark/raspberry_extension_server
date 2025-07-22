@@ -12,7 +12,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 def githubCheck() -> None:
     """
-    Check for updates on GitHub for both the main diyHue repository and the UI repository.
+    Check for updates on GitHub for both the main server repository and the UI repository.
     Update the server configuration based on the availability of updates.
     """
     creation_time: str = get_file_creation_time("api.py")

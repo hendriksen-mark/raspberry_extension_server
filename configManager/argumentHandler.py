@@ -77,7 +77,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     args: argparse.Namespace = ap.parse_args()
 
     argumentDict["DEBUG"] = args.debug or get_environment_variable('DEBUG', True)
-    argumentDict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/hue-emulator/config'
+    argumentDict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/raspberry_extension_server/config'
     argumentDict["BIND_IP"] = args.bind_ip or get_environment_variable('BIND_IP') or '0.0.0.0'
     argumentDict["HOST_IP"] = args.ip or get_environment_variable('IP') or argumentDict["BIND_IP"] if argumentDict["BIND_IP"] != '0.0.0.0' else getIpAddress()
     argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002

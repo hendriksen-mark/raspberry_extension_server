@@ -279,8 +279,8 @@ class Config:
         Returns:
             str: The path to the tar file containing the log files.
         """
-        subprocess.run(f'tar -cvf {self.configDir}/diyhue_log.tar {self.runningDir}/*.log*', shell=True, check=True)
-        return f"{self.configDir}/diyhue_log.tar"
+        subprocess.run(f'tar -cvf {self.configDir}/server_log.tar {self.runningDir}/*.log*', shell=True, check=True)
+        return f"{self.configDir}/server_log.tar"
 
     def download_debug(self) -> str:
         """
@@ -295,7 +295,7 @@ class Config:
         info["Architecture"] = os.uname().machine
         info["os_version"] = os.uname().version
         info["os_release"] = os.uname().release
-        info["Hue-Emulator Version"] = subprocess.run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
+        info["Server Version"] = subprocess.run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
         info["WebUI Version"] = subprocess.run("stat -c %y flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
         info["arguments"] = {k: str(v) for k, v in self.argsDict.items()}
         _write_yaml(f"{self.configDir}/config_debug.yaml", debug)
