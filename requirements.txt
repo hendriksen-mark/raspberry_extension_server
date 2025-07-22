@@ -13,7 +13,7 @@ pyyaml
 flask_cors
 cherrypy
 bleak
-logManager @ git+https://github.com/hendriksen-mark/logManager.git
-adafruit-dht @ git+https://github.com/hendriksen-mark/Adafruit_Python_DHT.git
-Eqiva-Smart-Radiator-Thermostat @ git+https://github.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat.git
+logManager @ git+https://github.com/hendriksen-mark/logManager.git@latest
+adafruit-dht @ git+https://github.com/hendriksen-mark/Adafruit_Python_DHT.git@latest
+eqiva-smart-radiator-thermostat @ git+https://github.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat.git@latest
 RPi.GPIO
