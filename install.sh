@@ -179,12 +179,9 @@ else
     curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
     unzip -qo server.zip
     cd raspberry_extension_server-$branchSelection/
-    docker stop raspberry_extension_server
-    docker rm raspberry_extension_server
-    docker buildx create --name mybuilder --use
-    docker buildx inspect --bootstrap
-    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker buildx build --builder mybuilder --platform=$PLATFORM --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
+    docker stop raspberry_extension_server 2>/dev/null || true
+    docker rm raspberry_extension_server 2>/dev/null || true
+    docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .
     docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/hue-emulator/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
     cd ..
     rm -rf server.zip raspberry_extension_server_ui-$branchSelection
