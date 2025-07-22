@@ -5,7 +5,7 @@ set -e
 
 cd ~
 
-echo "== Eqiva Smart Radiator Thermostat Project Installer =="
+echo "== Raspberry Extension Server Project Installer =="
 
 # Check for git
 if ! command -v git &>/dev/null; then
@@ -15,8 +15,8 @@ if ! command -v git &>/dev/null; then
 fi
 
 # Clone repo if not present
-REPO_URL="https://github.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat.git"
-REPO_DIR="Eqiva-Smart-Radiator-Thermostat"
+REPO_URL="https://github.com/hendriksen-mark/raspberry_extension_server.git"
+REPO_DIR="raspberry_extension_server"
 if [ ! -d "$REPO_DIR" ]; then
     echo "Cloning repository..."
     git clone "$REPO_URL" "$REPO_DIR"
