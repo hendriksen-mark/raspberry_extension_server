@@ -35,6 +35,7 @@ def get_environment_variable(var: str, boolean: bool = False) -> Union[str, bool
         str or bool or None: The value of the environment variable, or None if not found.
     """
     value: Optional[str] = getenv(var)
+    logger.info(f"Environment variable {var} = {value}")
     if value is None:
         return None
     if boolean:
