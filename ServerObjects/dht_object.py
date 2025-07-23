@@ -5,13 +5,55 @@ from threading import Lock
 import logging
 import logManager
 from typing import Any
-
-import configManager
+import sys
+import platform
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-import board
-import adafruit_dht
+# Platform detection
+IS_RASPBERRY_PI = platform.machine().startswith(('arm', 'aarch64')) and sys.platform == 'linux'
+IS_DEVELOPMENT = sys.platform == 'darwin' or sys.platform == 'win32'
+
+# Log platform information
+logger.debug(f"Platform: {sys.platform}, Machine: {platform.machine()}")
+logger.debug(f"Detected as Raspberry Pi: {IS_RASPBERRY_PI}, Development: {IS_DEVELOPMENT}")
+
+try:
+    import board
+    import adafruit_dht
+    BOARD_AVAILABLE = True
+    if IS_DEVELOPMENT:
+        logger.info("Running on development platform - DHT sensor will use mock data")
+    elif IS_RASPBERRY_PI:
+        logger.info("Running on Raspberry Pi - DHT sensor will use real hardware")
+    else:
+        logger.info("Running on unknown platform - attempting to use real DHT hardware")
+except (ImportError, NotImplementedError, Exception) as e:
+    logger.warning(f"Board/DHT libraries not available: {e}. DHT functionality will be disabled.")
+    BOARD_AVAILABLE = False
+    board = None
+    adafruit_dht = None
+
+
+class MockDHTDevice:
+    """Mock DHT device for development/testing purposes"""
+    def __init__(self, sensor_type="DHT22"):
+        self.sensor_type = sensor_type
+        import random
+        self._base_temp = 22.0
+        self._base_humidity = 45.0
+        
+    @property
+    def temperature(self):
+        """Return mock temperature with some variation"""
+        import random
+        return self._base_temp + random.uniform(-2.0, 2.0)
+    
+    @property 
+    def humidity(self):
+        """Return mock humidity with some variation"""
+        import random
+        return self._base_humidity + random.uniform(-5.0, 5.0)
 
 
 class DHTObject:
@@ -44,22 +86,67 @@ class DHTObject:
         if self.dht_pin is None:
             raise ValueError("DHT pin must be specified in configuration")
         
+        # Check if board is available or if we're in development mode
+        if not BOARD_AVAILABLE:
+            if IS_DEVELOPMENT:
+                logger.info(f"Using mock DHT{self.sensor_type} device for development")
+                self.dhtDevice = MockDHTDevice(self.sensor_type)
+            else:
+                logger.error("Board/DHT libraries not available. DHT sensor will not function.")
+                logger.error("On Raspberry Pi, ensure you have installed: pip install adafruit-circuitpython-dht")
+                logger.error("And that GPIO is enabled in raspi-config")
+                self.dhtDevice = None
+            return
+        
+        # Additional Raspberry Pi checks
+        if IS_RASPBERRY_PI:
+            try:
+                # Test if we can access GPIO
+                import os
+                if not os.path.exists('/dev/gpiomem'):
+                    logger.warning("GPIO access may be limited. Ensure GPIO is enabled and user has permissions.")
+            except Exception as e:
+                logger.warning(f"Could not check GPIO access: {e}")
+        
         # Get the pin from board using the pin number
-        pin = getattr(board, f"D{self.dht_pin}")
+        try:
+            pin = getattr(board, f"D{self.dht_pin}")
+            logger.debug(f"Successfully mapped pin D{self.dht_pin} to board pin")
+        except AttributeError:
+            logger.error(f"Pin D{self.dht_pin} not available on this board")
+            available_pins = [attr for attr in dir(board) if attr.startswith('D') and attr[1:].isdigit()]
+            logger.error(f"Available pins: {available_pins}")
+            self.dhtDevice = None
+            return
         
         # Dynamically create the DHT sensor based on sensor type
-        if self.sensor_type == "DHT22":
-            self.dhtDevice = adafruit_dht.DHT22(pin)
-        elif self.sensor_type == "DHT11":
-            self.dhtDevice = adafruit_dht.DHT11(pin)
-        else:
-            # Fallback to DHT22 if sensor type is not recognized
-            logger.warning(f"Unknown sensor type {self.sensor_type}, defaulting to DHT22")
-            self.dhtDevice = adafruit_dht.DHT22(pin)
+        try:
+            if self.sensor_type == "DHT22":
+                self.dhtDevice = adafruit_dht.DHT22(pin)
+            elif self.sensor_type == "DHT11":
+                self.dhtDevice = adafruit_dht.DHT11(pin)
+            else:
+                # Fallback to DHT22 if sensor type is not recognized
+                logger.warning(f"Unknown sensor type {self.sensor_type}, defaulting to DHT22")
+                self.dhtDevice = adafruit_dht.DHT22(pin)
+            logger.info(f"DHT{self.sensor_type} sensor initialized on pin D{self.dht_pin}")
+        except Exception as e:
+            logger.error(f"Failed to initialize DHT sensor: {e}")
+            if IS_RASPBERRY_PI:
+                logger.error("Common Raspberry Pi DHT issues:")
+                logger.error("1. Check wiring connections")
+                logger.error("2. Ensure DHT sensor is working")
+                logger.error("3. Try a different GPIO pin")
+                logger.error("4. Check if another process is using the pin")
+            self.dhtDevice = None
     
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
         return self.dht_pin
+    
+    def is_available(self) -> bool:
+        """Check if DHT sensor is available and properly initialized"""
+        return self.dhtDevice is not None
     
     def get_data(self) -> tuple[float | None, float | None]:
         """Get current temperature and humidity data"""
@@ -96,6 +183,11 @@ class DHTObject:
         and update the global variables.
         If the sensor returns invalid values (None or out of range), do not update globals.
         """
+        
+        # Check if DHT device is available
+        if self.dhtDevice is None:
+            logger.debug("DHT device not available, skipping reading")
+            return
         
         try:
             temperature = self.dhtDevice.temperature
@@ -152,6 +244,19 @@ class DHTObject:
                     
         except Exception as e:
             logger.error(f"Error reading DHT sensor: {e}")
+            if IS_RASPBERRY_PI:
+                # Common DHT sensor errors on Raspberry Pi
+                error_str = str(e).lower()
+                if "checksum did not validate" in error_str:
+                    logger.debug("DHT checksum error - this is normal and will retry")
+                elif "timed out" in error_str or "timeout" in error_str:
+                    logger.warning("DHT sensor timeout - check wiring and power")
+                elif "permission" in error_str:
+                    logger.error("Permission denied accessing GPIO - run as root or add user to gpio group")
+                elif "device or resource busy" in error_str:
+                    logger.warning("GPIO pin busy - another process may be using it")
+                else:
+                    logger.debug("DHT sensor read failed - will retry on next cycle")
 
     def get_all_data(self) -> dict[str, Any]:
         """Get all DHT data as a dictionary"""
