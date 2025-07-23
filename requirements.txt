@@ -17,6 +17,4 @@ logManager @ git+https://github.com/hendriksen-mark/logManager.git
 adafruit-blinka
 eqiva-smart-radiator-thermostat @ git+https://github.com/hendriksen-mark/Eqiva-Smart-Radiator-Thermostat.git
 RPi.GPIO
-libgpiod-dev
-python3-libgpiod
 adafruit-circuitpython-dht

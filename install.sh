@@ -88,7 +88,7 @@ if [ "$installMethod" == "host" ]; then
   echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
   # Check for Python 3
   if ! command -v python3 &>/dev/null; then
-      apt-get install -y python3 python3-pip
+      apt-get install -y python3 python3-pip libgpiod-dev python3-libgpiod
   fi
 
   echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
