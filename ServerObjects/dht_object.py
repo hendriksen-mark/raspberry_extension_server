@@ -5,18 +5,13 @@ from threading import Lock
 import logging
 import logManager
 from typing import Any
-from ServerObjects.thermostat_object import ThermostatObject
-import time
-import concurrent.futures
 
 import configManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-try:
-    import Adafruit_DHT  # type: ignore
-except ImportError:
-    from services.dummy_import import DummyDHT as Adafruit_DHT  # Import a dummy DHT class for testing
+import board
+import adafruit_dht
 
 
 class DHTObject:
@@ -30,6 +25,10 @@ class DHTObject:
         self.dht_pin: int = data.get("dht_pin", None)
         self.latest_temperature: float = data.get("latest_temperature", None)
         self.latest_humidity: float = data.get("latest_humidity", None)
+        
+        # Callback functions for when values change
+        self.temperature_callbacks: list = []
+        self.humidity_callbacks: list = []
         self.MIN_DHT_TEMP: float = data.get("MIN_DHT_TEMP", -40.0)
         self.MAX_DHT_TEMP: float = data.get("MAX_DHT_TEMP", 80.0)
         self.MIN_HUMIDITY: float = data.get("MIN_HUMIDITY", 0.0)
@@ -40,16 +39,23 @@ class DHTObject:
         self.last_logged_dht_temp: float | None = None
         self.last_logged_dht_humidity: float | None = None
         self._thread_started = False
-
+        
+        # Validate pin is provided
+        if self.dht_pin is None:
+            raise ValueError("DHT pin must be specified in configuration")
+        
+        # Get the pin from board using the pin number
+        pin = getattr(board, f"D{self.dht_pin}")
+        
+        # Dynamically create the DHT sensor based on sensor type
         if self.sensor_type == "DHT22":
-            logger.info("Using DHT22 sensor")
-            self.sensor = Adafruit_DHT.DHT22
+            self.dhtDevice = adafruit_dht.DHT22(pin)
         elif self.sensor_type == "DHT11":
-            logger.info("Using DHT11 sensor")
-            self.sensor = Adafruit_DHT.DHT11
+            self.dhtDevice = adafruit_dht.DHT11(pin)
         else:
-            logger.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
-            self.sensor = Adafruit_DHT.DHT22
+            # Fallback to DHT22 if sensor type is not recognized
+            logger.warning(f"Unknown sensor type {self.sensor_type}, defaulting to DHT22")
+            self.dhtDevice = adafruit_dht.DHT22(pin)
     
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
@@ -60,36 +66,40 @@ class DHTObject:
         with self.dht_lock:
             return self.latest_temperature, self.latest_humidity
     
+    def register_temperature_callback(self, callback) -> None:
+        """Register a callback function to be called when temperature changes significantly"""
+        self.temperature_callbacks.append(callback)
+    
+    def register_humidity_callback(self, callback) -> None:
+        """Register a callback function to be called when humidity changes significantly"""
+        self.humidity_callbacks.append(callback)
+    
+    def _notify_temperature_callbacks(self, temperature: float) -> None:
+        """Notify all registered temperature callbacks"""
+        for callback in self.temperature_callbacks:
+            try:
+                callback(temperature)
+            except Exception as e:
+                logger.error(f"Error in temperature callback: {e}")
+    
+    def _notify_humidity_callbacks(self, humidity: float) -> None:
+        """Notify all registered humidity callbacks"""
+        for callback in self.humidity_callbacks:
+            try:
+                callback(humidity)
+            except Exception as e:
+                logger.error(f"Error in humidity callback: {e}")
+    
     def _read_dht_temperature(self) -> None:
         """
         Read the temperature and humidity from the DHT sensor once
         and update the global variables.
         If the sensor returns invalid values (None or out of range), do not update globals.
         """
-        def _dht_read_operation():
-            """Internal function to perform DHT read operation"""
-            # Use read() instead of read_retry() to avoid long blocking calls
-            # read_retry() defaults to 15 retries with 2-second delays (up to 30 seconds!)
-            humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
-            
-            # If read() fails, try one more time with a very short delay
-            if humidity is None or temperature is None:
-                time.sleep(0.1)  # Very short delay (100ms)
-                humidity, temperature = Adafruit_DHT.read(self.sensor, self.dht_pin)
-            
-            return humidity, temperature
         
         try:
-            # Use ThreadPoolExecutor with timeout to prevent blocking
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_dht_read_operation)
-                try:
-                    humidity, temperature = future.result(timeout=2.0)  # 2-second timeout
-                except concurrent.futures.TimeoutError:
-                    logger.warning("DHT read operation timed out after 2 seconds")
-                    return
-            
-            serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+            temperature = self.dhtDevice.temperature
+            humidity = self.dhtDevice.humidity
             MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
             MAX_DHT_TEMP: float = self.MAX_DHT_TEMP
             MIN_HUMIDITY: float = self.MIN_HUMIDITY
@@ -110,9 +120,8 @@ class DHTObject:
                             abs(rounded_temp - self.last_logged_dht_temp) >= DHT_TEMP_CHANGE_THRESHOLD):
                             logger.info(f"Updated temperature: {self.latest_temperature}°C")
                             self.last_logged_dht_temp = rounded_temp
-                            for thermostat in serverConfig["thermostats"].values():
-                                thermostat: ThermostatObject = thermostat
-                                thermostat.update_dht_related_status(temperature=rounded_temp)
+                            # Notify callbacks about temperature change
+                            self._notify_temperature_callbacks(rounded_temp)
                             logged_info = True
                     
                     # Always log current temperature for debugging (unless we just logged at info level)
@@ -131,9 +140,8 @@ class DHTObject:
                             abs(rounded_humidity - self.last_logged_dht_humidity) >= DHT_HUMIDITY_CHANGE_THRESHOLD):
                             logger.info(f"Updated humidity: {self.latest_humidity}%")
                             self.last_logged_dht_humidity = rounded_humidity
-                            for thermostat in serverConfig["thermostats"].values():
-                                thermostat: ThermostatObject = thermostat
-                                thermostat.update_dht_related_status(humidity=rounded_humidity)
+                            # Notify callbacks about humidity change
+                            self._notify_humidity_callbacks(rounded_humidity)
                             logged_info = True
                     
                     # Always log current humidity for debugging (unless we just logged at info level)

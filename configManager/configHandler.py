@@ -173,6 +173,41 @@ class Config:
         if powerbutton_data != {}:
             self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
 
+    def _setup_dht_callbacks(self) -> None:
+        """
+        Set up DHT sensor callbacks to update thermostats when temperature/humidity changes.
+        This method should be called after both DHT and thermostat objects are loaded.
+        """
+        dht_obj = self.yaml_config.get("dht")
+        dht_obj: Optional[DHTObject] = dht_obj if isinstance(dht_obj, DHTObject) else None
+        if dht_obj is None:
+            logger.debug("No DHT object found, skipping callback setup")
+            return
+        
+        def handle_temperature_update(temperature: float) -> None:
+            """Handle temperature updates from DHT sensor"""
+            for thermostat in self.yaml_config["thermostats"].values():
+                try:
+                    thermostat: ThermostatObject = thermostat
+                    thermostat.update_dht_related_status(temperature=temperature)
+                except Exception as e:
+                    logger.error(f"Error updating thermostat with temperature {temperature}: {e}")
+        
+        def handle_humidity_update(humidity: float) -> None:
+            """Handle humidity updates from DHT sensor"""
+            for thermostat in self.yaml_config["thermostats"].values():
+                try:
+                    thermostat: ThermostatObject = thermostat
+                    thermostat.update_dht_related_status(humidity=humidity)
+                except Exception as e:
+                    logger.error(f"Error updating thermostat with humidity {humidity}: {e}")
+        
+        # Register the callbacks
+        dht_obj.register_temperature_callback(handle_temperature_update)
+        dht_obj.register_humidity_callback(handle_humidity_update)
+        
+        logger.info("DHT sensor callbacks registered successfully")
+
     def load_config(self) -> None:
         """
         Load the entire configuration from YAML files.
@@ -193,6 +228,9 @@ class Config:
             self._load_klok()
             self._load_fan()
             self._load_powerbutton()
+            
+            # Set up DHT callbacks after all objects are loaded
+            self._setup_dht_callbacks()
 
             logger.info("Config loaded")
         except Exception:
