@@ -123,5 +123,13 @@ class ConfigRoute(Resource):
                         logger.warning(f"Invalid interval value for {service}: {new_value}")
                 except (ValueError, TypeError):
                     logger.warning(f"Invalid interval value for {service}: {new_value}")
+
+        # Update other service-specific configurations
+        for key, value in service_data.items():
+            if key not in ["enabled", "interval"]:
+                old_value: Any = serverConfig["config"][service].get(key)
+                if old_value != value:
+                    serverConfig["config"][service][key] = value
+                    changes.append(f"{key}: {old_value} -> {value}")
         
         return changes
