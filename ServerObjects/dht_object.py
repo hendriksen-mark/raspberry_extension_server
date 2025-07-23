@@ -67,8 +67,6 @@ class DHTObject:
         self.dht_pin: int = data.get("dht_pin", None)
         self.latest_temperature: float = data.get("latest_temperature", None)
         self.latest_humidity: float = data.get("latest_humidity", None)
-        
-        # Callback functions for when values change
         self.temperature_callbacks: list = []
         self.humidity_callbacks: list = []
         self.MIN_DHT_TEMP: float = data.get("MIN_DHT_TEMP", -40.0)
@@ -189,18 +187,65 @@ class DHTObject:
             logger.debug("DHT device not available, skipping reading")
             return
         
-        try:
-            temperature = self.dhtDevice.temperature
-            humidity = self.dhtDevice.humidity
-            MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
-            MAX_DHT_TEMP: float = self.MAX_DHT_TEMP
-            MIN_HUMIDITY: float = self.MIN_HUMIDITY
-            MAX_HUMIDITY: float = self.MAX_HUMIDITY
-            DHT_TEMP_CHANGE_THRESHOLD: float = self.DHT_TEMP_CHANGE_THRESHOLD
-            DHT_HUMIDITY_CHANGE_THRESHOLD: float = self.DHT_HUMIDITY_CHANGE_THRESHOLD
-            logger.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
+        # DHT sensors often fail on first attempt, so we retry
+        max_retries = 3 if IS_RASPBERRY_PI else 1
+        temperature = None
+        humidity = None
+        
+        for attempt in range(max_retries):
+            try:
+                temperature = self.dhtDevice.temperature
+                humidity = self.dhtDevice.humidity
+                
+                # If we got valid readings, break out of retry loop
+                if temperature is not None and humidity is not None:
+                    logger.debug(f"DHT read successful on attempt {attempt + 1}")
+                    break
+                    
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # These are normal DHT sensor errors that should trigger a retry
+                if ("checksum did not validate" in error_str or 
+                    "full buffer was not returned" in error_str or
+                    "try again" in error_str):
+                    if attempt < max_retries - 1:
+                        logger.debug(f"DHT read attempt {attempt + 1} failed (normal), retrying...")
+                        import time
+                        time.sleep(0.1)  # Small delay before retry
+                        continue
+                    else:
+                        logger.debug(f"DHT sensor failed after {max_retries} attempts: {e}")
+                        return
+                        
+                # For other errors, don't retry
+                elif IS_RASPBERRY_PI:
+                    if "timed out" in error_str or "timeout" in error_str:
+                        logger.warning(f"DHT sensor timeout - check wiring and power: {e}")
+                    elif "permission" in error_str:
+                        logger.error(f"Permission denied accessing GPIO - run as root or add user to gpio group: {e}")
+                    elif "device or resource busy" in error_str:
+                        logger.warning(f"GPIO pin busy - another process may be using it: {e}")
+                    else:
+                        logger.warning(f"DHT sensor read failed: {e}")
+                else:
+                    logger.error(f"Error reading DHT sensor: {e}")
+                return
+        
+        # Process the readings if we got them
+        if temperature is None and humidity is None:
+            logger.debug("No valid DHT readings obtained after retries")
+            return
             
-            with self.dht_lock:
+        MIN_DHT_TEMP: float = self.MIN_DHT_TEMP
+        MAX_DHT_TEMP: float = self.MAX_DHT_TEMP
+        MIN_HUMIDITY: float = self.MIN_HUMIDITY
+        MAX_HUMIDITY: float = self.MAX_HUMIDITY
+        DHT_TEMP_CHANGE_THRESHOLD: float = self.DHT_TEMP_CHANGE_THRESHOLD
+        DHT_HUMIDITY_CHANGE_THRESHOLD: float = self.DHT_HUMIDITY_CHANGE_THRESHOLD
+        logger.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
+        
+        with self.dht_lock:
                 # Only update if values are valid
                 if temperature is not None and MIN_DHT_TEMP < temperature < MAX_DHT_TEMP:
                     rounded_temp: float = round(float(temperature), 1)
@@ -241,22 +286,6 @@ class DHTObject:
                         logger.debug(f"Humidity: {rounded_humidity}%")
                 else:
                     logger.error("Humidity value not updated (None or out of range)")
-                    
-        except Exception as e:
-            logger.error(f"Error reading DHT sensor: {e}")
-            if IS_RASPBERRY_PI:
-                # Common DHT sensor errors on Raspberry Pi
-                error_str = str(e).lower()
-                if "checksum did not validate" in error_str:
-                    logger.debug("DHT checksum error - this is normal and will retry")
-                elif "timed out" in error_str or "timeout" in error_str:
-                    logger.warning("DHT sensor timeout - check wiring and power")
-                elif "permission" in error_str:
-                    logger.error("Permission denied accessing GPIO - run as root or add user to gpio group")
-                elif "device or resource busy" in error_str:
-                    logger.warning("GPIO pin busy - another process may be using it")
-                else:
-                    logger.debug("DHT sensor read failed - will retry on next cycle")
 
     def get_all_data(self) -> dict[str, Any]:
         """Get all DHT data as a dictionary"""
