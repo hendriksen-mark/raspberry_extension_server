@@ -109,9 +109,16 @@ if [ "$installMethod" == "host" ]; then
     echo -e "\033[33m Existing installation found, performing upgrade.\033[0m"
 
     cp -r /opt/raspberry_extension_server/config /tmp/raspberry_extension_server_backup
+    mkdir -p /tmp/log_backup
+    if ls /opt/raspberry_extension_server/*.log* 1> /dev/null 2>&1; then
+        cp -r /opt/raspberry_extension_server/*.log* /tmp/log_backup/
+    fi
     rm -rf /opt/raspberry_extension_server/*
     cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
-    rm -r /tmp/raspberry_extension_server_backup
+    if [ "$(ls -A /tmp/log_backup)" ]; then
+        cp -r /tmp/log_backup/* /opt/raspberry_extension_server/
+    fi
+    rm -rf /tmp/raspberry_extension_server_backup /tmp/log_backup
 
   else
     if cat /proc/net/tcp | grep -c "00000000:13BA" > /dev/null; then
