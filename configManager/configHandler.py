@@ -97,8 +97,11 @@ class Config:
                 "state": "noupdates",
                 "install": False
             },
-            "loglevel": "INFO",
-            "branch": "master",
+            "system": {
+                "loglevel": "INFO",
+                "branch": "master",
+                "ipaddress": "<IP_ADDRESS>"
+            },
         }
         for key, value in defaults.items():
             if key not in config:
@@ -112,8 +115,14 @@ class Config:
         Args:
             config (Dict[str, Any]): The configuration dictionary.
         """
-        if "branch" not in config or config["branch"] != self.branch:
-            config["branch"] = self.branch
+        if "branch" not in config or config["system"]["branch"] != self.branch:
+            config["system"]["branch"] = self.branch.lower()
+        if "ipaddress" not in config["system"] or config["system"]["ipaddress"] != self.ip:
+            config["system"]["ipaddress"] = self.ip
+        if "configDir" not in config["system"] or config["system"]["configDir"] != self.configDir:
+            config["system"]["configDir"] = self.configDir
+        if "runningDir" not in config["system"] or config["system"]["runningDir"] != self.runningDir:
+            config["system"]["runningDir"] = self.runningDir
         return config
 
     def _load_yaml_file(self, filename: str, default: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:
@@ -218,10 +227,6 @@ class Config:
             config: dict[str, Any] = self._set_default_config_values(config)
             config = self._upgrade_config(config)
             self.yaml_config["config"] = config
-            self.yaml_config["config"]["configDir"] = self.configDir
-            self.yaml_config["config"]["runningDir"] = self.runningDir
-            self.yaml_config["config"]["branch"] = self.branch.lower()
-            self.yaml_config["config"]["ipaddress"] = self.ip
 
             self._load_thermostats()
             self._load_dht()

@@ -47,13 +47,17 @@ class ConfigRoute(Resource):
                 changes_made.append("updated user passwords")
 
             # Handle log level changes
-            if "loglevel" in putDict:
-                logManager.logger.configure_logger(putDict["loglevel"])
-                logger.info(f"Changed log level to: {logManager.logger.get_level_name()}")
-                changes_made.append(f"changed log level to {putDict['loglevel']}")
+            if "system" in putDict:
+                if "loglevel" in putDict["system"]:
+                    logManager.logger.configure_logger(putDict["system"]["loglevel"])
+                    logger.info(f"Changed log level to: {logManager.logger.get_level_name()}")
+                    changes_made.append(f"changed log level to {putDict['system']['loglevel']}")
+
+                if "branch" in putDict["system"]:
+                    changes_made.append(f"changed branch to {putDict['system']['branch']}")
 
             # Handle service configuration updates
-            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver"]
+            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver", "system"]
             for service in service_configs:
                 if service in putDict:
                     service_changes: list[str] = self._update_service_config(service, putDict[service])
