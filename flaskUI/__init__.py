@@ -19,7 +19,7 @@ def create_app(serverConfig) -> Flask:
     """
     App factory function following diyHue pattern
     """
-    root_dir: str = serverConfig["config"]["runningDir"]
+    root_dir: str = serverConfig["config"]["system"]["runningDir"]
 
     template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
     static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
