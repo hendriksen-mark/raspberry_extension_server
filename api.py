@@ -54,8 +54,8 @@ def setup_signal_handlers() -> None:
 def main():
     try:
         setup_signal_handlers()
-        BIND_IP: str = configManager.runtimeConfig.arg["BIND_IP"]
-        HOST_HTTP_PORT: int = configManager.runtimeConfig.arg["HTTP_PORT"]
+        BIND_IP: str = configManager.configHandler.Config.bindIp
+        HOST_HTTP_PORT: int = configManager.configHandler.Config.httpPort
         updateManager.startupCheck()
 
         Thread(target=stateFetch.syncWithThermostats_threaded).start()

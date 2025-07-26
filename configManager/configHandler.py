@@ -50,6 +50,8 @@ class Config:
     branch: str = argsDict["BRANCH"]
     ip: str = argsDict["HOST_IP"]
     argDebug: bool = argsDict["DEBUG"]
+    bindIp: str = argsDict["BIND_IP"]
+    httpPort: int = argsDict["HTTP_PORT"]
 
     def __init__(self) -> None:
         """
