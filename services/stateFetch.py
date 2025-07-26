@@ -46,7 +46,7 @@ async def syncWithThermostats() -> None:
     _ensure_async_event_loop()  # Ensure async event is valid for this loop
     
     while serverConfig["config"]["thermostats"]["enabled"] and not _thermostat_shutdown.is_set():
-        logger.info("start thermostats sync")
+        logger.debug("start thermostats sync")
         interval: int = serverConfig["config"]["thermostats"]["interval"]
         
         for thermostat in serverConfig["thermostats"].values():
