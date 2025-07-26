@@ -1,0 +1,5 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Terminal autostart
+Comment=Start a terminal and monitor the Server
+Exec=xterm -T Server -geometry 240x32+700+0 -e journalctl -o cat -xefu raspberry_extension_server.service -n 100
