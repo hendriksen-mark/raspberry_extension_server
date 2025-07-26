@@ -130,6 +130,9 @@ class ThermostatObject:
             target_mode_status = self.calculate_heating_cooling_state(mode)
             current_mode_status = self.calculate_heating_cooling_state(mode, valve)
 
+            if self.targetHeatingCoolingState != target_mode_status["int"] or self.currentHeatingCoolingState != current_mode_status["int"]:
+                logger.info(f"Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {temp}C")
+
             self.targetHeatingCoolingState = target_mode_status["int"]
             self.targetTemperature = temp
             self.currentHeatingCoolingState = current_mode_status["int"]
