@@ -146,7 +146,6 @@ def run_dht_service() -> None:
     """
     while serverConfig["config"]["dht"]["enabled"] and not _dht_shutdown.is_set() and "dht" in serverConfig:
         interval: int = serverConfig["config"]["dht"]["interval"]
-        logger.debug(f"Reading DHT temperature every {interval} seconds")
         try:
             dht: DHTObject = serverConfig["dht"]
             if dht:

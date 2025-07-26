@@ -44,6 +44,9 @@ class DummyGPIO:
 class DummyDHT:
         DHT22: int = None
 
+        def __init__(self, sensor_type="DHT22"):
+            self.sensor_type = sensor_type
+
         @staticmethod
         def read_retry(sensor: int, pin: int) -> tuple[float, float]:
             temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
@@ -55,6 +58,16 @@ class DummyDHT:
             temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
             humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
             return humidity, temp
+        
+        @property
+        def temperature(self):
+            """Return mock temperature with some variation"""
+            return random.uniform(5.0, 30.0)  # Simulate a temperature reading
+        
+        @property 
+        def humidity(self):
+            """Return mock humidity with some variation"""
+            return random.uniform(0.0, 100.0)  # Simulate a humidity reading
 
 class DummyPigpioInstance:
         def __init__(self) -> None:
@@ -78,3 +91,32 @@ class DummyPigpio:
         """Return a dummy pigpio instance"""
         return DummyPigpioInstance()
         
+class DummyBoard:
+    """Dummy board class to simulate board pin access"""
+    
+    def __init__(self):
+        """Initialize dummy board"""
+        pass
+    
+    def __getattr__(self, name):
+        """Return a dummy pin object for any pin name (e.g., D18, D4, etc.)"""
+        if name.startswith('D') and name[1:].isdigit():
+            return DummyPin(name)
+        raise AttributeError(f"DummyBoard has no attribute '{name}'")
+
+
+class DummyPin:
+    """Dummy pin class to simulate GPIO pins"""
+    
+    def __init__(self, pin_name):
+        self.pin_name = pin_name
+    
+    def __str__(self):
+        return f"DummyPin({self.pin_name})"
+    
+    def __repr__(self):
+        return f"DummyPin({self.pin_name})"
+
+
+# Create a dummy board instance that can be imported
+board = DummyBoard()
