@@ -49,6 +49,7 @@ class Config:
     runningDir: str = argsDict["RUNNING_PATH"]
     branch: str = argsDict["BRANCH"]
     ip: str = argsDict["HOST_IP"]
+    argDebug: bool = argsDict["DEBUG"]
 
     def __init__(self) -> None:
         """
@@ -123,6 +124,10 @@ class Config:
             config["system"]["configDir"] = self.configDir
         if "runningDir" not in config["system"] or config["system"]["runningDir"] != self.runningDir:
             config["system"]["runningDir"] = self.runningDir
+        if "loglevel" not in config["system"] or config["system"]["loglevel"] != ("DEBUG" if self.argDebug else "INFO"):
+            config["system"]["loglevel"] = "DEBUG" if self.argDebug else "INFO"
+        logManager.logger.configure_logger(config["system"]["loglevel"])
+        logger.info(f"Debug logging {'enabled' if self.argDebug else 'disabled'}!")
         return config
 
     def _load_yaml_file(self, filename: str, default: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:

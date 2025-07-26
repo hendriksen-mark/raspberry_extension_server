@@ -49,8 +49,7 @@ class ConfigRoute(Resource):
             # Handle log level changes
             if "system" in putDict:
                 if "loglevel" in putDict["system"]:
-                    logManager.logger.configure_logger(putDict["system"]["loglevel"])
-                    logger.info(f"Changed log level to: {logManager.logger.get_level_name()}")
+                    logger.info(logManager.logger.configure_logger(putDict["system"]["loglevel"]))
                     changes_made.append(f"changed log level to {putDict['system']['loglevel']}")
 
                 if "branch" in putDict["system"]:
