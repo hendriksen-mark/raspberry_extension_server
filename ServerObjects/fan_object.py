@@ -74,10 +74,10 @@ class FanObject:
         # Set full speed mode
         self.is_full_speed_mode = True
         self.pi.set_PWM_dutycycle(self.gpio_pin, self.max_speed)
-        logger.info("Fan set to full speed for 5 seconds")
-        
-        # Set timer to return to normal after 5 seconds
-        self.full_speed_timer = threading.Timer(self.full_speed_time_duration, self._return_to_normal)
+        logger.info(f"Fan set to full speed for {self.full_speed_time_duration} seconds")
+
+        # Set timer to return to normal after the specified duration
+        self.full_speed_timer = threading.Timer(max(self.full_speed_time_duration, 1), self._return_to_normal)
         self.full_speed_timer.start()
 
     def _return_to_normal(self) -> None:
