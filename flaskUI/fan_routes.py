@@ -30,7 +30,7 @@ class FanRoute(Resource):
         Handle GET requests for fan resources
         URL patterns:
         - /fan/
-        - /fan/on
+        - /fan/full_speed
         - /fan/off  
         - /fan/status
         """
@@ -39,6 +39,9 @@ class FanRoute(Resource):
 
         if fan is None:
             return {"error": "Fan service not found in server configuration"}, 404
+
+        if resource == "full_speed":
+            fan.setFull()
 
         return fan.get_all_data(), 200
     
@@ -55,7 +58,7 @@ class FanRoute(Resource):
         if fan:
             logger.info(f"Fan already exists, updating configuration")
             # Only allow updating certain safe attributes
-            allowed_attributes: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold'}
+            allowed_attributes: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold', 'full_speed_time_duration'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(fan, key):
                     setattr(fan, key, value)

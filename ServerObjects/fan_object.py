@@ -6,6 +6,7 @@ except ImportError:
 
 import logging
 import logManager
+import threading
 from services.utils import get_pi_temp
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -21,6 +22,9 @@ class FanObject:
         self.cleanup_done: bool = False
         self.last_logged_temp: float | None = None
         self.temp_change_threshold: float = data.get("temp_change_threshold", 0.5)  # Only log when temperature changes by more than 0.5°C
+        self.full_speed_timer: threading.Timer | None = None
+        self.is_full_speed_mode: bool = False
+        self.full_speed_time_duration: int = data.get("full_speed_time_duration", 5)  # Duration for full speed mode in seconds
         self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("Could not connect to pigpio daemon. Make sure pigpiod is running.")
@@ -36,11 +40,18 @@ class FanObject:
 
     def cleanup(self) -> None:
         if not self.cleanup_done and self.pi.connected:
+            # Cancel any pending timer
+            if self.full_speed_timer:
+                self.full_speed_timer.cancel()
             self.pi.set_PWM_dutycycle(self.gpio_pin, 0)
             self.pi.stop()
             self.cleanup_done = True
 
     def run(self) -> None:
+        # Skip normal temperature control if in full speed mode
+        if self.is_full_speed_mode:
+            return
+            
         temp: float = get_pi_temp()
         temp = max(self.min_temperature, min(self.max_temperature, temp))
         # Convert temp to pigpio duty cycle (0-255)
@@ -52,6 +63,29 @@ class FanObject:
             logger.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
             self.last_logged_temp = temp
 
+    def setFull(self) -> None:
+        """Set the fan to full speed for a specified duration, then return to normal operation."""
+        # Cancel any existing timer
+        if self.full_speed_timer:
+            self.full_speed_timer.cancel()
+        
+        # Set full speed mode
+        self.is_full_speed_mode = True
+        self.pi.set_PWM_dutycycle(self.gpio_pin, self.max_speed)
+        logger.info("Fan set to full speed for 5 seconds")
+        
+        # Set timer to return to normal after 5 seconds
+        self.full_speed_timer = threading.Timer(self.full_speed_time_duration, self._return_to_normal)
+        self.full_speed_timer.start()
+
+    def _return_to_normal(self) -> None:
+        """Return fan to normal temperature-based operation."""
+        self.is_full_speed_mode = False
+        self.full_speed_timer = None
+        logger.info("Fan returning to normal temperature-based operation")
+        # Immediately run normal operation to set appropriate speed
+        self.run()
+
     def get_all_data(self) -> dict[str, Any]:
         """Get all fan service data"""
         return {
@@ -62,6 +96,7 @@ class FanObject:
             "min_speed": self.min_speed,
             "max_speed": self.max_speed,
             "temp_change_threshold": self.temp_change_threshold,
+            "full_speed_time_duration": self.full_speed_time_duration,
         }
 
     def save(self) -> dict[str, Any]:
