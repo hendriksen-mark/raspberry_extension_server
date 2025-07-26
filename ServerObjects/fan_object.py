@@ -62,6 +62,8 @@ class FanObject:
         if self.last_logged_temp is None or abs(temp - self.last_logged_temp) >= self.temp_change_threshold:
             logger.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
             self.last_logged_temp = temp
+        else:
+            logger.debug(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle} (no significant change)")
 
     def setFull(self) -> None:
         """Set the fan to full speed for a specified duration, then return to normal operation."""
