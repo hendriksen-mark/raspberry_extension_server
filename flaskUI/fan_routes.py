@@ -55,7 +55,7 @@ class FanRoute(Resource):
         if fan:
             logger.info(f"Fan already exists, updating configuration")
             # Only allow updating certain safe attributes
-            allowed_attributes: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed'}
+            allowed_attributes: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(fan, key):
                     setattr(fan, key, value)
