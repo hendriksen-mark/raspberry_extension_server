@@ -1,17 +1,18 @@
 """
 DHT sensor service for temperature and humidity monitoring
 """
+import sys
 from threading import Lock
 import logging
 import logManager
 from typing import Any
 from time import sleep
-from services.dummy_import import DummyDHT
-import adafruit_dht
 
-try:
+if sys.platform == 'linux':
+    import adafruit_dht
     import board
-except (ImportError, NotImplementedError, Exception) as e:
+else:
+    from services.dummy_import import DummyDHT as adafruit_dht
     from services.dummy_import import DummyBoard as board
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -47,15 +48,19 @@ class DHTObject:
                 self.dhtDevice = adafruit_dht.DHT22(pin)
             elif self.sensor_type == "DHT11":
                 self.dhtDevice = adafruit_dht.DHT11(pin)
+            elif self.sensor_type == "DHT21":
+                self.dhtDevice = adafruit_dht.DHT21(pin)
             else:
                 # Fallback to DHT22 if sensor type is not recognized
                 logger.warning(f"Unknown sensor type {self.sensor_type}, defaulting to DHT22")
                 self.dhtDevice = adafruit_dht.DHT22(pin)
+            if hasattr(self.dhtDevice, "is_dummy") and self.dhtDevice.is_dummy():
+                return None
             logger.debug(f"DHT{self.sensor_type} sensor initialized on pin D{self.dht_pin}")
         except (AttributeError, NotImplementedError, Exception) as e:
             logger.error(f"Failed to initialize DHT sensor: {e}")
             logger.warning(f"Using DummyDHT")
-            self.dhtDevice = DummyDHT(self.sensor_type)
+            self.dhtDevice = adafruit_dht.DHT22(pin)
 
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
@@ -109,7 +114,8 @@ class DHTObject:
 
                 # If we got valid readings, break out of retry loop
                 if temperature is not None and humidity is not None:
-                    logger.debug(f"DHT read successful on attempt {attempt + 1}")
+                    if attempt != 0:
+                        logger.debug(f"DHT read successful on attempt {attempt + 1}")
                     break
 
             except Exception as e:

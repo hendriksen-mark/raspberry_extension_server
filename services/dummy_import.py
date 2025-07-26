@@ -1,4 +1,9 @@
+from ast import Attribute
 import random
+import logging
+import logManager
+
+logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
 class DummyGPIO:
@@ -42,9 +47,9 @@ class DummyGPIO:
             pass
 
 class DummyDHT:
-        DHT22: int = None
 
         def __init__(self, sensor_type="DHT22"):
+            logger.warning(f"Using DummyDHT")
             self.sensor_type = sensor_type
 
         @staticmethod
@@ -59,6 +64,26 @@ class DummyDHT:
             humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
             return humidity, temp
         
+        @staticmethod
+        def DHT22(pin: int):
+            """Return a dummy DHT22 sensor instance"""
+            return DummyDHT("DHT22")
+
+        @staticmethod
+        def DHT11(pin: int):
+            """Return a dummy DHT11 sensor instance"""
+            return DummyDHT("DHT11")
+
+        @staticmethod
+        def DHT21(pin: int):
+            """Return a dummy DHT21 sensor instance"""
+            return DummyDHT("DHT21")
+        
+        @staticmethod
+        def is_dummy(self) -> bool:
+            """Check if this is a dummy DHT sensor"""
+            return True
+
         @property
         def temperature(self):
             """Return mock temperature with some variation"""
@@ -68,6 +93,11 @@ class DummyDHT:
         def humidity(self):
             """Return mock humidity with some variation"""
             return random.uniform(0.0, 100.0)  # Simulate a humidity reading
+        
+        def getReal(self):
+            """Return the real adafruit_dht module"""
+            import adafruit_dht
+            return adafruit_dht
 
 class DummyPigpioInstance:
         def __init__(self) -> None:
@@ -99,24 +129,9 @@ class DummyBoard:
         pass
     
     def __getattr__(self, name):
-        """Return a dummy pin object for any pin name (e.g., D18, D4, etc.)"""
-        if name.startswith('D') and name[1:].isdigit():
-            return DummyPin(name)
-        raise AttributeError(f"DummyBoard has no attribute '{name}'")
-
-
-class DummyPin:
-    """Dummy pin class to simulate GPIO pins"""
+        raise AttributeError(f"Using DummyBoard")
     
-    def __init__(self, pin_name):
-        self.pin_name = pin_name
-    
-    def __str__(self):
-        return f"DummyPin({self.pin_name})"
-    
-    def __repr__(self):
-        return f"DummyPin({self.pin_name})"
-
-
-# Create a dummy board instance that can be imported
-board = DummyBoard()
+    @Attribute
+    def DNone(self):
+        """Return a dummy pin object for DNone"""
+        return None

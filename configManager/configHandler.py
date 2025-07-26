@@ -214,8 +214,6 @@ class Config:
         # Register the callbacks
         dht_obj.register_temperature_callback(handle_temperature_update)
         dht_obj.register_humidity_callback(handle_humidity_update)
-        
-        logger.info("DHT sensor callbacks registered successfully")
 
     def load_config(self) -> None:
         """
