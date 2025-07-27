@@ -367,17 +367,21 @@ class Config:
 
     def restart_python(self) -> None:
         """
-        Restart the Python process.
-
-        Args:
-            None
-
-        Returns:
-            None
+        Restart the Python process or systemd service.
         """
+        import signal
         try:
-            logger.info(f"restart using systemctl")
+            logger.info("restart using systemctl")
             subprocess.run(['sudo', 'systemctl', 'restart', 'raspberry_extension_server.service'], check=True)
+            return  # Should not reach here if systemctl works
+        except subprocess.CalledProcessError as e:
+            # If the process was killed by SIGTERM, do nothing (systemd is restarting us)
+            if e.returncode == -signal.SIGTERM:
+                logger.info("Process terminated by SIGTERM (expected during systemctl restart). Not falling back to os.execl.")
+                sys.exit(0)
+            logger.error(f"systemctl restart failed: {e}, falling back to os.execl")
+            logger.info(f"restart {sys.executable} with args: {sys.argv}")
+            os.execl(sys.executable, sys.executable, *sys.argv)
         except Exception as e:
             logger.error(f"systemctl restart failed: {e}, falling back to os.execl")
             logger.info(f"restart {sys.executable} with args: {sys.argv}")
