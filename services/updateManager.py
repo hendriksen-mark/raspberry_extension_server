@@ -126,7 +126,7 @@ def githubInstall() -> None:
     if serverConfig["config"]["swupdate2"]["state"] in ["allreadytoinstall", "anyreadytoinstall"]:
         configManager.serverConfig.save_config()
         state = serverConfig['config']['swupdate2']['state']
-        branch = serverConfig['config']['branch']
+        branch = serverConfig['config']['system']['branch']
         try:
             success = install_github_updates(state, branch)
             if success:
