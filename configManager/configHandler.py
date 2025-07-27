@@ -375,9 +375,10 @@ class Config:
         Returns:
             None
         """
-        logger.info(f"restart {sys.executable} with args: {sys.argv}")
         try:
-            subprocess.run(['systemctl', '--user', 'restart', 'raspberry_extension_server.service'], check=True)
+            logger.info(f"restart using systemctl")
+            subprocess.run(['systemctl', 'restart', 'raspberry_extension_server.service'], check=True)
         except Exception as e:
             logger.error(f"systemctl restart failed: {e}, falling back to os.execl")
+            logger.info(f"restart {sys.executable} with args: {sys.argv}")
             os.execl(sys.executable, sys.executable, *sys.argv)
