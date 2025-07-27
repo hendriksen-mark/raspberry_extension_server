@@ -6,6 +6,7 @@ from typing import Any, List
 import configManager
 import logging
 import logManager
+from .github_installer import install_github_updates
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -59,8 +60,8 @@ def get_file_creation_time(filepath: str) -> str:
         str: The creation time of the file in the format "%Y-%m-%d %H".
     """
     try:
-        creation_time: str = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
-        creation_time_arg1: list[str] = creation_time.stdout.replace(".", " ").split(" ") if creation_time.stdout else "2999-01-01 01:01:01.000000000 +0100\n".replace(".", " ").split(" ")
+        creation_time = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
+        creation_time_arg1: list[str] = creation_time.stdout.replace(".", " ").split(" ") if creation_time.stdout else "2999-01-01 01:01:01 000000000 +0100\n".split(" ")
         return parse_creation_time(creation_time_arg1)
     except subprocess.SubprocessError as e:
         logger.error(f"Error getting file creation time: {e}")
@@ -86,6 +87,8 @@ def get_github_publish_time(url: str) -> str:
             return datetime.strptime(device_data["published_at"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
     except requests.RequestException as e:
         logger.error(f"No connection to GitHub: {e}")
+        # Set state to unknown when there's no connection to update server
+        serverConfig["config"]["swupdate2"]["state"] = "unknown"
         return "1970-01-01 00:00:00"
 
 def parse_creation_time(creation_time_arg1: List[str]) -> str:
@@ -121,8 +124,23 @@ def githubInstall() -> None:
     Install updates from GitHub if they are ready to be installed.
     """
     if serverConfig["config"]["swupdate2"]["state"] in ["allreadytoinstall", "anyreadytoinstall"]:
-        subprocess.Popen(f"sh githubInstall.sh {configManager.configHandler.Config.ip}:{configManager.configHandler.Config.httpPort} {serverConfig['config']['swupdate2']['state']} {serverConfig['config']['branch']}", shell=True, close_fds=True)
-        serverConfig["config"]["swupdate2"]["state"] = "installing"
+        configManager.serverConfig.save_config()
+        state = serverConfig['config']['swupdate2']['state']
+        branch = serverConfig['config']['branch']
+        try:
+            success = install_github_updates(state, branch)
+            if success:
+                logger.info("Update installation successful, restarting server")
+                serverConfig["config"]["swupdate2"]["state"] = "noupdates"
+                serverConfig["config"]["swupdate2"]["install"] = False
+                configManager.serverConfig.restart_python()
+                # Code after restart_python() will not execute
+            else:
+                logger.error("Update installation failed")
+                serverConfig["config"]["swupdate2"]["state"] = "unknown"
+        except Exception as e:
+            logger.error(f"Error during update installation: {e}")
+            serverConfig["config"]["swupdate2"]["state"] = "unknown"
 
 def startupCheck() -> None:
     """

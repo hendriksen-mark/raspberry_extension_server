@@ -28,19 +28,6 @@ def save_server_config(backup: bool = False) -> str:
     configManager.serverConfig.save_config(backup=backup)
     return "backup config\n" if backup else "config saved\n"
 
-def restart_python() -> None:
-    """
-    Restart the Python process.
-
-    Args:
-        None
-
-    Returns:
-        None
-    """
-    logger.info(f"restart {sys.executable} with args: {sys.argv}")
-    os.execl(sys.executable, sys.executable, *sys.argv)
-
 @core.route('/')
 @flask_login.login_required
 def index() -> str:
@@ -152,7 +139,7 @@ def restart() -> str:
     Returns:
         str: A message indicating that the process was restarted.
     """
-    restart_python()
+    configManager.serverConfig.restart_python()
     return "restart python with args"
 
 @core.route('/info')

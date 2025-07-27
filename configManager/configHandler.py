@@ -6,6 +6,7 @@ import logManager
 import yaml
 from copy import deepcopy
 from typing import Any, Optional
+import sys
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.dht_object import DHTObject
 from ServerObjects.klok_object import KlokObject
@@ -363,3 +364,16 @@ class Config:
         subprocess.run(f'tar --exclude=\'config.yaml\' -cvf {self.configDir}/config_debug.tar {self.configDir}/*.yaml {self.runningDir}/*.log* ', shell=True, capture_output=True, text=True)
         subprocess.run(f'rm -r {self.configDir}/config_debug.yaml', check=True)
         return f"{self.configDir}/config_debug.tar"
+
+    def restart_python() -> None:
+        """
+        Restart the Python process.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        logger.info(f"restart {sys.executable} with args: {sys.argv}")
+        os.execl(sys.executable, sys.executable, *sys.argv)

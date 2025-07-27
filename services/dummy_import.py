@@ -80,7 +80,7 @@ class DummyDHT:
             return DummyDHT("DHT21")
         
         @staticmethod
-        def is_dummy(self) -> bool:
+        def is_dummy() -> bool:
             """Check if this is a dummy DHT sensor"""
             return True
 

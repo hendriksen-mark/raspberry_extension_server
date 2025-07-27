@@ -59,8 +59,8 @@ class SystemRoute(Resource):
                 
                 # Build stat command based on OS
                 stat_flag = "-c %y" if uname.sysname == "Linux" else "-f %Sm"
-                server_cmd = f"stat {stat_flag} {configManager.configHandler.Config.runningDir}/api.py"
-                webui_cmd = f"stat {stat_flag} {configManager.configHandler.Config.runningDir}/flaskUI/templates/index.html"
+                server_cmd = f"stat {stat_flag} {configManager.serverConfig.runningDir}/api.py"
+                webui_cmd = f"stat {stat_flag} {configManager.serverConfig.runningDir}/flaskUI/templates/index.html"
 
                 response["info"] = {
                         "sysname": uname.sysname,

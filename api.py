@@ -26,6 +26,8 @@ app: Flask = create_app(serverConfig)
 
 def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
     logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
+    hostIp = configManager.serverConfig.ip
+    logger.info(f"You can access the server on {hostIp}:{HOST_HTTP_PORT}")
     app.run(host=BIND_IP, port=HOST_HTTP_PORT)
 
 def handle_exit(signum: int, frame: Any) -> None:
@@ -54,8 +56,8 @@ def setup_signal_handlers() -> None:
 def main():
     try:
         setup_signal_handlers()
-        BIND_IP: str = configManager.configHandler.Config.bindIp
-        HOST_HTTP_PORT: int = configManager.configHandler.Config.httpPort
+        BIND_IP: str = configManager.serverConfig.bindIp
+        HOST_HTTP_PORT: int = configManager.serverConfig.httpPort
         updateManager.startupCheck()
 
         Thread(target=stateFetch.syncWithThermostats_threaded).start()
