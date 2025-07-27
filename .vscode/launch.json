@@ -10,12 +10,11 @@
       "request": "launch",
       "program": "${workspaceFolder}/api.py",
       "args": [
-        "--docker",
         "--config_path",
         "${workspaceFolder}/config",
         "--debug",
-        "--bind-ip",
         "xxx.xxx.xxx.xxx"
+        "--ip",
       ],
       "console": "integratedTerminal",
       "stopOnEntry": false,
