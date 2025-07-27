@@ -134,7 +134,6 @@ if [ "$installMethod" == "host" ]; then
   cp -r services /opt/raspberry_extension_server/
   cp -r configManager /opt/raspberry_extension_server/
   cp -r api.py /opt/raspberry_extension_server/
-  cp -r githubInstall.sh /opt/raspberry_extension_server/
 
   # Set proper ownership for the pi user
   chown -R pi:pi /opt/raspberry_extension_server/
