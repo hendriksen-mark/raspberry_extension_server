@@ -106,7 +106,7 @@ class Config:
             },
             "system": {
                 "loglevel": "INFO",
-                "branch": "master"
+                "branch": "main"
             },
         }
         for key, value in defaults.items():
@@ -123,7 +123,7 @@ class Config:
         """
         # Only set branch to default if it's missing (new installation)
         if "branch" not in config["system"]:
-            config["system"]["branch"] = "master"
+            config["system"]["branch"] = "main"
         
         if "loglevel" not in config["system"] or config["system"]["loglevel"] != ("DEBUG" if self.argDebug else "INFO"):
             config["system"]["loglevel"] = "DEBUG" if self.argDebug else "INFO"
