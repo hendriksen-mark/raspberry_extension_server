@@ -67,12 +67,11 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     ap = argparse.ArgumentParser()
 
     # Arguments can also be passed as Environment Variables.
-    ap.add_argument("--debug", action='store_true', help="Enables debug output")
+    ap.add_argument("--debug", action='store_true', help="Enables debug output", default=False)
     ap.add_argument("--bind-ip", help="The IP address to listen on", type=str)
     ap.add_argument("--config_path", help="Set certificate and config files location", type=str)
     ap.add_argument("--ip", help="The IP address of the host system (Docker)", type=str)
     ap.add_argument("--http-port", help="The port to listen on for HTTP (Docker)", type=int)
-    ap.add_argument("--branch", help="The branch to use for the Server", type=str, default='master')
 
     args: argparse.Namespace = ap.parse_args()
 
@@ -82,6 +81,5 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["HOST_IP"] = args.ip or get_environment_variable('IP') or argumentDict["BIND_IP"] if argumentDict["BIND_IP"] != '0.0.0.0' else getIpAddress()
     argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
-    argumentDict["BRANCH"] = get_environment_variable('BRANCH') or args.branch or 'master'
 
     return argumentDict

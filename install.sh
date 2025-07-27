@@ -150,10 +150,42 @@ if [ "$installMethod" == "host" ]; then
   # Set proper ownership for all files
   chown -R pi:pi /opt/raspberry_extension_server/
 
+  # Create or update config.yaml with selected branch
+  mkdir -p /opt/raspberry_extension_server/config
+  if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
+    # Create minimal config.yaml for fresh installation with just the selected branch
+    cat > /opt/raspberry_extension_server/config/config.yaml << EOF
+system:
+  branch: $branchSelection
+EOF
+  else
+    # Update existing config.yaml with selected branch
+    if command -v python3 &>/dev/null; then
+      python3 -c "
+import yaml
+import sys
+try:
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'r') as f:
+        config = yaml.safe_load(f) or {}
+    if 'system' not in config:
+        config['system'] = {}
+    config['system']['branch'] = '$branchSelection'
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    print('Updated branch to $branchSelection in config.yaml')
+except Exception as e:
+    print(f'Error updating config.yaml: {e}')
+    sys.exit(1)
+"
+    fi
+  fi
+  
+  # Set proper ownership for config files
+  chown -R pi:pi /opt/raspberry_extension_server/config/
+
   # Update service file with selected branch
-  sed "s/BRANCH=.*/BRANCH=$branchSelection/" .env > /opt/raspberry_extension_server/.env
   cp raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
-  rm -rf /tmp/serverUI.zip /tmp/raspberry_extension_server-$branchSelection
+  rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
   chmod 644 /lib/systemd/system/raspberry_extension_server.service
   systemctl daemon-reload
   systemctl enable raspberry_extension_server.service
@@ -188,6 +220,37 @@ else
     curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
     unzip -qo server.zip
     cd raspberry_extension_server-$branchSelection/
+    
+    # Create config directory and config.yaml for Docker installation
+    mkdir -p /opt/raspberry_extension_server/config
+    if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
+      # Create minimal config.yaml for fresh Docker installation with just the selected branch
+      cat > /opt/raspberry_extension_server/config/config.yaml << EOF
+system:
+  branch: $branchSelection
+EOF
+    else
+      # Update existing config.yaml with selected branch for Docker
+      if command -v python3 &>/dev/null; then
+        python3 -c "
+import yaml
+import sys
+try:
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'r') as f:
+        config = yaml.safe_load(f) or {}
+    if 'system' not in config:
+        config['system'] = {}
+    config['system']['branch'] = '$branchSelection'
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    print('Updated branch to $branchSelection in config.yaml')
+except Exception as e:
+    print(f'Error updating config.yaml: {e}')
+    sys.exit(1)
+"
+      fi
+    fi
+    
     docker stop raspberry_extension_server 2>/dev/null || true
     docker rm raspberry_extension_server 2>/dev/null || true
     docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .

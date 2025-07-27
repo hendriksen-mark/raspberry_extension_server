@@ -47,7 +47,6 @@ class Config:
     argsDict: dict[str, Any] = parse_arguments()
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
-    branch: str = argsDict["BRANCH"]
     ip: str = argsDict["HOST_IP"]
     argDebug: bool = argsDict["DEBUG"]
     bindIp: str = argsDict["BIND_IP"]
@@ -121,15 +120,10 @@ class Config:
         Args:
             config (Dict[str, Any]): The configuration dictionary.
         """
-        if "runningDir" in config["system"]:
-            del config["system"]["runningDir"]
-        if "configDir" in config["system"]:
-            del config["system"]["configDir"]
-        if "ipaddress" in config["system"]:
-            del config["system"]["ipaddress"]
-
-        if "branch" not in config["system"] or config["system"]["branch"] != self.branch:
-            config["system"]["branch"] = self.branch.lower()
+        # Only set branch to default if it's missing (new installation)
+        if "branch" not in config["system"]:
+            config["system"]["branch"] = "master"
+        
         if "loglevel" not in config["system"] or config["system"]["loglevel"] != ("DEBUG" if self.argDebug else "INFO"):
             config["system"]["loglevel"] = "DEBUG" if self.argDebug else "INFO"
         logManager.logger.configure_logger(config["system"]["loglevel"])
