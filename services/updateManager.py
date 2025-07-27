@@ -121,7 +121,7 @@ def githubInstall() -> None:
     Install updates from GitHub if they are ready to be installed.
     """
     if serverConfig["config"]["swupdate2"]["state"] in ["allreadytoinstall", "anyreadytoinstall"]:
-        subprocess.Popen(f"sh githubInstall.sh {serverConfig['config']['system']['ipaddress']} {serverConfig['config']['swupdate2']['state']} {serverConfig['config']['system']['branch']}", shell=True, close_fds=True)
+        subprocess.Popen(f"sh githubInstall.sh {configManager.configHandler.Config.ip}:{configManager.configHandler.Config.httpPort} {serverConfig['config']['swupdate2']['state']} {serverConfig['config']['branch']}", shell=True, close_fds=True)
         serverConfig["config"]["swupdate2"]["state"] = "installing"
 
 def startupCheck() -> None:

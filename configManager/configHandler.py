@@ -68,7 +68,11 @@ class Config:
             config (dict[str, Any]): The configuration dictionary.
         """
         defaults: dict[str, Any] = {
-            "users": {"admin": {"password": "pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"}},
+            "users": {
+                "admin": {
+                    "password": "pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"
+                }
+            },
             "thermostats": {
                 "enabled": False,
                 "interval": 300
@@ -102,8 +106,7 @@ class Config:
             },
             "system": {
                 "loglevel": "INFO",
-                "branch": "master",
-                "ipaddress": "<IP_ADDRESS>"
+                "branch": "master"
             },
         }
         for key, value in defaults.items():
@@ -118,14 +121,15 @@ class Config:
         Args:
             config (Dict[str, Any]): The configuration dictionary.
         """
-        if "branch" not in config or config["system"]["branch"] != self.branch:
+        if "runningDir" in config["system"]:
+            del config["system"]["runningDir"]
+        if "configDir" in config["system"]:
+            del config["system"]["configDir"]
+        if "ipaddress" in config["system"]:
+            del config["system"]["ipaddress"]
+
+        if "branch" not in config["system"] or config["system"]["branch"] != self.branch:
             config["system"]["branch"] = self.branch.lower()
-        if "ipaddress" not in config["system"] or config["system"]["ipaddress"] != self.ip:
-            config["system"]["ipaddress"] = self.ip
-        if "configDir" not in config["system"] or config["system"]["configDir"] != self.configDir:
-            config["system"]["configDir"] = self.configDir
-        if "runningDir" not in config["system"] or config["system"]["runningDir"] != self.runningDir:
-            config["system"]["runningDir"] = self.runningDir
         if "loglevel" not in config["system"] or config["system"]["loglevel"] != ("DEBUG" if self.argDebug else "INFO"):
             config["system"]["loglevel"] = "DEBUG" if self.argDebug else "INFO"
         logManager.logger.configure_logger(config["system"]["loglevel"])

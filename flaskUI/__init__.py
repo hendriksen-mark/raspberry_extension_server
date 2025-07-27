@@ -11,6 +11,7 @@ import logging
 import logManager
 import flask_login
 from flaskUI.core import User  # dummy import for flask_login module
+import configManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
@@ -19,7 +20,7 @@ def create_app(serverConfig) -> Flask:
     """
     App factory function following diyHue pattern
     """
-    root_dir: str = serverConfig["config"]["system"]["runningDir"]
+    root_dir: str = configManager.configHandler.Config.runningDir
 
     template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
     static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
