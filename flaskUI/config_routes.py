@@ -59,7 +59,7 @@ class ConfigRoute(Resource):
                     changes_made.append(f"changed branch to {putDict['system']['branch']}")
 
             # Handle service configuration updates
-            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver", "system"]
+            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver", "system", "swupdate2"]
             for service in service_configs:
                 if service in putDict:
                     service_changes: list[str] = self._update_service_config(service, putDict[service])
