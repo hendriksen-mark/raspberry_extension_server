@@ -377,7 +377,7 @@ class Config:
         """
         try:
             logger.info(f"restart using systemctl")
-            subprocess.run(['systemctl', 'restart', 'raspberry_extension_server.service'], check=True)
+            subprocess.run(['sudo', 'systemctl', 'restart', 'raspberry_extension_server.service'], check=True)
         except Exception as e:
             logger.error(f"systemctl restart failed: {e}, falling back to os.execl")
             logger.info(f"restart {sys.executable} with args: {sys.argv}")
