@@ -365,7 +365,7 @@ class Config:
         subprocess.run(f'rm -r {self.configDir}/config_debug.yaml', check=True)
         return f"{self.configDir}/config_debug.tar"
 
-    def restart_python() -> None:
+    def restart_python(self) -> None:
         """
         Restart the Python process.
 
