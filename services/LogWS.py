@@ -59,6 +59,7 @@ def start_ws_server() -> None:
     global _server_running
     try:
         cherrypy.log.screen = False
+        cherrypy.engine.autoreload.unsubscribe()
         
         # Check if port is available
         import socket
