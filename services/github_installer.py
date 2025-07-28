@@ -187,7 +187,7 @@ class GitHubInstaller:
                     if success_copy != dest_item:
                         logger.error(f"Failed to copy {item} to {dest_item}")
                         return False
-                    logger.debug(f"Copied {'directory' if item.is_dir() else 'file'} {item.name}")
+                    logger.debug(f"Copied UI {'directory' if item.is_dir() else 'file'} {item.name}")
 
                 logger.debug("Merged UI assets with existing assets")
             else:
