@@ -170,26 +170,26 @@ class GitHubInstaller:
                 assets_dest.mkdir(parents=True, exist_ok=True)
 
                 asset_items = list(assets_source.iterdir())
-                logger.debug(f"Asset items found in {assets_source}: {asset_items}")
                 if not asset_items:
-                    logger.debug(f"No items found in {assets_source}, skipping asset copy loop.")
+                    logger.error(f"No items found in {assets_source}.")
+                    return False
 
                 # Copy only the files from the UI update, preserving existing assets
                 for item in asset_items:
                     dest_item = assets_dest / item.name
-                    logger.debug(f"Copying {item} to {dest_item}")
+                    success_copy = ""
                     if item.is_dir():
                         if dest_item.exists():
                             shutil.rmtree(dest_item)
-                        shutil.copytree(item, dest_item)
-                        logger.debug(f"Copied directory {item} to {dest_item}")
+                        success_copy = shutil.copytree(item, dest_item)
                     else:
-                        shutil.copy2(item, dest_item)
-                        logger.debug(f"Copied file {item} to {dest_item}")
+                        success_copy = shutil.copy2(item, dest_item)
+                    if success_copy != dest_item:
+                        logger.error(f"Failed to copy {item} to {dest_item}")
+                        return False
+                    logger.debug(f"Copied {'directory' if item.is_dir() else 'file'} {item} to {dest_item}")
 
-                logger.debug("Completed asset copy loop.")
                 logger.debug("Merged UI assets with existing assets")
-                logger.debug(f"Files in {assets_source}: {[str(f) for f in assets_source.iterdir()]}")
             else:
                 logger.error(f"UI assets directory not found at {assets_source}")
             
