@@ -172,12 +172,15 @@ class GitHubInstaller:
                 # Copy only the files from the UI update, preserving existing assets
                 for item in assets_source.iterdir():
                     dest_item = assets_dest / item.name
+                    logger.debug(f"Copying {item} to {dest_item}")
                     if item.is_dir():
                         if dest_item.exists():
                             shutil.rmtree(dest_item)
                         shutil.copytree(item, dest_item)
+                        logger.debug(f"Copied directory {item} to {dest_item}")
                     else:
                         shutil.copy2(item, dest_item)
+                        logger.debug(f"Copied file {item} to {dest_item}")
                 
                 logger.debug("Merged UI assets with existing assets")
                 logger.debug(f"Files in {assets_source}: {[str(f) for f in assets_source.iterdir()]}")
