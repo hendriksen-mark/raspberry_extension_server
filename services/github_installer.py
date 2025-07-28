@@ -40,6 +40,7 @@ class GitHubInstaller:
                 if state == "allreadytoinstall":
                     logger.info("Installing server + UI update")
                     if not self._install_server_update(branch):
+                        logger.error("_install_server_update failed. Aborting update process.")
                         return False
                 else:
                     logger.info("Installing UI update only")
@@ -47,6 +48,7 @@ class GitHubInstaller:
                 serverConfig["config"]["swupdate2"]["state"] = "transferring"
                 # Always install UI update
                 if not self._install_ui_update():
+                    logger.error("_install_ui_update failed. Aborting update process.")
                     return False
             logger.info("Update installation completed successfully")
             return True
@@ -63,6 +65,7 @@ class GitHubInstaller:
             
             logger.info(f"Downloading server update from {server_url}")
             if not self._download_file(server_url, server_zip_path):
+                logger.error(f"Failed to download server update from {server_url} to {server_zip_path}")
                 return False
             
             serverConfig["config"]["swupdate2"]["state"] = "installing"
@@ -70,6 +73,7 @@ class GitHubInstaller:
             # Extract archive
             extract_dir = self.temp_dir / "server_extract"
             if not self._extract_zip(server_zip_path, extract_dir):
+                logger.error(f"Failed to extract server zip {server_zip_path} to {extract_dir}")
                 return False
             
             server_zip_path.unlink()  # Remove zip file
@@ -78,12 +82,14 @@ class GitHubInstaller:
             extracted_dirs = list(extract_dir.glob("raspberry_extension_server-*"))
             if not extracted_dirs:
                 logger.error("Could not find extracted server directory")
+                logger.error(f"Checked in {extract_dir}, found: {[str(d) for d in extract_dir.iterdir()]}")
                 return False
             
             server_source = extracted_dirs[0]
             
             # Update pip and install requirements
             if not self._update_python_dependencies(server_source / "requirements.txt"):
+                logger.error(f"Failed to update Python dependencies from {server_source / 'requirements.txt'}")
                 return False
             
             # Copy server files
@@ -125,6 +131,7 @@ class GitHubInstaller:
             
             logger.info(f"Downloading UI update from {ui_url}")
             if not self._download_file(ui_url, ui_zip_path):
+                logger.error(f"Failed to download UI update from {ui_url} to {ui_zip_path}")
                 return False
             
             serverConfig["config"]["swupdate2"]["state"] = "installing"
@@ -134,6 +141,7 @@ class GitHubInstaller:
             ui_extract_dir.mkdir(exist_ok=True)
             
             if not self._extract_zip(ui_zip_path, ui_extract_dir):
+                logger.error(f"Failed to extract UI zip {ui_zip_path} to {ui_extract_dir}")
                 return False
             
             ui_zip_path.unlink()  # Remove zip file
@@ -142,6 +150,7 @@ class GitHubInstaller:
             ui_source = ui_extract_dir / "dist"
             if not ui_source.exists():
                 logger.error("UI dist directory not found in extracted archive")
+                logger.error(f"Checked in {ui_extract_dir}, found: {[str(d) for d in ui_extract_dir.iterdir()]}")
                 return False
             
             # Copy index.html
@@ -150,6 +159,8 @@ class GitHubInstaller:
             if index_source.exists():
                 shutil.copy2(index_source, index_dest)
                 logger.debug("Copied UI index.html")
+            else:
+                logger.error(f"index.html not found at {index_source}")
             
             # Copy assets (merge instead of replace to preserve existing server assets)
             assets_source = ui_source / "assets"
@@ -169,6 +180,8 @@ class GitHubInstaller:
                         shutil.copy2(item, dest_item)
                 
                 logger.debug("Merged UI assets with existing assets")
+            else:
+                logger.error(f"UI assets directory not found at {assets_source}")
             
             return True
             
@@ -192,6 +205,9 @@ class GitHubInstaller:
         except requests.RequestException as e:
             logger.error(f"Error downloading {url}: {e}")
             return False
+        except Exception as e:
+            logger.error(f"Unexpected error downloading {url} to {dest_path}: {e}")
+            return False
     
     def _extract_zip(self, zip_path: Path, extract_to: Path) -> bool:
         """Extract a zip file to the specified directory."""
@@ -205,6 +221,9 @@ class GitHubInstaller:
         except zipfile.BadZipFile as e:
             logger.error(f"Error extracting {zip_path}: {e}")
             return False
+        except Exception as e:
+            logger.error(f"Unexpected error extracting {zip_path} to {extract_to}: {e}")
+            return False
     
     def _update_python_dependencies(self, requirements_path: Path) -> bool:
         """Update pip and install requirements."""
@@ -216,19 +235,29 @@ class GitHubInstaller:
             
             # Install requirements
             if requirements_path.exists():
-                subprocess.run([
-                    "pip3", "install", "-r", str(requirements_path), 
-                    "--no-cache-dir", "--break-system-packages"
-                ], check=True, capture_output=True, text=True)
-                
-                logger.debug("Updated Python dependencies")
+                try:
+                    subprocess.run([
+                        "pip3", "install", "-r", str(requirements_path), 
+                        "--no-cache-dir", "--break-system-packages"
+                    ], check=True, capture_output=True, text=True)
+                    logger.debug("Updated Python dependencies")
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Error installing requirements from {requirements_path}: {e}")
+                    logger.error(f"stdout: {e.stdout}")
+                    logger.error(f"stderr: {e.stderr}")
+                    return False
             else:
                 logger.warning(f"Requirements file not found: {requirements_path}")
             
             return True
-            
+        
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error updating Python dependencies: {e}")
+            logger.error(f"Error updating pip: {e}")
+            logger.error(f"stdout: {e.stdout}")
+            logger.error(f"stderr: {e.stderr}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error updating Python dependencies: {e}")
             return False
     
 
