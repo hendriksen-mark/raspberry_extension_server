@@ -180,6 +180,7 @@ class GitHubInstaller:
                         shutil.copy2(item, dest_item)
                 
                 logger.debug("Merged UI assets with existing assets")
+                logger.debug(f"Files in {assets_source}: {[str(f) for f in assets_source.iterdir()]}")
             else:
                 logger.error(f"UI assets directory not found at {assets_source}")
             
