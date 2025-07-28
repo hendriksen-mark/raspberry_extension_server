@@ -168,9 +168,14 @@ class GitHubInstaller:
             if assets_source.exists():
                 # Ensure destination directory exists
                 assets_dest.mkdir(parents=True, exist_ok=True)
-                
+
+                asset_items = list(assets_source.iterdir())
+                logger.debug(f"Asset items found in {assets_source}: {asset_items}")
+                if not asset_items:
+                    logger.debug(f"No items found in {assets_source}, skipping asset copy loop.")
+
                 # Copy only the files from the UI update, preserving existing assets
-                for item in assets_source.iterdir():
+                for item in asset_items:
                     dest_item = assets_dest / item.name
                     logger.debug(f"Copying {item} to {dest_item}")
                     if item.is_dir():
@@ -181,7 +186,8 @@ class GitHubInstaller:
                     else:
                         shutil.copy2(item, dest_item)
                         logger.debug(f"Copied file {item} to {dest_item}")
-                
+
+                logger.debug("Completed asset copy loop.")
                 logger.debug("Merged UI assets with existing assets")
                 logger.debug(f"Files in {assets_source}: {[str(f) for f in assets_source.iterdir()]}")
             else:
