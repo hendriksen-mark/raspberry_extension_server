@@ -15,7 +15,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class ThermostatObject:
     """Service for managing thermostat operations"""
-    
+
     def __init__(self, data: dict[str, Any]) -> None:
         self.id: str = data.get("id", None)  # Unique identifier for the thermostat
         self.mac: str = data.get("mac", None)  # MAC address of the thermostat
@@ -39,6 +39,7 @@ class ThermostatObject:
         0 - Off
         1 - Heating
         2 - Cooling (not used in this context)
+        3 - Auto
         """
         # Determine the state based on mode and valve
         if valve is not None:
@@ -91,7 +92,6 @@ class ThermostatObject:
 
         return response
 
-
     async def safe_connect(self) -> None:
         """Safely connect to thermostat"""
         try:
@@ -139,7 +139,7 @@ class ThermostatObject:
             self.last_updated = strftime("%Y-%m-%d %H:%M:%S", localtime())
 
             logger.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.targetTemperature}C")
-        
+
         except Exception as e:
             logger.error(f"Polling failed for {self.mac}: {e}")
             self.failed_connection = True
@@ -152,14 +152,14 @@ class ThermostatObject:
 
     async def set_temperature(self, temp: str) -> dict[str, Any]:
         """Set thermostat target temperature"""
-        thermostat: Thermostat = self.equiva_thermostat
         mac: str = self.mac
         if not temp:
             return {"result": "error", "message": "Temperature value is required"}
         try:
             logger.info(f"Set temperature for {mac} to {temp}")
             await self.safe_connect()
-            await thermostat.setTemperature(temperature=Temperature(valueC=float(temp)))
+            await self.equiva_thermostat.setTemperature(temperature=Temperature(valueC=float(temp)))
+            self.targetTemperature = float(temp)
             return {"result": "ok", "temperature": float(temp)}
         except BleakError:
             logger.error(f"Device with address {mac} was not found")
@@ -181,24 +181,26 @@ class ThermostatObject:
                 await self.safe_disconnect()
             except Exception as e:
                 logger.error(f"Error disconnecting from {mac}: {e}")
-    
+
     async def set_mode(self, mode: str) -> dict[str, Any]:
         """Set thermostat heating/cooling mode"""
-        thermostat: Thermostat = self.equiva_thermostat
         mac: str = self.mac
         if not mode:
             return {"result": "error", "message": "Mode value is required"}
         try:
             await self.safe_connect()
             if mode == '0':
-                await thermostat.setTemperatureOff()
+                await self.equiva_thermostat.setTemperatureOff()
+                self.targetHeatingCoolingState = 0
             elif mode in ('1', '2'):
-                await thermostat.setModeManual()
+                await self.equiva_thermostat.setModeManual()
+                self.targetHeatingCoolingState = 1
             elif mode == '3':
-                await thermostat.setModeAuto()
+                await self.equiva_thermostat.setModeAuto()
+                self.targetHeatingCoolingState = 3
             else:
                 return {"result": "error", "message": "Invalid mode value"}
-            logger.info(f"Set mode for {mac} to {mode}")
+            logger.info(f"Set mode for {mac} to {'off' if mode == '0' else 'heating' if mode == '1' else 'auto' if mode == '3' else 'unknown'}")
             return {"result": "ok", "mode": int(mode)}
         except BleakError:
             logger.error(f"Device with address {mac} was not found")
@@ -249,12 +251,3 @@ class ThermostatObject:
             "max_temperature": self.max_temperature,
             "last_updated": self.last_updated,
         }
-
-    def is_online(self) -> bool:
-        """Check if the thermostat is currently online (not failed connection)"""
-        return not self.failed_connection
-    
-    def reset_connection_status(self) -> None:
-        """Reset the failed connection status - useful for manual retry"""
-        self.failed_connection = False
-        logger.info(f"Connection status reset for {self.mac}")
