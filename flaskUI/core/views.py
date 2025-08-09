@@ -5,7 +5,6 @@ import flask_login
 import configManager
 from flaskUI.core import User
 import os
-import sys
 import logging
 import logManager
 import subprocess
@@ -14,19 +13,6 @@ from typing import Any, Union
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 core = Blueprint('core', __name__)
-
-def save_server_config(backup: bool = False) -> str:
-    """
-    Save the server configuration.
-
-    Args:
-        backup (bool): Whether to create a backup of the configuration.
-
-    Returns:
-        str: A message indicating whether the configuration was saved or backed up.
-    """
-    configManager.serverConfig.save_config(backup=backup)
-    return "backup config\n" if backup else "config saved\n"
 
 @core.route('/')
 @flask_login.login_required
@@ -53,7 +39,9 @@ def save_config() -> str:
     Returns:
         str: A message indicating whether the configuration was saved or backed up.
     """
-    return save_server_config(backup=request.args.get('backup', type=str) == "True")
+    backup = request.args.get('backup', type=str) == "True"
+    configManager.serverConfig.save_config(backup=backup)
+    return "backup config\n" if backup else "config saved\n"
 
 @core.route('/reset_config')
 @flask_login.login_required

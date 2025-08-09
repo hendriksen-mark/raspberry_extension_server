@@ -64,7 +64,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
         "BIND_IP": '0.0.0.0', "HOST_IP": '', "HTTP_PORT": 5002,
         "FULLMAC": '', "MAC": '', "DEBUG": False, "BRANCH": '',
     }
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="Raspberry Extension Server Argument Handler")
 
     # Arguments can also be passed as Environment Variables.
     ap.add_argument("--debug", action='store_true', help="Enables debug output", default=False)

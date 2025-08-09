@@ -25,6 +25,16 @@ def create_app(serverConfig) -> Flask:
     template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
     static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
 
+    if not os.path.exists(template_dir):
+        logger.error(f"Template directory {template_dir} does not exist.")
+        raise FileNotFoundError(f"Template directory {template_dir} does not exist.")
+    if not os.path.exists(static_dir):
+        logger.error(f"Static directory {static_dir} does not exist.")
+        raise FileNotFoundError(f"Static directory {static_dir} does not exist.")
+    if "index.html" not in os.listdir(template_dir):
+        logger.error(f"index.html not found in {template_dir}.")
+        raise FileNotFoundError(f"index.html not found in {template_dir}.")
+
     app: Flask = Flask(__name__,
                        template_folder=template_dir,
                        static_url_path="/assets",
