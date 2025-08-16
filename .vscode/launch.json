@@ -13,7 +13,7 @@
         "--config_path",
         "${workspaceFolder}/config",
         "--debug",
-        "xxx.xxx.xxx.xxx"
+        "xxx.xxx.xxx.xxx",
         "--ip",
       ],
       "console": "integratedTerminal",
