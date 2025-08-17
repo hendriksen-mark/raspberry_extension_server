@@ -1,15 +1,12 @@
-from fastapi import Response
+from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 import os
 from subprocess import run
 import configManager
 
-def register_server_routes(app):
+def register_server_routes(app: FastAPI, favicon_path: str):
     @app.get("/favicon.ico")
     async def get_favicon():
-        root_dir = configManager.serverConfig.runningDir
-        favicon_path = os.path.join(root_dir, 'flaskUI', 'templates', 'favicon.ico')
-        
         if os.path.exists(favicon_path):
             return FileResponse(favicon_path, media_type='image/x-icon')
         else:

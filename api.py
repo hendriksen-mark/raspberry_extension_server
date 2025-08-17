@@ -10,7 +10,8 @@ from threading import Thread
 import os
 import signal
 from typing import Any
-from nicegui import ui
+from fastapi import FastAPI
+import uvicorn
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
@@ -18,7 +19,19 @@ serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.y
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 # Create app using factory pattern (diyHue style)
-app = create_app()
+app: FastAPI = create_app()
+
+def run_http_server(bind_ip: str, host_http_port: int, host_ip: str):
+    """Run the HTTP server"""
+    logger.debug(f"Starting HTTP server on {bind_ip}:{host_http_port}")
+    logger.info(f"You can access the server on {host_ip}:{host_http_port}")
+    uvicorn.run(app, host=bind_ip, port=host_http_port, log_level='info', reload=False)
+
+def run_https_server(bind_ip: str, host_https_port: int, host_ip: str):
+    """Run the HTTPS server"""
+    logger.debug(f"Starting HTTPS server on {bind_ip}:{host_https_port}")
+    logger.info(f"You can access the server on {host_ip}:{host_https_port}")
+    uvicorn.run(app, host=bind_ip, port=host_https_port, log_level='info', reload=False)
 
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
@@ -48,6 +61,7 @@ def main():
         setup_signal_handlers()
         BIND_IP: str = configManager.serverConfig.bindIp
         HOST_HTTP_PORT: int = configManager.serverConfig.httpPort
+        HOST_HTTPS_PORT: int = 8080 # need to change this to the actual HTTPS port, add cert
         HOST_IP: str = configManager.serverConfig.ip
         updateManager.startupCheck()
 
@@ -58,10 +72,8 @@ def main():
         Thread(target=stateFetch.run_powerbutton_service).start()
         Thread(target=scheduler.runScheduler).start()
         Thread(target=LogWS.start_ws_server).start()
-        logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
-        logger.info(f"You can access the server on {HOST_IP}:{HOST_HTTP_PORT}")
-        ui.run(host=BIND_IP, port=HOST_HTTP_PORT, reload=False, show=False, uvicorn_logging_level='info')
-        #uvicorn.run(app, host=BIND_IP, port=HOST_HTTP_PORT, log_level='info', reload=False)
+        Thread(target=run_http_server, args=[BIND_IP, HOST_HTTP_PORT, HOST_IP]).start()
+        Thread(target=run_https_server, args=[BIND_IP, HOST_HTTPS_PORT, HOST_IP]).start()
     except KeyboardInterrupt:
         logger.info("Received KeyboardInterrupt, shutting down gracefully...")
         handle_exit(signal.SIGINT, None)
