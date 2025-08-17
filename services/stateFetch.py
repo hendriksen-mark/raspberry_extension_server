@@ -15,7 +15,7 @@ from ServerObjects.klok_object import KlokObject
 from ServerObjects.powerbutton_object import PowerButtonObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 # Global shutdown events for immediate thread termination
 _shutdown_event = threading.Event()

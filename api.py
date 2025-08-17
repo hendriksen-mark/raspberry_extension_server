@@ -10,25 +10,15 @@ from threading import Thread
 import os
 import signal
 from typing import Any
-from flask import Flask
-from werkzeug.serving import WSGIRequestHandler
+import uvicorn
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
-werkzeug_logger: logging.Logger = logManager.logger.get_logger("werkzeug")
-cherrypy_logger: logging.Logger = logManager.logger.get_logger("cherrypy")
-WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 # Create app using factory pattern (diyHue style)
-app: Flask = create_app(serverConfig)
-
-def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
-    logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
-    hostIp = configManager.serverConfig.ip
-    logger.info(f"You can access the server on {hostIp}:{HOST_HTTP_PORT}")
-    app.run(host=BIND_IP, port=HOST_HTTP_PORT)
+app = create_app()
 
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
@@ -58,6 +48,7 @@ def main():
         setup_signal_handlers()
         BIND_IP: str = configManager.serverConfig.bindIp
         HOST_HTTP_PORT: int = configManager.serverConfig.httpPort
+        HOST_IP: str = configManager.serverConfig.ip
         updateManager.startupCheck()
 
         Thread(target=stateFetch.syncWithThermostats_threaded).start()
@@ -67,7 +58,9 @@ def main():
         Thread(target=stateFetch.run_powerbutton_service).start()
         Thread(target=scheduler.runScheduler).start()
         Thread(target=LogWS.start_ws_server).start()
-        runHttp(BIND_IP, HOST_HTTP_PORT)
+        logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
+        logger.info(f"You can access the server on {HOST_IP}:{HOST_HTTP_PORT}")
+        uvicorn.run(app, host=BIND_IP, port=HOST_HTTP_PORT, log_level='info', reload=False)
     except KeyboardInterrupt:
         logger.info("Received KeyboardInterrupt, shutting down gracefully...")
         handle_exit(signal.SIGINT, None)

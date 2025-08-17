@@ -1,25 +1,24 @@
 """
 HomeKit/Homebridge compatible routes
 """
-from flask import request
 from bleak import BleakError
 from typing import Any
-from flask_restful import Resource
 import logging
 import logManager
 import configManager
-from services.utils import validate_mac_address, format_mac, nextFreeId, async_route
+from services.utils import validate_mac_address, format_mac, nextFreeId
 from ServerObjects.thermostat_object import ThermostatObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 def find_thermostat(mac: str) -> ThermostatObject | None:
     """
     Find thermostat by MAC address
     """
     for thermostat in serverConfig["thermostats"].values():
+        thermostat: ThermostatObject = thermostat
         if thermostat.mac.lower() == mac.lower():
             return thermostat
     return None
@@ -37,8 +36,7 @@ def create_thermostat(mac: str, postDict: dict[str, Any] = None) -> ThermostatOb
         data.update(postDict)
     return ThermostatObject(data)
 
-class ThermostatRoute(Resource):
-    @async_route
+class ThermostatRoute():
     async def get(self, mac, resource = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for thermostat resources
@@ -81,10 +79,7 @@ class ThermostatRoute(Resource):
         
 
         elif resource == 'targetTemperature':
-            if value is None:
-                temp_value: str = request.args.get('value')
-            else:
-                temp_value: str = value
+            temp_value: str = value
             if not temp_value:
                 return {"error": "Temperature value is required as 'value' parameter"}, 400
             
@@ -111,10 +106,7 @@ class ThermostatRoute(Resource):
             
     
         elif resource == 'targetHeatingCoolingState':
-            if value is None:
-                mode_value: str = request.args.get('value')
-            else:
-                mode_value: str = value
+            mode_value: str = value
             if not mode_value:
                 return {"error": "Mode value is required as 'value' parameter"}, 400
             
@@ -136,8 +128,7 @@ class ThermostatRoute(Resource):
         else:
             return {"error": "Resource not found"}, 404
 
-    @async_route
-    async def post(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
+    async def post(self, mac: str, resource: str = None, postDict: dict[str, Any] = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for thermostat resources
         URL: /MAC_ADDRESS/resource
@@ -149,7 +140,7 @@ class ThermostatRoute(Resource):
 
         thermostat: ThermostatObject = find_thermostat(mac)
 
-        postDict = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict = postDict or {}
         logger.info(f"POST data received: {postDict}")
 
         # Validate required data for creating thermostat
@@ -185,7 +176,6 @@ class ThermostatRoute(Resource):
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
 
-    @async_route
     async def delete(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for thermostat resources

@@ -49,7 +49,7 @@ def get_pi_temp() -> float:
     except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError):
         raise RuntimeError('Could not get temperature')
 
-def nextFreeId(serverConfig: dict[str, Any], element: str) -> str:
+def nextFreeId(serverConfig: dict[str, str | int | float | dict], element: str) -> str:
     """
     Find the next free ID for a given element in the server configuration.
 

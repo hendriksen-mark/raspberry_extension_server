@@ -8,7 +8,7 @@ import logging
 import logManager
 from .github_installer import install_github_updates
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 def githubCheck() -> None:
