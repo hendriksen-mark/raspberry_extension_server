@@ -10,7 +10,7 @@ import logging
 import configManager
 import logManager
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class GitHubInstaller:

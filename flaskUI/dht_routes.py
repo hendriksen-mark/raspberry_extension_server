@@ -2,16 +2,14 @@
 DHT sensor related routes
 """
 import logging
-from flask import request
-from flask_restful import Resource
+from typing import Any, Optional
 import logManager
-from typing import Any
 import configManager
 from ServerObjects.dht_object import DHTObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 def find_dht() -> DHTObject:
     """
@@ -37,7 +35,7 @@ def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
             "warning": warning_message
         }, 200
 
-class DHTRoute(Resource):
+class DHTRoute():
     def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
             Handle GET requests for DHT sensor data
@@ -63,11 +61,11 @@ class DHTRoute(Resource):
                 return {"error": "Failed to retrieve DHT info"}, 500
         
         else:
-            pin: int = dht.get_pin()
+            pin: int | None | str = dht.get_pin()
             # If no pin is set at all, return default values
             if pin is None:
                 logger.warning("DHT_PIN is not set, returning default values.")
-                return get_default_sensor_data("DHT sensor not configured")
+                return get_default_sensor_data("DHT_PIN is not set")
 
             # Get current sensor values
             temp, hum = dht.get_data()
@@ -85,11 +83,11 @@ class DHTRoute(Resource):
                 "pin": pin
             }, 200
 
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None, postDict: dict[str, Any] = None) -> tuple[dict[str, Any], int]:
         """
         Update DHT sensor configuration
         """
-        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict = postDict or {}
         logger.info(f"POST data received: {postDict}")
 
         dht: DHTObject = find_dht()

@@ -1,16 +1,13 @@
-astral
 ws4py
 requests
 email-validator
-flask
+fastapi
+nicegui
+uvicorn
 flask_login
-flask_restful
-flask_wtf
 jsonify
-Werkzeug
 WTForms
 pyyaml
-flask_cors
 cherrypy
 bleak
 logManager @ git+https://github.com/hendriksen-mark/logManager.git

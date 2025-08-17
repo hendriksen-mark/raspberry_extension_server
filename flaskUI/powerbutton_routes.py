@@ -1,6 +1,4 @@
 import logging
-from flask import request
-from flask_restful import Resource
 import logManager
 from typing import Any
 import configManager
@@ -8,7 +6,7 @@ from ServerObjects.powerbutton_object import PowerButtonObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 def find_powerbutton() -> PowerButtonObject:
     """
@@ -24,7 +22,7 @@ def create_powerbutton(postDict: dict[str, Any] = {}) -> PowerButtonObject:
         logger.warning("No POST data provided, creating default powerbutton object")
     return PowerButtonObject(postDict)
 
-class PowerButtonRoute(Resource):
+class PowerButtonRoute():
     def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for powerbutton resources
@@ -36,11 +34,11 @@ class PowerButtonRoute(Resource):
             
         return powerbutton.get_all_data(), 200
 
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None, data: dict = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for powerbutton resources
         """
-        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict: dict[str, Any] = data or {}
         logger.info(f"POST data received: {postDict}")
 
         powerButton: PowerButtonObject = find_powerbutton()

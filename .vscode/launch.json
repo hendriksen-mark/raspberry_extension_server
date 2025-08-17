@@ -14,7 +14,7 @@
         "${workspaceFolder}/config",
         "--debug",
         "--ip",
-        "xxx.xxx.xxx.xxx"
+        "xxx.xxx.xxx.xxx",
       ],
       "console": "integratedTerminal",
       "stopOnEntry": false,

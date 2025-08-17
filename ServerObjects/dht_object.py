@@ -62,9 +62,9 @@ class DHTObject:
             logger.warning(f"Using DummyDHT")
             self.dhtDevice = adafruit_dht.DHT22(pin)
 
-    def get_pin(self) -> int | None:
+    def get_pin(self) -> int | None | str:
         """Get current DHT pin"""
-        return self.dht_pin
+        return self.dht_pin if not hasattr(self.dhtDevice, "is_dummy") else "DummyDHT"
 
     def get_data(self) -> tuple[float | None, float | None]:
         """Get current temperature and humidity data"""

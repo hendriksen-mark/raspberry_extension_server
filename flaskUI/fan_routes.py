@@ -1,6 +1,4 @@
 import logging
-from flask import request
-from flask_restful import Resource
 import logManager
 from typing import Any
 import configManager
@@ -8,7 +6,7 @@ from ServerObjects.fan_object import FanObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 def find_fan() -> FanObject:
     """
@@ -24,7 +22,7 @@ def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
         logger.warning("No POST data provided, creating default fan object")
     return FanObject(postDict)
 
-class FanRoute(Resource):
+class FanRoute():
     def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources
@@ -45,12 +43,12 @@ class FanRoute(Resource):
 
         return fan.get_all_data(), 200
     
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str = None, data: dict = None) -> tuple[dict[str, Any], int]:
         """
         Update fan configuration
         URL: /fan/<resource>
         """
-        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict: dict[str, Any] = data or {}
         logger.info(f"POST data received: {postDict}")
 
         fan: FanObject = find_fan()

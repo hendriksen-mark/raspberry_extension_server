@@ -1,6 +1,4 @@
-from flask import request
 from typing import Any
-from flask_restful import Resource
 import logging
 import logManager
 import configManager
@@ -8,7 +6,7 @@ from ServerObjects.klok_object import KlokObject
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
 def find_klok() -> KlokObject:
     """
@@ -24,7 +22,7 @@ def create_klok(postDict: dict[str, Any] = {}) -> KlokObject:
         logger.warning("No POST data provided, creating default klok object")
     return KlokObject(postDict)
 
-class KlokRoute(Resource):
+class KlokRoute():
     def get(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for klok resources
@@ -52,11 +50,7 @@ class KlokRoute(Resource):
         # Validate request type
         valid_resources: list[str] = ["on", "off", "status", "Bri", "infoBri"]
         if resource not in valid_resources:
-            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
-        
-        # Get value from URL parameter or query string
-        if value is None:
-            value: str = request.args.get("value")
+            return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}
 
         logger.info(f"Klok GET request: resource={resource}, value={value}")
 
@@ -96,12 +90,14 @@ class KlokRoute(Resource):
         
         return klok.get_all_data(), 200
 
-    def post(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
+        return klok.get_all_data()
+
+    def post(self, resource: str = None, value: str = None, postDict: dict[str, Any] = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for klok resources
         URL: /klok
         """
-        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict = postDict or {}
         logger.info(f"POST data received: {postDict}")
 
         klok: KlokObject = find_klok()
@@ -138,7 +134,7 @@ class KlokRoute(Resource):
             logger.error(f"KeyError: {e}")
             return {"error": "Klok sensor configuration not found"}, 404
 
-    def delete(self, resource: str = None, value: str = None) -> tuple[dict[str, Any], int]:
+    def delete(self) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for klok resources
         URL: /klok

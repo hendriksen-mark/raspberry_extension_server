@@ -1,115 +1,53 @@
-"""
-API module with Flask app factory and resource registration
-Following diyHue architectural patterns
-"""
-
-from flask import Flask, Request
-from flask_cors import CORS
-from flask_restful import Api
+from fastapi import FastAPI
+from nicegui import ui
+from fastapi.middleware.cors import CORSMiddleware
 import os
-import logging
-import logManager
-import flask_login
-from flaskUI.core import User  # dummy import for flask_login module
 import configManager
+from .route_helpers import FlaskLikeRoutes
+from .server_routes import register_server_routes
+from .system_routes import SystemRoute
+from .dht_routes import DHTRoute
+from .thermostat_routes import ThermostatRoute
+from .klok_routes import KlokRoute
+from .config_routes import ConfigRoute
+from .fan_routes import FanRoute
+from .powerbutton_routes import PowerButtonRoute
 
-logger: logging.Logger = logManager.logger.get_logger(__name__)
+root_dir = configManager.serverConfig.runningDir
+favicon_path = os.path.join(root_dir, 'flaskUI', 'templates', 'favicon.ico')
 
-
-def create_app(serverConfig) -> Flask:
+def create_app():
     """
     App factory function following diyHue pattern
     """
-    root_dir: str = configManager.serverConfig.runningDir
+    app: FastAPI = FastAPI(title="Raspberry Extension Server API", version="1.0.0")
 
-    template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
-    static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
+    # Enable CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-    if not os.path.exists(template_dir):
-        logger.error(f"Template directory {template_dir} does not exist.")
-        raise FileNotFoundError(f"Template directory {template_dir} does not exist.")
-    if not os.path.exists(static_dir):
-        logger.error(f"Static directory {static_dir} does not exist.")
-        raise FileNotFoundError(f"Static directory {static_dir} does not exist.")
-    if "index.html" not in os.listdir(template_dir):
-        logger.error(f"index.html not found in {template_dir}.")
-        raise FileNotFoundError(f"index.html not found in {template_dir}.")
+    register_server_routes(app, favicon_path)
 
-    app: Flask = Flask(__name__,
-                       template_folder=template_dir,
-                       static_url_path="/assets",
-                       static_folder=static_dir)
+    routes = FlaskLikeRoutes(app)
 
-    # Configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
-    app.config['RESTFUL_JSON'] = {'ensure_ascii': False}
+    routes.add_route("/system", SystemRoute, methods=["GET"], has_resource=True)
+    routes.add_route("/dht", DHTRoute, methods=["GET", "POST", "DELETE"], has_resource=True)
+    routes.add_route("", ThermostatRoute, methods=["GET", "POST", "DELETE"], has_mac=True, has_resource=True, has_value=True)
+    routes.add_route("/klok", KlokRoute, methods=["GET", "POST", "DELETE"], has_resource=True, has_value=True)
+    routes.add_route("/config", ConfigRoute, methods=["GET", "PUT"], has_resource=True)
+    routes.add_route("/fan", FanRoute, methods=["GET", "POST", "DELETE"], has_resource=True)
+    routes.add_route("/powerbutton", PowerButtonRoute, methods=["GET", "POST", "DELETE"], has_resource=True)
 
-    # CORS setup
-    cors: CORS = CORS(app, resources={r"*": {"origins": "*"}})
-
-    # Flask-Login setup
-    login_manager: flask_login.LoginManager = flask_login.LoginManager()
-    login_manager.init_app(app)
-    login_manager.login_view = "core.login"
-
-    @login_manager.user_loader
-    def user_loader(email: str) -> User | None:
-        if email not in serverConfig["config"]["users"]:
-            return None
-        user: User = User()
-        user.id = email
-        return user
-
-    @login_manager.request_loader
-    def request_loader(request: Request) -> User | None:
-        from werkzeug.security import check_password_hash
-
-        email: str = request.form.get('email')
-        if email not in serverConfig["config"]["users"]:
-            return None
-        user: User = User()
-        user.id = email
-        logger.info(f"Authentication attempt for user: {email}")
-        user.is_authenticated = check_password_hash(
-            request.form['password'],
-            serverConfig["config"]["users"][email]["password"]
-        )
-        return user
-
-    # Flask-RESTful API setup
-    api: Api = Api(app)
-
-    # Register other routes
-    from .system_routes import SystemRoute
-    from .dht_routes import DHTRoute
-    from .thermostat_routes import ThermostatRoute
-    from .klok_routes import KlokRoute
-    from .config_routes import ConfigRoute
-    from .fan_routes import FanRoute
-    from .powerbutton_routes import PowerButtonRoute
-
-    # Register routes with both optional and required resource patterns
-    api.add_resource(SystemRoute,       '/system/',
-                                        '/system/<string:resource>',                        strict_slashes=False)
-    api.add_resource(DHTRoute,          '/dht/',
-                                        '/dht/<string:resource>',                           strict_slashes=False)
-    api.add_resource(ThermostatRoute,   '/<string:mac>/',
-                                        '/<string:mac>/<string:resource>',
-                                        '/<string:mac>/<string:resource>/<string:value>',   strict_slashes=False)
-    api.add_resource(KlokRoute,         '/klok/',
-                                        '/klok/<string:resource>',
-                                        '/klok/<string:resource>/<string:value>',           strict_slashes=False)
-    api.add_resource(ConfigRoute,       '/config/',
-                                        '/config/<string:resource>',                        strict_slashes=False)
-    api.add_resource(FanRoute,          '/fan/',
-                                        '/fan/<string:resource>',                           strict_slashes=False)
-    api.add_resource(PowerButtonRoute,  '/powerbutton/',
-                                        '/powerbutton/<string:resource>',                   strict_slashes=False)
-
-    # Register web interface blueprints
-    from flaskUI.core.views import core
-    from flaskUI.error_pages.handlers import error_pages
-    app.register_blueprint(core)
-    app.register_blueprint(error_pages)
+    ui.run_with(
+        app,
+        mount_path='/',  # NOTE this can be omitted if you want the paths passed to @ui.page to be at the root
+        storage_secret='pick your private secret here',  # NOTE setting a secret is optional but allows for persistent storage per user
+        favicon=favicon_path
+    )
 
     return app

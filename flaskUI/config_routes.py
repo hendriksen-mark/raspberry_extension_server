@@ -1,6 +1,4 @@
-from flask import request
 from typing import Any
-from flask_restful import Resource
 import logging
 import logManager
 import configManager
@@ -9,9 +7,9 @@ from werkzeug.security import generate_password_hash
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+serverConfig: dict[str, str | int | float | dict] = configManager.serverConfig.yaml_config
 
-class ConfigRoute(Resource):
+class ConfigRoute():
     def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for configuration resources
@@ -19,12 +17,12 @@ class ConfigRoute(Resource):
         """
         return serverConfig["config"], 200
 
-    def put(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def put(self, resource: str = None, data: dict = None) -> tuple[dict[str, Any], int]:
         """
         Update configuration for a specific resource
         """
         try:
-            putDict: dict[str, Any] = request.get_json(force=True)
+            putDict: dict[str, Any] = data or {}
             logger.debug(f"PUT request for resource: {resource}, data: {putDict}")
             if not putDict:
                 return {"error": "No data provided"}, 400
