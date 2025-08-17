@@ -1,8 +1,8 @@
 """
 Helper functions to make FastAPI routing more concise, similar to Flask
 """
-from fastapi import FastAPI, Response, Body
-from typing import Any, Callable, Optional, List
+from fastapi import Response, Body
+from typing import Any, Callable, List
 import inspect
 
 
@@ -14,7 +14,7 @@ class FlaskLikeRoutes:
         routes.add_route("/api/users", UserRoute, methods=["GET", "POST"])
     """
     
-    def __init__(self, app: FastAPI):
+    def __init__(self, app):
         self.app = app
     
     def add_route(self, path: str, route_class: Any, methods: List[str] = None, **kwargs):
@@ -23,7 +23,7 @@ class FlaskLikeRoutes:
 
 
 def add_resource_routes(
-    app: FastAPI, 
+    app, 
     base_path: str, 
     route_class: Any, 
     methods: List[str] = None,

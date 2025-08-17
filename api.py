@@ -10,7 +10,7 @@ from threading import Thread
 import os
 import signal
 from typing import Any
-import uvicorn
+from nicegui import ui
 from flaskUI import create_app
 from services import scheduler, stateFetch, updateManager, LogWS
 
@@ -60,7 +60,8 @@ def main():
         Thread(target=LogWS.start_ws_server).start()
         logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
         logger.info(f"You can access the server on {HOST_IP}:{HOST_HTTP_PORT}")
-        uvicorn.run(app, host=BIND_IP, port=HOST_HTTP_PORT, log_level='info', reload=False)
+        ui.run(host=BIND_IP, port=HOST_HTTP_PORT, reload=False, show=False, uvicorn_logging_level='info')
+        #uvicorn.run(app, host=BIND_IP, port=HOST_HTTP_PORT, log_level='info', reload=False)
     except KeyboardInterrupt:
         logger.info("Received KeyboardInterrupt, shutting down gracefully...")
         handle_exit(signal.SIGINT, None)
@@ -70,5 +71,5 @@ def main():
     finally:
         logger.info("Application shutdown complete.")
 
-if __name__ == '__main__':
+if __name__ in {"__main__", "__mp_main__"}:
     main()

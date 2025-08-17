@@ -1,10 +1,10 @@
-from fastapi import FastAPI
+from nicegui import app
 
-def create_app() -> FastAPI:
+def create_app():
     """
     App factory function following diyHue pattern
     """
-    app: FastAPI = FastAPI(title="Raspberry Extension Server API", version="1.0.0")
+    #app: FastAPI = FastAPI(title="Raspberry Extension Server API", version="1.0.0")
 
     # Enable CORS
     from fastapi.middleware.cors import CORSMiddleware
