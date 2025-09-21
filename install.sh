@@ -1,5 +1,37 @@
 #!/usr/bin/env bash
 
+updateConfig () {
+# Create or update config.yaml with selected branch
+  sudo mkdir -p /opt/raspberry_extension_server/config
+  if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
+    # Create minimal config.yaml for fresh installation with just the selected branch
+    sudo cat > /opt/raspberry_extension_server/config/config.yaml << EOF
+system:
+  branch: $branchSelection
+EOF
+  else
+    # Update existing config.yaml with selected branch
+    if command -v python3 &>/dev/null; then
+      sudo python3 -c "
+import yaml
+import sys
+try:
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'r') as f:
+        config = yaml.safe_load(f) or {}
+    if 'system' not in config:
+        config['system'] = {}
+    config['system']['branch'] = '$branchSelection'
+    with open('/opt/raspberry_extension_server/config/config.yaml', 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    print('Updated branch to $branchSelection in config.yaml')
+except Exception as e:
+    print(f'Error updating config.yaml: {e}')
+    sys.exit(1)
+"
+    fi
+  fi
+}
+
 arch=`uname -m`
 
 cd /tmp
@@ -84,19 +116,19 @@ case $installMethod in
         ;;
 esac
 
-if [ "$installMethod" == "host" ]; then
-  echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
-  # Check for Python 3
-  if ! command -v python3 &>/dev/null; then
-      apt-get install -y python3 python3-pip libgpiod-dev python3-libgpiod
-  fi
-
   echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
   # installing Raspberry Extension Server
   echo -e "\033[36m Installing Raspberry Extension Server.\033[0m"
   curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
   unzip -qo server.zip
   cd raspberry_extension_server-$branchSelection/
+
+if [ "$installMethod" == "host" ]; then
+  echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
+  # Check for Python 3
+  if ! command -v python3 &>/dev/null; then
+      apt-get install -y python3 python3-pip libgpiod-dev python3-libgpiod
+  fi
 
   echo -e "\033[36m Installing Python Dependencies.\033[0m"
   python3 -m pip install --upgrade pip --break-system-packages
@@ -113,7 +145,7 @@ if [ "$installMethod" == "host" ]; then
     if ls /opt/raspberry_extension_server/*.log* 1> /dev/null 2>&1; then
         cp -r /opt/raspberry_extension_server/*.log* /tmp/log_backup/
     fi
-    rm -rf /opt/raspberry_extension_server/*
+    sudo rm -rf /opt/raspberry_extension_server/*
     cp -r /tmp/raspberry_extension_server_backup /opt/raspberry_extension_server/config
     if [ "$(ls -A /tmp/log_backup)" ]; then
         cp -r /tmp/log_backup/* /opt/raspberry_extension_server/
@@ -125,70 +157,33 @@ if [ "$installMethod" == "host" ]; then
         echo -e "\033[31m ERROR!! Port 5002 already in use. Close the application that use this port and try again.\033[0m"
         exit 1
     fi
-    mkdir /opt/raspberry_extension_server
+    sudo mkdir /opt/raspberry_extension_server
   fi
 
 
-  cp -r flaskUI /opt/raspberry_extension_server/
-  cp -r ServerObjects /opt/raspberry_extension_server/
-  cp -r services /opt/raspberry_extension_server/
-  cp -r configManager /opt/raspberry_extension_server/
-  cp -r api.py /opt/raspberry_extension_server/
-
-  # Set proper ownership for the pi user
-  chown -R pi:pi /opt/raspberry_extension_server/
+  sudo cp -r flaskUI /opt/raspberry_extension_server/
+  sudo cp -r ServerObjects /opt/raspberry_extension_server/
+  sudo cp -r services /opt/raspberry_extension_server/
+  sudo cp -r configManager /opt/raspberry_extension_server/
+  sudo cp -r api.py /opt/raspberry_extension_server/
 
   # Copy web interface files
 
   curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
   unzip -qo serverUI.zip
-  mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
-  cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
-  rm -r dist
+  sudo mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
+  sudo cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
+  sudo rm -r dist serverUI.zip
 
-  # Set proper ownership for all files
-  chown -R pi:pi /opt/raspberry_extension_server/
-
-  # Create or update config.yaml with selected branch
-  mkdir -p /opt/raspberry_extension_server/config
-  if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
-    # Create minimal config.yaml for fresh installation with just the selected branch
-    cat > /opt/raspberry_extension_server/config/config.yaml << EOF
-system:
-  branch: $branchSelection
-EOF
-  else
-    # Update existing config.yaml with selected branch
-    if command -v python3 &>/dev/null; then
-      python3 -c "
-import yaml
-import sys
-try:
-    with open('/opt/raspberry_extension_server/config/config.yaml', 'r') as f:
-        config = yaml.safe_load(f) or {}
-    if 'system' not in config:
-        config['system'] = {}
-    config['system']['branch'] = '$branchSelection'
-    with open('/opt/raspberry_extension_server/config/config.yaml', 'w') as f:
-        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-    print('Updated branch to $branchSelection in config.yaml')
-except Exception as e:
-    print(f'Error updating config.yaml: {e}')
-    sys.exit(1)
-"
-    fi
-  fi
-  
-  # Set proper ownership for config files
-  chown -R pi:pi /opt/raspberry_extension_server/config/
+  updateConfig
 
   # Update service file with selected branch
-  cp raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
-  rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
-  chmod 644 /lib/systemd/system/raspberry_extension_server.service
-  systemctl daemon-reload
-  systemctl enable raspberry_extension_server.service
-  systemctl start raspberry_extension_server.service
+  sudo cp raspberry_extension_server.service /lib/systemd/system/raspberry_extension_server.service
+  sudo chmod 644 /lib/systemd/system/raspberry_extension_server.service
+  sudo systemctl daemon-reload
+  sudo systemctl enable raspberry_extension_server.service
+  sudo systemctl start raspberry_extension_server.service
+
 else
     echo -e "\033[36mInstalling Raspberry Extension Server with Docker.\033[0m"
     if ! command -v docker &>/dev/null; then
@@ -213,49 +208,35 @@ else
       *)       PLATFORM="linux/$ARCH" ;;
     esac
 
-    echo -e "\033[36m Platform: $PLATFORM\033[0m"
-    echo -e "\033[36m IP: $ip\033[0m"
-    echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
-    curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
-    unzip -qo server.zip
-    cd raspberry_extension_server-$branchSelection/
-    
-    # Create config directory and config.yaml for Docker installation
-    mkdir -p /opt/raspberry_extension_server/config
-    if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
-      # Create minimal config.yaml for fresh Docker installation with just the selected branch
-      cat > /opt/raspberry_extension_server/config/config.yaml << EOF
-system:
-  branch: $branchSelection
-EOF
-    else
-      # Update existing config.yaml with selected branch for Docker
-      if command -v python3 &>/dev/null; then
-        python3 -c "
-import yaml
-import sys
-try:
-    with open('/opt/raspberry_extension_server/config/config.yaml', 'r') as f:
-        config = yaml.safe_load(f) or {}
-    if 'system' not in config:
-        config['system'] = {}
-    config['system']['branch'] = '$branchSelection'
-    with open('/opt/raspberry_extension_server/config/config.yaml', 'w') as f:
-        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-    print('Updated branch to $branchSelection in config.yaml')
-except Exception as e:
-    print(f'Error updating config.yaml: {e}')
-    sys.exit(1)
-"
-      fi
-    fi
-    
-    docker stop raspberry_extension_server 2>/dev/null || true
-    docker rm raspberry_extension_server 2>/dev/null || true
-    docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .
-    docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/raspberry_extension_server/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
+    updateConfig
+
+    sudo docker stop raspberry_extension_server 2>/dev/null || true
+    sudo docker rm raspberry_extension_server 2>/dev/null || true
+    sudo docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .
+    sudo docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/raspberry_extension_server/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
     cd ..
-    rm -rf server.zip raspberry_extension_server_ui-$branchSelection
 fi
+
+echo -e "\033[36mWould you like to view the logs on startup? (y/n)\033[0m"
+read -r view_logs
+if [[ "$view_logs" == "y" ]]; then
+    apt-get install -y xterm
+    sudo mkdir -p ~/.config/autostart
+    DESKTOP_FILE="/tmp/raspberry_extension_server-$branchSelection/Server.desktop"
+    if [ "$installMethod" == "host" ]; then
+      sed -i '' 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e journalctl -o cat -xefu raspberry_extension_server.service -n 100|' "$DESKTOP_FILE"
+    else
+      sed -i '' 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e sudo docker logs raspberry_extension_server --tail 100 -f|' "$DESKTOP_FILE"
+    fi
+
+    # Move the edited desktop file to autostart
+    sudo mv "$DESKTOP_FILE" ~/.config/autostart/
+fi
+
+# Set proper ownership for config files and autostart
+sudo chown -R $USER:$USER /opt/raspberry_extension_server/
+sudo chown -R $USER:$USER ~/.config/autostart/
+
+rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
 
 echo -e "\033[32m Installation completed.\033[0m"
