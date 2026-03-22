@@ -17,8 +17,6 @@ GPIO_IN: Any = cast(Any, IO.IN)
 GPIO_HIGH: Any = cast(Any, IO.HIGH)
 GPIO_LOW: Any = cast(Any, IO.LOW)
 GPIO_PUD_UP: Any = cast(Any, IO.PUD_UP)
-GPIO_PUD_DOWN: Any = cast(Any, IO.PUD_DOWN)
-GPIO_PUD_OFF: Any = cast(Any, IO.PUD_OFF)
 
 class PowerButtonObject:
     def __init__(self, data: dict[str, Any]) -> None:
