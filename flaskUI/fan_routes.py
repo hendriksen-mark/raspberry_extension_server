@@ -10,7 +10,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
-def find_fan() -> FanObject:
+def find_fan() -> FanObject | None:
     """
     Find fan service in server configuration
     """
@@ -25,7 +25,7 @@ def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
     return FanObject(postDict)
 
 class FanRoute(Resource):
-    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources
         URL patterns:
@@ -35,7 +35,7 @@ class FanRoute(Resource):
         - /fan/status
         """
         # Get the fan service
-        fan: FanObject = find_fan()
+        fan: FanObject | None = find_fan()
 
         if fan is None:
             return {"error": "Fan service not found in server configuration"}, 404
@@ -45,7 +45,7 @@ class FanRoute(Resource):
 
         return fan.get_all_data(), 200
     
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Update fan configuration
         URL: /fan/<resource>
@@ -53,7 +53,7 @@ class FanRoute(Resource):
         postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
 
-        fan: FanObject = find_fan()
+        fan: FanObject | None = find_fan()
 
         if fan:
             logger.info(f"Fan already exists, updating configuration")
@@ -67,7 +67,7 @@ class FanRoute(Resource):
         else:
             logger.info(f"Fan not found, creating a new one")
             try:
-                fan: FanObject = create_fan(postDict)
+                fan = create_fan(postDict)
                 serverConfig["fan"] = fan
             except ValueError as e:
                 logger.error(f"Failed to create fan: {e}")
@@ -83,16 +83,13 @@ class FanRoute(Resource):
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
-        except KeyError as e:
-            logger.error(f"KeyError: {e}")
-            return {"error": "Fan configuration not found"}, 404
 
-    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Delete fan service
         URL: /fan/<resource>
         """
-        fan: FanObject = find_fan()
+        fan: FanObject | None = find_fan()
         if fan:
             try:
                 logger.info("Deleting fan service")

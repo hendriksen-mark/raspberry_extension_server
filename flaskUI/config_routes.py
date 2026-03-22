@@ -12,14 +12,14 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
 class ConfigRoute(Resource):
-    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for configuration resources
         URL: /config/ or /config/resource
         """
         return serverConfig["config"], 200
 
-    def put(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def put(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Update configuration for a specific resource
         """
@@ -108,27 +108,29 @@ class ConfigRoute(Resource):
 
         # Update enabled status
         if "enabled" in service_data:
-            old_value: bool | None = serverConfig["config"][service].get("enabled")
-            new_value: bool | None = service_data["enabled"]
-            if old_value != new_value:
-                serverConfig["config"][service]["enabled"] = new_value
-                changes.append(f"enabled: {old_value} -> {new_value}")
+            old_enabled: bool | None = serverConfig["config"][service].get("enabled")
+            new_enabled: bool | None = service_data["enabled"]
+            if old_enabled != new_enabled:
+                serverConfig["config"][service]["enabled"] = new_enabled
+                changes.append(f"enabled: {old_enabled} -> {new_enabled}")
         
         # Update interval (if applicable)
         if "interval" in service_data and service in ["thermostats", "dht", "fan", "webserver"]:
-            old_value: float | None = serverConfig["config"][service].get("interval")
-            new_value: float | None = service_data["interval"]
-            if old_value != new_value:
+            old_interval: float | None = serverConfig["config"][service].get("interval")
+            new_interval: float | None = service_data["interval"]
+            if old_interval != new_interval:
                 # Validate interval is a positive number
                 try:
-                    interval_val: float = float(new_value)
+                    if new_interval is None:
+                        raise TypeError("interval cannot be None")
+                    interval_val: float = float(new_interval)
                     if interval_val > 0:
-                        serverConfig["config"][service]["interval"] = new_value
-                        changes.append(f"interval: {old_value} -> {new_value}")
+                        serverConfig["config"][service]["interval"] = new_interval
+                        changes.append(f"interval: {old_interval} -> {new_interval}")
                     else:
-                        logger.warning(f"Invalid interval value for {service}: {new_value}")
+                        logger.warning(f"Invalid interval value for {service}: {new_interval}")
                 except (ValueError, TypeError):
-                    logger.warning(f"Invalid interval value for {service}: {new_value}")
+                    logger.warning(f"Invalid interval value for {service}: {new_interval}")
 
         # Update other service-specific configurations
         for key, value in service_data.items():

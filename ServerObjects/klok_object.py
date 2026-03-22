@@ -13,7 +13,7 @@ class KlokObject:
         self.DIO_pin: int = data.get("DIO_pin", 23)  # GPIO pin for the fan
         self.brightness: float = data.get("brightness", 0.0)  # Default brightness
         self.last_brightness: float | None = None  # Track last brightness to avoid unnecessary updates
-        self.last_time: datetime | None = None
+        self.last_time: list[int] | None = None
         self.last_doublepoint: bool | None = None
         self.doublepoint: bool = True  # Initialize doublepoint state
         self.power_state: bool = True

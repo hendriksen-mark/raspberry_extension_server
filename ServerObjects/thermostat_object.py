@@ -3,8 +3,8 @@ Thermostat service for managing thermostat operations
 """
 import asyncio
 from time import localtime, strftime
-from typing import Any
-from bleak import BleakError
+from typing import Any, TypedDict, cast
+from bleak.exc import BleakError
 
 from eqiva_thermostat import Thermostat, Temperature, EqivaException
 import logging
@@ -13,26 +13,31 @@ import logManager
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
+class HeatingCoolingState(TypedDict):
+    int: int
+    str: str
+
+
 class ThermostatObject:
     """Service for managing thermostat operations"""
 
     def __init__(self, data: dict[str, Any]) -> None:
-        self.id: str = data.get("id", None)  # Unique identifier for the thermostat
-        self.mac: str = data.get("mac", None)  # MAC address of the thermostat
+        self.id: str = str(data.get("id") or "")  # Unique identifier for the thermostat
+        self.mac: str = str(data.get("mac") or "")  # MAC address of the thermostat
         self.failed_connection: bool = True  # Track failed connection
         self.targetHeatingCoolingState: int = data.get("targetHeatingCoolingState", 0)  # Default target state
         self.targetTemperature: float = data.get("targetTemperature", 0.0)  # Default target temperature
         self.currentHeatingCoolingState: int = data.get("currentHeatingCoolingState", 0)  # Default current state
         self.currentTemperature: float = data.get("currentTemperature", 0.0)  # Default DHT temperature
         self.currentRelativeHumidity: float = data.get("currentRelativeHumidity", 0.0)  # Default DHT humidity
-        self.last_updated: str = data.get("last_updated", None)  # Last update timestamp
+        self.last_updated: str | None = data.get("last_updated")  # Last update timestamp
         self.first_seen: str = data.get("first_seen", strftime("%Y-%m-%d %H:%M:%S", localtime()))
-        self.equiva_thermostat = Thermostat(self.mac)
+        self.equiva_thermostat: Thermostat = Thermostat(self.mac)
         self.min_temperature = data.get("min_temperature", 5.0)  # Minimum temperature setting
         self.max_temperature = data.get("max_temperature", 30.0)  # Maximum
         self.DHT_connected: bool = False  # DHT connection status
 
-    def calculate_heating_cooling_state(self, mode: dict[str, Any], valve: int = None) -> int:
+    def calculate_heating_cooling_state(self, mode: list[str], valve: int | None = None) -> HeatingCoolingState:
         """
         Calculate the current heating/cooling state based on mode and valve position
         Possible return values:
@@ -68,8 +73,8 @@ class ThermostatObject:
         if not self.DHT_connected:
             self.DHT_connected = True
 
-        current_temp: float = kwargs.get('temperature')
-        current_hum: float = kwargs.get('humidity')
+        current_temp = cast(float | None, kwargs.get('temperature'))
+        current_hum = cast(float | None, kwargs.get('humidity'))
         if current_temp is not None:
             self.currentTemperature = current_temp
         if current_hum is not None:
@@ -123,9 +128,18 @@ class ThermostatObject:
             logger.debug(f"Polling: Connected to {self.mac}")
             await self.equiva_thermostat.requestStatus()
             logger.debug(f"Polling: Status requested from {self.mac}")
-            mode: dict[str, Any] = self.equiva_thermostat.mode.to_dict()
-            valve: float = self.equiva_thermostat.valve
-            temp: float = self.equiva_thermostat.temperature.valueC
+
+            mode_obj = self.equiva_thermostat.mode
+            if mode_obj is None:
+                raise EqivaException("Thermostat mode was not returned")
+
+            temperature_obj = self.equiva_thermostat.temperature
+            if temperature_obj is None or temperature_obj.valueC is None:
+                raise EqivaException("Thermostat temperature was not returned")
+
+            mode: list[str] = mode_obj.to_dict()
+            valve: int | None = self.equiva_thermostat.valve
+            temp: float = temperature_obj.valueC
 
             target_mode_status = self.calculate_heating_cooling_state(mode)
             current_mode_status = self.calculate_heating_cooling_state(mode, valve)

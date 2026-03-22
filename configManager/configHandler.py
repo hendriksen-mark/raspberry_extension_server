@@ -5,7 +5,7 @@ import logging
 import logManager
 import yaml
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any, Optional, cast
 import sys
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.dht_object import DHTObject
@@ -44,7 +44,6 @@ def _write_yaml(path: str, contents: Any) -> None:
         yaml.dump(contents, fp, Dumper=NoAliasDumper, allow_unicode=True, sort_keys=False)
 
 class Config:
-    yaml_config: Optional[dict[str, Any]] = None
     argsDict: dict[str, Any] = parse_arguments()
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
@@ -60,12 +59,15 @@ class Config:
         if not os.path.exists(self.configDir):
             os.makedirs(self.configDir)
 
-    def _set_default_config_values(self, config: dict[str, Any]) -> None:
+    def _set_default_config_values(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Set default configuration values.
 
         Args:
             config (dict[str, Any]): The configuration dictionary.
+
+        Returns:
+            dict[str, Any]: The updated configuration dictionary.
         """
         defaults: dict[str, Any] = {
             "users": {
@@ -114,12 +116,15 @@ class Config:
                 config[key] = value
         return config
 
-    def _upgrade_config(self, config: dict[str, Any]) -> None:
+    def _upgrade_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Upgrade the configuration if necessary.
 
         Args:
             config (Dict[str, Any]): The configuration dictionary.
+
+        Returns:
+            dict[str, Any]: The upgraded configuration dictionary.
         """
         # Only set branch to default if it's missing (new installation)
         if "branch" not in config["system"]:
@@ -151,7 +156,7 @@ class Config:
         """
         Load thermostats from the YAML configuration.
         """
-        thermostats: dict[str, Any] = self._load_yaml_file("thermostats.yaml", {})
+        thermostats: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("thermostats.yaml", {}))
         for thermostat, data in thermostats.items():
             data["id"] = thermostat
             self.yaml_config["thermostats"][thermostat] = ThermostatObject(data)
@@ -160,7 +165,7 @@ class Config:
         """
         Load DHT sensor configuration from the YAML file.
         """
-        dht_data: dict[str, Any] = self._load_yaml_file("dht.yaml", {})
+        dht_data: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("dht.yaml", {}))
         if dht_data != {}:
             self.yaml_config["dht"] = DHTObject(dht_data)
 
@@ -168,7 +173,7 @@ class Config:
         """
         Load klok configuration from the YAML file.
         """
-        klok_data: dict[str, Any] = self._load_yaml_file("klok.yaml", {})
+        klok_data: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("klok.yaml", {}))
         if klok_data != {}:
             self.yaml_config["klok"] = KlokObject(klok_data)
 
@@ -176,7 +181,7 @@ class Config:
         """
         Load fan configuration from the YAML file.
         """
-        fan_data: dict[str, Any] = self._load_yaml_file("fan.yaml", {})
+        fan_data: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("fan.yaml", {}))
         if fan_data != {}:
             self.yaml_config["fan"] = FanObject(fan_data)
 
@@ -184,7 +189,7 @@ class Config:
         """
         Load power button configuration from the YAML file.
         """
-        powerbutton_data: dict[str, Any] = self._load_yaml_file("powerbutton.yaml", {})
+        powerbutton_data: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("powerbutton.yaml", {}))
         if powerbutton_data != {}:
             self.yaml_config["powerbutton"] = PowerButtonObject(powerbutton_data)
 
@@ -227,8 +232,8 @@ class Config:
         """
         self.yaml_config: dict[str, Any] = {"config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}}
         try:
-            config: dict[str, Any] = self._load_yaml_file("config.yaml", {})
-            config: dict[str, Any] = self._set_default_config_values(config)
+            config: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("config.yaml", {}))
+            config = self._set_default_config_values(config)
             config = self._upgrade_config(config)
             self.yaml_config["config"] = config
 

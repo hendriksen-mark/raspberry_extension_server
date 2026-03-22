@@ -4,12 +4,21 @@ except ImportError:
     from services.dummy_import import DummyGPIO as IO  # Import a dummy GPIO class for testing
 import time
 import subprocess
-from typing import Any
+from typing import Any, cast
 import logging
 import logManager
 from threading import Event
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
+
+GPIO_BCM: Any = cast(Any, IO.BCM)
+GPIO_OUT: Any = cast(Any, IO.OUT)
+GPIO_IN: Any = cast(Any, IO.IN)
+GPIO_HIGH: Any = cast(Any, IO.HIGH)
+GPIO_LOW: Any = cast(Any, IO.LOW)
+GPIO_PUD_UP: Any = cast(Any, IO.PUD_UP)
+GPIO_PUD_DOWN: Any = cast(Any, IO.PUD_DOWN)
+GPIO_PUD_OFF: Any = cast(Any, IO.PUD_OFF)
 
 class PowerButtonObject:
     def __init__(self, data: dict[str, Any]) -> None:
@@ -17,8 +26,8 @@ class PowerButtonObject:
         self.long_press_duration: float = data.get("long_press_duration", 3.0)  # Default long press duration in seconds
         self.debounce_time: float = data.get("debounce_time", 0.05)  # Default debounce time in seconds
         self.shutdown_event: Event = Event()
-        IO.setmode(IO.BCM)
-        IO.setup(self.button_pin, IO.IN, pull_up_down=IO.PUD_UP)
+        IO.setmode(GPIO_BCM)
+        IO.setup(self.button_pin, GPIO_IN, pull_up_down=GPIO_PUD_UP)
         self.last_press_time: float = time.time()
 
     def cleanup(self) -> None:
@@ -28,7 +37,7 @@ class PowerButtonObject:
 
     def button_pressed(self) -> bool:
         """Check if button is currently pressed (LOW = pressed with pull-up)"""
-        return IO.input(self.button_pin) == IO.LOW
+        return IO.input(self.button_pin) == GPIO_LOW
 
     def wait_for_button_release(self) -> None:
         """Wait for button to be released"""
@@ -46,14 +55,14 @@ class PowerButtonObject:
         except subprocess.CalledProcessError as e:
             logger.error(f"Shutdown command failed: {e}")
 
-    def blink_led(self, pin=18, times=3) -> None:
+    def blink_led(self, pin: int = 18, times: int = 3) -> None:
         """Blink LED to indicate shutdown (optional - requires LED on IO 18)"""
         try:
-            IO.setup(pin, IO.OUT)
+            IO.setup(pin, GPIO_OUT)
             for _ in range(times):
-                IO.output(pin, IO.HIGH)
+                IO.output(pin, GPIO_HIGH)
                 time.sleep(0.2)
-                IO.output(pin, IO.LOW)
+                IO.output(pin, GPIO_LOW)
                 time.sleep(0.2)
         except Exception as e:
             logger.debug(f"LED blink failed (optional): {e}")

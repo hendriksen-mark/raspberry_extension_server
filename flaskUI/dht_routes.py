@@ -13,7 +13,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
-def find_dht() -> DHTObject:
+def find_dht() -> DHTObject | None:
     """
     Find DHT service in server configuration
     """
@@ -38,12 +38,12 @@ def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
         }, 200
 
 class DHTRoute(Resource):
-    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
             Handle GET requests for DHT sensor data
         """
         logger.info(f"DHT GET request: resource: {resource}")
-        dht: DHTObject = find_dht()
+        dht: DHTObject | None = find_dht()
 
         if dht is None:
             logger.error("DHT service not found in server configuration, returning default values")
@@ -63,7 +63,7 @@ class DHTRoute(Resource):
                 return {"error": "Failed to retrieve DHT info"}, 500
         
         else:
-            pin: int = dht.get_pin()
+            pin: int | None = dht.get_pin()
             # If no pin is set at all, return default values
             if pin is None:
                 logger.warning("DHT_PIN is not set, returning default values.")
@@ -85,14 +85,14 @@ class DHTRoute(Resource):
                 "pin": pin
             }, 200
 
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Update DHT sensor configuration
         """
         postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
 
-        dht: DHTObject = find_dht()
+        dht: DHTObject | None = find_dht()
 
         if dht:
             logger.info(f"DHT already exists, updating configuration")
@@ -105,7 +105,7 @@ class DHTRoute(Resource):
         else:
             logger.info(f"DHT not found, creating a new one")
             try:
-                dht: DHTObject = create_dht(postDict)
+                dht = create_dht(postDict)
                 serverConfig["dht"] = dht
             except ValueError as e:
                 logger.error(f"Failed to create DHT: {e}")
@@ -121,15 +121,12 @@ class DHTRoute(Resource):
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
-        except KeyError as e:
-            logger.error(f"KeyError: {e}")
-            return {"error": "DHT sensor configuration not found"}, 404
         
-    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Delete DHT sensor configuration
         """
-        dht: DHTObject = find_dht()
+        dht: DHTObject | None = find_dht()
         if dht:
             try:
                 logger.info("Deleting DHT configuration")

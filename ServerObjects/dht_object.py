@@ -5,7 +5,7 @@ import sys
 from threading import Lock
 import logging
 import logManager
-from typing import Any
+from typing import Any, Callable, cast
 from time import sleep
 
 if sys.platform == 'linux':
@@ -17,6 +17,9 @@ else:
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
+TemperatureCallback = Callable[[float], None]
+HumidityCallback = Callable[[float], None]
+
 class DHTObject:
     """DHT sensor service for reading temperature and humidity"""
     
@@ -25,11 +28,18 @@ class DHTObject:
         if self.sensor_type not in ["DHT22", "DHT11"]:
             logger.error(f"Unsupported DHT sensor type: {self.sensor_type}. Defaulting to DHT22.")
             self.sensor_type = "DHT22"
-        self.dht_pin: int = data.get("dht_pin", None)
-        self.latest_temperature: float = data.get("latest_temperature", None)
-        self.latest_humidity: float = data.get("latest_humidity", None)
-        self.temperature_callbacks: list = []
-        self.humidity_callbacks: list = []
+
+        raw_dht_pin = data.get("dht_pin", None)
+        try:
+            self.dht_pin: int | None = int(raw_dht_pin) if raw_dht_pin is not None else None
+        except (TypeError, ValueError):
+            logger.error(f"Invalid dht_pin value: {raw_dht_pin}. Using None.")
+            self.dht_pin = None
+
+        self.latest_temperature: float | None = cast(float | None, data.get("latest_temperature"))
+        self.latest_humidity: float | None = cast(float | None, data.get("latest_humidity"))
+        self.temperature_callbacks: list[TemperatureCallback] = []
+        self.humidity_callbacks: list[HumidityCallback] = []
         self.MIN_DHT_TEMP: float = data.get("MIN_DHT_TEMP", -40.0)
         self.MAX_DHT_TEMP: float = data.get("MAX_DHT_TEMP", 80.0)
         self.MIN_HUMIDITY: float = data.get("MIN_HUMIDITY", 0.0)
@@ -40,27 +50,32 @@ class DHTObject:
         self.last_logged_dht_temp: float | None = None
         self.last_logged_dht_humidity: float | None = None
         self._thread_started = False
+        self.dhtDevice: Any
 
         # Get the pin from board using the pin number and Dynamically create the DHT sensor based on sensor type
+        pin: Any | None = None
         try:
+            if self.dht_pin is None:
+                raise ValueError("dht_pin is required to initialize the DHT sensor")
             pin = getattr(board, f"D{self.dht_pin}")
+            sensor_pin: Any = cast(Any, pin)
             if self.sensor_type == "DHT22":
-                self.dhtDevice = adafruit_dht.DHT22(pin)
+                self.dhtDevice = adafruit_dht.DHT22(sensor_pin)
             elif self.sensor_type == "DHT11":
-                self.dhtDevice = adafruit_dht.DHT11(pin)
+                self.dhtDevice = adafruit_dht.DHT11(sensor_pin)
             elif self.sensor_type == "DHT21":
-                self.dhtDevice = adafruit_dht.DHT21(pin)
+                self.dhtDevice = adafruit_dht.DHT21(sensor_pin)
             else:
                 # Fallback to DHT22 if sensor type is not recognized
                 logger.warning(f"Unknown sensor type {self.sensor_type}, defaulting to DHT22")
-                self.dhtDevice = adafruit_dht.DHT22(pin)
+                self.dhtDevice = adafruit_dht.DHT22(sensor_pin)
             if hasattr(self.dhtDevice, "is_dummy") and self.dhtDevice.is_dummy():
                 return None
             logger.debug(f"DHT{self.sensor_type} sensor initialized on pin D{self.dht_pin}")
         except (AttributeError, NotImplementedError, Exception) as e:
             logger.error(f"Failed to initialize DHT sensor: {e}")
             logger.warning(f"Using DummyDHT")
-            self.dhtDevice = adafruit_dht.DHT22(pin)
+            self.dhtDevice = adafruit_dht.DHT22(cast(Any, pin))
 
     def get_pin(self) -> int | None:
         """Get current DHT pin"""
@@ -71,11 +86,11 @@ class DHTObject:
         with self.dht_lock:
             return self.latest_temperature, self.latest_humidity
 
-    def register_temperature_callback(self, callback) -> None:
+    def register_temperature_callback(self, callback: TemperatureCallback) -> None:
         """Register a callback function to be called when temperature changes significantly"""
         self.temperature_callbacks.append(callback)
 
-    def register_humidity_callback(self, callback) -> None:
+    def register_humidity_callback(self, callback: HumidityCallback) -> None:
         """Register a callback function to be called when humidity changes significantly"""
         self.humidity_callbacks.append(callback)
 

@@ -1,13 +1,20 @@
 import math
 import time
+from typing import Any, cast
 try:
     import RPi.GPIO as IO  # type: ignore
 except ImportError:
     from services.dummy_import import DummyGPIO as IO
 
 from time import sleep
+GPIO_BCM: Any = cast(Any, IO.BCM)
+GPIO_OUT: Any = cast(Any, IO.OUT)
+GPIO_IN: Any = cast(Any, IO.IN)
+GPIO_HIGH: Any = cast(Any, IO.HIGH)
+GPIO_LOW: Any = cast(Any, IO.LOW)
+
 IO.setwarnings(False)
-IO.setmode(IO.BCM)
+IO.setmode(GPIO_BCM)
 
 HexDigits: list[int] = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d,
              0x07, 0x7f, 0x6f, 0x77, 0x7c, 0x39, 0x5e, 0x79, 0x71]
@@ -30,10 +37,10 @@ class TM1637:
         # Clean up any previous setup on these specific pins
         try:
             IO.cleanup([self.__Clkpin, self.__Datapin])
-        except:
+        except Exception:
             pass  # Ignore if pins weren't previously setup
-        IO.setup(self.__Clkpin, IO.OUT)
-        IO.setup(self.__Datapin, IO.OUT)
+        IO.setup(self.__Clkpin, GPIO_OUT)
+        IO.setup(self.__Datapin, GPIO_OUT)
 
     def cleanup(self) -> None:
         """Stop updating clock, turn off display, and cleanup GPIO"""
@@ -83,42 +90,42 @@ class TM1637:
 
     def writeByte(self, data: int) -> None:
         for i in range(0, 8):
-            IO.output(self.__Clkpin, IO.LOW)
+            IO.output(self.__Clkpin, GPIO_LOW)
             if(data & 0x01):
-                IO.output(self.__Datapin, IO.HIGH)
+                IO.output(self.__Datapin, GPIO_HIGH)
             else:
-                IO.output(self.__Datapin, IO.LOW)
+                IO.output(self.__Datapin, GPIO_LOW)
             data = data >> 1
-            IO.output(self.__Clkpin, IO.HIGH)
+            IO.output(self.__Clkpin, GPIO_HIGH)
 
         # wait for ACK
-        IO.output(self.__Clkpin, IO.LOW)
-        IO.output(self.__Datapin, IO.HIGH)
-        IO.output(self.__Clkpin, IO.HIGH)
-        IO.setup(self.__Datapin, IO.IN)
+        IO.output(self.__Clkpin, GPIO_LOW)
+        IO.output(self.__Datapin, GPIO_HIGH)
+        IO.output(self.__Clkpin, GPIO_HIGH)
+        IO.setup(self.__Datapin, GPIO_IN)
 
         # Add timeout to prevent infinite blocking
         timeout = time.time() + 0.1  # 100ms timeout
         while(IO.input(self.__Datapin) and time.time() < timeout):
             sleep(0.001)
             if(IO.input(self.__Datapin)):
-                IO.setup(self.__Datapin, IO.OUT)
-                IO.output(self.__Datapin, IO.LOW)
-                IO.setup(self.__Datapin, IO.IN)
-        IO.setup(self.__Datapin, IO.OUT)
+                IO.setup(self.__Datapin, GPIO_OUT)
+                IO.output(self.__Datapin, GPIO_LOW)
+                IO.setup(self.__Datapin, GPIO_IN)
+        IO.setup(self.__Datapin, GPIO_OUT)
 
     def start(self) -> None:
         """send start signal to TM1637"""
-        IO.output(self.__Clkpin, IO.HIGH)
-        IO.output(self.__Datapin, IO.HIGH)
-        IO.output(self.__Datapin, IO.LOW)
-        IO.output(self.__Clkpin, IO.LOW)
+        IO.output(self.__Clkpin, GPIO_HIGH)
+        IO.output(self.__Datapin, GPIO_HIGH)
+        IO.output(self.__Datapin, GPIO_LOW)
+        IO.output(self.__Clkpin, GPIO_LOW)
 
     def stop(self) -> None:
-        IO.output(self.__Clkpin, IO.LOW)
-        IO.output(self.__Datapin, IO.LOW)
-        IO.output(self.__Clkpin, IO.HIGH)
-        IO.output(self.__Datapin, IO.HIGH)
+        IO.output(self.__Clkpin, GPIO_LOW)
+        IO.output(self.__Datapin, GPIO_LOW)
+        IO.output(self.__Clkpin, GPIO_HIGH)
+        IO.output(self.__Datapin, GPIO_HIGH)
 
     def br(self) -> None:
         """terse break"""
@@ -132,7 +139,7 @@ class TM1637:
             pointData: int = 0
 
         if(data == 0x7F):
-            data: int = 0
+            encoded: int = 0
         else:
-            data: int = HexDigits[data] + pointData
-        return data
+            encoded: int = HexDigits[data] + pointData
+        return encoded

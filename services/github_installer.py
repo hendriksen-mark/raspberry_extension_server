@@ -20,7 +20,7 @@ class GitHubInstaller:
     
     def __init__(self):
         self.server_path = Path(configManager.serverConfig.runningDir)
-        self.temp_dir = None
+        self.temp_dir: Path | None = None
         
     def install_updates(self, state: str, branch: str) -> bool:
         """
@@ -56,12 +56,19 @@ class GitHubInstaller:
             logger.error(f"Error during update installation: {e}")
             return False
     
+    def _require_temp_dir(self) -> Path:
+        """Return initialized temporary directory path."""
+        if self.temp_dir is None:
+            raise RuntimeError("Temporary directory is not initialized")
+        return self.temp_dir
+    
     def _install_server_update(self, branch: str) -> bool:
         """Install server update from GitHub."""
         try:
             # Download server archive
             server_url = f"https://github.com/hendriksen-mark/raspberry_extension_server/archive/{branch}.zip"
-            server_zip_path = self.temp_dir / "server.zip"
+            temp_dir = self._require_temp_dir()
+            server_zip_path = temp_dir / "server.zip"
             
             logger.info(f"Downloading server update from {server_url}")
             if not self._download_file(server_url, server_zip_path):
@@ -71,7 +78,7 @@ class GitHubInstaller:
             serverConfig["config"]["swupdate2"]["state"] = "installing"
             
             # Extract archive
-            extract_dir = self.temp_dir / "server_extract"
+            extract_dir = temp_dir / "server_extract"
             if not self._extract_zip(server_zip_path, extract_dir):
                 logger.error(f"Failed to extract server zip {server_zip_path} to {extract_dir}")
                 return False
@@ -127,7 +134,8 @@ class GitHubInstaller:
         try:
             # Download UI archive
             ui_url = "https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip"
-            ui_zip_path = self.temp_dir / "serverUI.zip"
+            temp_dir = self._require_temp_dir()
+            ui_zip_path = temp_dir / "serverUI.zip"
             
             logger.info(f"Downloading UI update from {ui_url}")
             if not self._download_file(ui_url, ui_zip_path):
@@ -137,7 +145,7 @@ class GitHubInstaller:
             serverConfig["config"]["swupdate2"]["state"] = "installing"
             
             # Extract UI archive
-            ui_extract_dir = self.temp_dir / "raspberry_extension_server_ui"
+            ui_extract_dir = temp_dir / "raspberry_extension_server_ui"
             ui_extract_dir.mkdir(exist_ok=True)
             
             if not self._extract_zip(ui_zip_path, ui_extract_dir):

@@ -3,7 +3,7 @@ import socket
 import logging
 import logManager
 from os import getenv
-from typing import Union, Optional
+from typing import Union, Optional, Any
 import pathlib
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -75,11 +75,37 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
 
     args: argparse.Namespace = ap.parse_args()
 
-    argumentDict["DEBUG"] = args.debug or get_environment_variable('DEBUG', True)
+    debug_env: Any = get_environment_variable('DEBUG', True)
+    argumentDict["DEBUG"] = args.debug or (debug_env if isinstance(debug_env, bool) else False)
     argumentDict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/raspberry_extension_server/config'
     argumentDict["BIND_IP"] = args.bind_ip or get_environment_variable('BIND_IP') or '0.0.0.0'
-    argumentDict["HOST_IP"] = args.ip or get_environment_variable('IP') or argumentDict["BIND_IP"] if argumentDict["BIND_IP"] != '0.0.0.0' else getIpAddress()
-    argumentDict["HTTP_PORT"] = args.http_port or get_environment_variable('HTTP_PORT') or 5002
+    
+    # Handle HOST_IP with proper type narrowing
+    host_ip_value: str | None = None
+    if isinstance(args.ip, str):
+        host_ip_value = args.ip
+    if not host_ip_value:
+        ip_env: Any = get_environment_variable('IP')
+        if isinstance(ip_env, str):
+            host_ip_value = ip_env
+    if not host_ip_value:
+        bind_ip = argumentDict["BIND_IP"]
+        if bind_ip != '0.0.0.0':
+            host_ip_value = str(bind_ip)
+    if not host_ip_value:
+        fallback = getIpAddress()
+        host_ip_value = fallback if fallback else '0.0.0.0'
+    argumentDict["HOST_IP"] = host_ip_value
+    
+    # Handle HTTP_PORT with proper type narrowing
+    http_port_value: int | None = None
+    if isinstance(args.http_port, int):
+        http_port_value = args.http_port
+    if not http_port_value:
+        http_port_env: Any = get_environment_variable('HTTP_PORT')
+        if isinstance(http_port_env, str) and http_port_env.isdigit():
+            http_port_value = int(http_port_env)
+    argumentDict["HTTP_PORT"] = http_port_value if http_port_value else 5002
     argumentDict["RUNNING_PATH"] = str(pathlib.Path(__file__).parent.parent)
 
     return argumentDict

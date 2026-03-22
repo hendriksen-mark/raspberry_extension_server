@@ -1,5 +1,5 @@
 from typing import Any
-from bleak import BleakError
+from bleak.exc import BleakError
 import asyncio
 import threading
 
@@ -27,17 +27,15 @@ _powerbutton_shutdown = threading.Event()
 
 # Async event for thermostat shutdown
 _thermostat_shutdown_async = asyncio.Event()
+_thermostat_shutdown_loop: asyncio.AbstractEventLoop | None = None
 
 def _ensure_async_event_loop():
     """Ensure async events are properly initialized for current event loop"""
-    global _thermostat_shutdown_async
-    try:
-        # Check if event is still valid for current loop
-        if _thermostat_shutdown_async._loop is not asyncio.get_running_loop():
-            _thermostat_shutdown_async = asyncio.Event()
-    except RuntimeError:
-        # No running loop, create new event
+    global _thermostat_shutdown_async, _thermostat_shutdown_loop
+    current_loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+    if _thermostat_shutdown_loop is not current_loop:
         _thermostat_shutdown_async = asyncio.Event()
+        _thermostat_shutdown_loop = current_loop
 
 async def syncWithThermostats() -> None:
     """
@@ -110,12 +108,14 @@ def disconnectThermostats() -> None:
     asyncio.set_event_loop(loop)
     
     async def cleanup_all():
-        tasks: list[asyncio.Task] = []
+        tasks: list[asyncio.Task[None]] = []
         for thermostat in serverConfig["thermostats"].values():
             thermostat: ThermostatObject = thermostat
             try:
                 # Create a timeout wrapper for each disconnect
-                task: asyncio.Task = asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
+                task: asyncio.Task[None] = asyncio.create_task(
+                    asyncio.wait_for(thermostat.safe_disconnect(), timeout=5.0)
+                )
                 tasks.append(task)
             except Exception as e:
                 logger.error(f"Cleanup: Error preparing disconnect for {thermostat.mac}: {e}")
@@ -267,13 +267,8 @@ def stop_thermostat_service() -> None:
     Stop the thermostat synchronization service.
     """
     _thermostat_shutdown.set()  # Signal immediate shutdown
-    try:
-        # Try to set async event if there's a running loop
-        loop = asyncio.get_running_loop()
-        loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
-    except RuntimeError:
-        # No running loop, event will be recreated when needed
-        pass
+    if _thermostat_shutdown_loop and not _thermostat_shutdown_loop.is_closed():
+        _thermostat_shutdown_loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
     logger.info("Thermostat service stopped.")
 
 def stop_all_services() -> None:
@@ -282,13 +277,8 @@ def stop_all_services() -> None:
     """
     _shutdown_event.set()
     _thermostat_shutdown.set()
-    try:
-        # Try to set async event if there's a running loop
-        loop = asyncio.get_running_loop()
-        loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
-    except RuntimeError:
-        # No running loop, event will be recreated when needed
-        pass
+    if _thermostat_shutdown_loop and not _thermostat_shutdown_loop.is_closed():
+        _thermostat_shutdown_loop.call_soon_threadsafe(_thermostat_shutdown_async.set)
     _dht_shutdown.set()
     _fan_shutdown.set()
     _klok_shutdown.set()

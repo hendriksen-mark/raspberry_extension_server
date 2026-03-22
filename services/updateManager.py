@@ -61,7 +61,8 @@ def get_file_creation_time(filepath: str) -> str:
     """
     try:
         creation_time = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
-        creation_time_arg1: list[str] = creation_time.stdout.replace(".", " ").split(" ") if creation_time.stdout else "2999-01-01 01:01:01 000000000 +0100\n".split(" ")
+        creation_time_text: str = creation_time.stdout if creation_time.stdout else "2999-01-01 01:01:01 000000000 +0100\n"
+        creation_time_arg1: list[str] = creation_time_text.replace(".", " ").split(" ")
         return parse_creation_time(creation_time_arg1)
     except subprocess.SubprocessError as e:
         logger.error(f"Error getting file creation time: {e}")
@@ -85,6 +86,8 @@ def get_github_publish_time(url: str) -> str:
             return datetime.strptime(device_data["commit"]["commit"]["author"]["date"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
         elif "published_at" in device_data:
             return datetime.strptime(device_data["published_at"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
+        logger.error("Unexpected GitHub API response format")
+        return "1970-01-01 00:00:00"
     except requests.RequestException as e:
         logger.error(f"No connection to GitHub: {e}")
         # Set state to unknown when there's no connection to update server

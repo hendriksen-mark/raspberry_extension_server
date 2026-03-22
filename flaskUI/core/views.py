@@ -1,5 +1,6 @@
-from flask import render_template, request, Blueprint, redirect, url_for, send_file, Response
+from flask import render_template, request, Blueprint, redirect, url_for, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.wrappers.response import Response as WerkzeugResponse
 from flaskUI.core.forms import LoginForm
 import flask_login
 import configManager
@@ -8,7 +9,7 @@ import os
 import logging
 import logManager
 import subprocess
-from typing import Any, Union
+from typing import Any
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
@@ -75,7 +76,7 @@ def restore_config() -> str:
 
 @core.route('/download_config')
 @flask_login.login_required
-def download_config() -> Response:
+def download_config() -> WerkzeugResponse:
     """
     Download the server configuration.
 
@@ -89,7 +90,7 @@ def download_config() -> Response:
     return send_file(path, as_attachment=True)
 
 @core.route('/download_log')
-def download_log() -> Response:
+def download_log() -> WerkzeugResponse:
     """
     Download the log file.
 
@@ -103,7 +104,7 @@ def download_log() -> Response:
     return send_file(path, as_attachment=True)
 
 @core.route('/download_debug')
-def download_debug() -> Response:
+def download_debug() -> WerkzeugResponse:
     """
     Download the debug file.
 
@@ -152,7 +153,7 @@ def info() -> dict[str, str]:
     }
 
 @core.route('/login', methods=['GET', 'POST'])
-def login() -> Union[str, Response]:
+def login() -> str | WerkzeugResponse:
     """
     Handle user login.
 
@@ -165,21 +166,24 @@ def login() -> Union[str, Response]:
     form: LoginForm = LoginForm()
     if request.method == 'GET':
         return render_template('login.html', form=form)
-    email: str = form.email.data
+    email: str | None = form.email.data
+    password: str | None = form.password.data
+    if email is None or password is None:
+        return 'Bad login\n'
     if email not in serverConfig["config"]["users"]:
         return 'User don\'t exist\n'
-    if check_password_hash(serverConfig["config"]["users"][email]['password'], form.password.data):
+    if check_password_hash(serverConfig["config"]["users"][email]['password'], password):
         user: User = User()
-        user.id = email
+        setattr(user, "id", email)
         flask_login.login_user(user)
         return redirect(url_for('core.index'))
 
-    logger.info(f"Hashed pass: {generate_password_hash(form.password.data)}")
+    logger.info(f"Hashed pass: {generate_password_hash(password)}")
     return 'Bad login\n'
 
 @core.route('/logout')
 @flask_login.login_required
-def logout() -> Response:
+def logout() -> WerkzeugResponse:
     """
     Handle user logout.
 

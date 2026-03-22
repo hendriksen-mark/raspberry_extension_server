@@ -10,7 +10,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
-def find_powerbutton() -> PowerButtonObject:
+def find_powerbutton() -> PowerButtonObject | None:
     """
     Find powerbutton service in server configuration
     """
@@ -25,25 +25,25 @@ def create_powerbutton(postDict: dict[str, Any] = {}) -> PowerButtonObject:
     return PowerButtonObject(postDict)
 
 class PowerButtonRoute(Resource):
-    def get(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for powerbutton resources
         """
-        powerbutton: PowerButtonObject = find_powerbutton()
+        powerbutton: PowerButtonObject | None = find_powerbutton()
 
         if powerbutton is None:
             return {"error": "PowerButton service not found in server configuration"}, 404
             
         return powerbutton.get_all_data(), 200
 
-    def post(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def post(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for powerbutton resources
         """
         postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
 
-        powerButton: PowerButtonObject = find_powerbutton()
+        powerButton: PowerButtonObject | None = find_powerbutton()
 
         if powerButton:
             logger.info(f"PowerButton already exists, updating it")
@@ -73,15 +73,12 @@ class PowerButtonRoute(Resource):
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
-        except KeyError as e:
-            logger.error(f"KeyError: {e}")
-            return {"error": "PowerButton configuration not found"}, 404
 
-    def delete(self, resource: str = None) -> tuple[dict[str, Any], int]:
+    def delete(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for powerbutton resources
         """
-        powerButton: PowerButtonObject = find_powerbutton()
+        powerButton: PowerButtonObject | None = find_powerbutton()
         if powerButton:
             try:
                 logger.info(f"Deleting PowerButton service")

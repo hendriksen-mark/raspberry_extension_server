@@ -10,6 +10,7 @@ import os
 import logging
 import logManager
 import flask_login
+from typing import Any, cast
 from flaskUI.core import User  # dummy import for flask_login module
 import configManager
 
@@ -50,30 +51,36 @@ def create_app(serverConfig) -> Flask:
     # Flask-Login setup
     login_manager: flask_login.LoginManager = flask_login.LoginManager()
     login_manager.init_app(app)
-    login_manager.login_view = "core.login"
+    cast(Any, login_manager).login_view = "core.login"
 
     @login_manager.user_loader
     def user_loader(email: str) -> User | None:
         if email not in serverConfig["config"]["users"]:
             return None
         user: User = User()
-        user.id = email
+        setattr(user, "id", email)
         return user
 
     @login_manager.request_loader
     def request_loader(request: Request) -> User | None:
         from werkzeug.security import check_password_hash
 
-        email: str = request.form.get('email')
+        email: str | None = request.form.get('email')
+        if email is None:
+            return None
         if email not in serverConfig["config"]["users"]:
             return None
+        password: str | None = request.form.get('password')
+        if password is None:
+            return None
         user: User = User()
-        user.id = email
+        setattr(user, "id", email)
         logger.info(f"Authentication attempt for user: {email}")
-        user.is_authenticated = check_password_hash(
-            request.form['password'],
+        if not check_password_hash(
+            password,
             serverConfig["config"]["users"][email]["password"]
-        )
+        ):
+            return None
         return user
 
     # Flask-RESTful API setup

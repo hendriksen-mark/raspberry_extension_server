@@ -32,7 +32,7 @@ class FanObject:
         self.pi.set_PWM_frequency(self.gpio_pin, self.pwm_frequency)
         self.pi.set_PWM_dutycycle(self.gpio_pin, 0)
 
-    def renormalize(self, n, range1, range2) -> float:
+    def renormalize(self, n: float, range1: tuple[float, float], range2: tuple[float, float]) -> float:
         """Scale n from range1 to range2."""
         delta1: float = range1[1] - range1[0]
         delta2: float = range2[1] - range2[0]
@@ -55,7 +55,7 @@ class FanObject:
         temp: float = get_pi_temp()
         temp = max(self.min_temperature, min(self.max_temperature, temp))
         # Convert temp to pigpio duty cycle (0-255)
-        duty_cycle: float = self.renormalize(temp, [self.min_temperature, self.max_temperature], [self.min_speed, self.max_speed])
+        duty_cycle: int = int(round(self.renormalize(temp, (self.min_temperature, self.max_temperature), (self.min_speed, self.max_speed))))
         self.pi.set_PWM_dutycycle(self.gpio_pin, duty_cycle)
         
         # Only log when temperature changes significantly or this is the first reading

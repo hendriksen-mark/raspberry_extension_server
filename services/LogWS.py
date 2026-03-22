@@ -22,7 +22,7 @@ class LogWebSocketHandler(WebSocket):
         self._thread.daemon = True
         self._thread.start()
 
-    def closed(self, code: int, reason: str = None) -> None:
+    def closed(self, code: int, reason: str | None = None) -> None:
         self._running = False
 
     def tail_log(self) -> None:
@@ -59,7 +59,9 @@ def start_ws_server() -> None:
     global _server_running
     try:
         cherrypy.log.screen = False
-        cherrypy.engine.autoreload.unsubscribe()
+        autoreload = getattr(cherrypy.engine, "autoreload", None)
+        if autoreload is not None:
+            autoreload.unsubscribe()
         
         # Check if port is available
         import socket

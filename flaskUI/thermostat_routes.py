@@ -2,7 +2,7 @@
 HomeKit/Homebridge compatible routes
 """
 from flask import request
-from bleak import BleakError
+from bleak.exc import BleakError
 from typing import Any
 from flask_restful import Resource
 import logging
@@ -24,7 +24,7 @@ def find_thermostat(mac: str) -> ThermostatObject | None:
             return thermostat
     return None
 
-def create_thermostat(mac: str, postDict: dict[str, Any] = None) -> ThermostatObject:
+def create_thermostat(mac: str, postDict: dict[str, Any] | None = None) -> ThermostatObject:
     """
     Create a new thermostat object if it doesn't exist
     """
@@ -39,7 +39,7 @@ def create_thermostat(mac: str, postDict: dict[str, Any] = None) -> ThermostatOb
 
 class ThermostatRoute(Resource):
     @async_route
-    async def get(self, mac, resource = None, value: str = None) -> tuple[dict[str, Any], int]:
+    async def get(self, mac: str, resource: str | None = None, value: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for thermostat resources
         URL: /MAC_ADDRESS/ or /MAC_ADDRESS/resource
@@ -47,9 +47,9 @@ class ThermostatRoute(Resource):
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
 
-        mac: str = format_mac(mac)
+        mac = format_mac(mac)
 
-        thermostat: ThermostatObject = find_thermostat(mac)
+        thermostat: ThermostatObject | None = find_thermostat(mac)
         if not thermostat:
             logger.info(f"Thermostat with MAC {mac} not found, creating a new one")
             try:
@@ -82,9 +82,9 @@ class ThermostatRoute(Resource):
 
         elif resource == 'targetTemperature':
             if value is None:
-                temp_value: str = request.args.get('value')
+                temp_value: str | None = request.args.get('value')
             else:
-                temp_value: str = value
+                temp_value = value
             if not temp_value:
                 return {"error": "Temperature value is required as 'value' parameter"}, 400
             
@@ -112,9 +112,9 @@ class ThermostatRoute(Resource):
     
         elif resource == 'targetHeatingCoolingState':
             if value is None:
-                mode_value: str = request.args.get('value')
+                mode_value: str | None = request.args.get('value')
             else:
-                mode_value: str = value
+                mode_value = value
             if not mode_value:
                 return {"error": "Mode value is required as 'value' parameter"}, 400
             
@@ -137,7 +137,7 @@ class ThermostatRoute(Resource):
             return {"error": "Resource not found"}, 404
 
     @async_route
-    async def post(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
+    async def post(self, mac: str, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle POST requests for thermostat resources
         URL: /MAC_ADDRESS/resource
@@ -145,11 +145,11 @@ class ThermostatRoute(Resource):
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
         
-        mac: str = format_mac(mac)
+        mac = format_mac(mac)
 
-        thermostat: ThermostatObject = find_thermostat(mac)
+        thermostat: ThermostatObject | None = find_thermostat(mac)
 
-        postDict = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
+        postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
 
         # Validate required data for creating thermostat
@@ -186,7 +186,7 @@ class ThermostatRoute(Resource):
             return {"error": "Failed to save configuration"}, 500
 
     @async_route
-    async def delete(self, mac: str, resource: str = None) -> tuple[dict[str, Any], int]:
+    async def delete(self, mac: str, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle DELETE requests for thermostat resources
         URL: /MAC_ADDRESS/resource
@@ -194,9 +194,9 @@ class ThermostatRoute(Resource):
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
 
-        mac: str = format_mac(mac)
+        mac = format_mac(mac)
 
-        thermostat: ThermostatObject = find_thermostat(mac)
+        thermostat: ThermostatObject | None = find_thermostat(mac)
 
         if thermostat:
             try:

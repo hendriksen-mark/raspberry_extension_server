@@ -1,6 +1,7 @@
-from ast import Attribute
 import random
 import logging
+import importlib
+from typing import Any
 import logManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -27,7 +28,7 @@ class DummyGPIO:
             pass
         
         @staticmethod
-        def setup(pin: int, mode: str, pull_up_down: str = None) -> None:
+        def setup(pin: int, mode: str, pull_up_down: str = "") -> None:
             """Dummy setup with pull_up_down parameter"""
             pass
         
@@ -42,7 +43,7 @@ class DummyGPIO:
             return 0
         
         @staticmethod
-        def cleanup() -> None:
+        def cleanup(channel: int | list[int] | tuple[int, ...] = -666) -> None:
             """Dummy cleanup"""
             pass
 
@@ -65,17 +66,17 @@ class DummyDHT:
             return humidity, temp
         
         @staticmethod
-        def DHT22(pin: int):
+        def DHT22(pin: int) -> 'DummyDHT':
             """Return a dummy DHT22 sensor instance"""
             return DummyDHT("DHT22")
 
         @staticmethod
-        def DHT11(pin: int):
+        def DHT11(pin: int) -> 'DummyDHT':
             """Return a dummy DHT11 sensor instance"""
             return DummyDHT("DHT11")
 
         @staticmethod
-        def DHT21(pin: int):
+        def DHT21(pin: int) -> 'DummyDHT':
             """Return a dummy DHT21 sensor instance"""
             return DummyDHT("DHT21")
         
@@ -95,9 +96,12 @@ class DummyDHT:
             return random.uniform(0.0, 100.0)  # Simulate a humidity reading
         
         def getReal(self):
-            """Return the real adafruit_dht module"""
-            import adafruit_dht
-            return adafruit_dht
+            """Return the real adafruit_dht module if available, otherwise use the dummy class"""
+            try:
+                return importlib.import_module("adafruit_dht")
+            except ModuleNotFoundError:
+                logger.warning("adafruit_dht is not installed, using DummyDHT")
+                return DummyDHT
 
 class DummyPigpioInstance:
         def __init__(self) -> None:
@@ -124,14 +128,14 @@ class DummyPigpio:
 class DummyBoard:
     """Dummy board class to simulate board pin access"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize dummy board"""
         pass
     
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         raise AttributeError(f"Using DummyBoard")
     
-    @Attribute
-    def DNone(self):
+    @property
+    def DNone(self) -> None:
         """Return a dummy pin object for DNone"""
         return None
