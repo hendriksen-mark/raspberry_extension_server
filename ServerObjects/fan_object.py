@@ -104,5 +104,3 @@ class FanObject:
     def save(self) -> dict[str, Any]:
         """Save the fan service configuration"""
         return self.get_all_data()
-
-
