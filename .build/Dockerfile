@@ -30,7 +30,6 @@ COPY ./ServerObjects/ /opt/raspberry_extension_server/ServerObjects/
 COPY ./services/ /opt/raspberry_extension_server/services/
 COPY ./configManager/ /opt/raspberry_extension_server/configManager/
 COPY ./api.py /opt/raspberry_extension_server/
-COPY ./githubInstall.sh /opt/raspberry_extension_server/
 
 ## Install the web interface
 RUN curl -sL -A "Mozilla/5.0" https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip \
