@@ -1,4 +1,4 @@
-name: diyHue CI Build
+name: raspberry_extension_server CI Build
 
 on:
   push:
