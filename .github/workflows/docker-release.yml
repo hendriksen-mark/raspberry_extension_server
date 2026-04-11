@@ -48,11 +48,11 @@ jobs:
 
       - name: Build docker image
         run: |
-          docker buildx build --builder mybuilder --platform=${{ matrix.arch }} --build-arg TARGETPLATFORM=${{ matrix.arch }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t hendriksen-mark/raspberry_extension_server:ci -f ./.build/Dockerfile --load .
+          docker buildx build --builder mybuilder --platform=${{ matrix.arch }} --build-arg TARGETPLATFORM=${{ matrix.arch }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t ${GITHUB_REPOSITORY,,}:ci -f ./.build/Dockerfile --load .
 
       - name: Save tarball
         run: |
-          docker save --output output.tar hendriksen-mark/raspberry_extension_server:ci
+          docker save --output output.tar ${GITHUB_REPOSITORY,,}:ci
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
@@ -84,14 +84,15 @@ jobs:
       - name: Run docker image
         if: success()
         run: |
-          docker run -d --name raspberry_extension_server --network=host -v /mnt/raspberry_extension_server/export:/opt/raspberry_extension_server/export -e IP=192.168.1.123 -e DEBUG=true hendriksen-mark/raspberry_extension_server:ci
+          echo repo: ${{ github.event.repository.name }}
+          docker run -d --name ${{ github.event.repository.name }} --network=host -v /mnt/${{ github.event.repository.name }}/export:/opt/${{ github.event.repository.name }}/export -e IP=192.168.1.123 -e DEBUG=true ${GITHUB_REPOSITORY,,}:ci
           sleep 15
-          docker logs raspberry_extension_server
+          docker logs ${{ github.event.repository.name }}
 
       - name: Cleanup
         run: |
-          docker kill raspberry_extension_server
-          docker rm raspberry_extension_server
+          docker kill ${{ github.event.repository.name }}
+          docker rm ${{ github.event.repository.name }}
 
   publish:
     needs: [build, test]
