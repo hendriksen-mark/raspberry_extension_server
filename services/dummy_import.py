@@ -139,3 +139,42 @@ class DummyBoard:
     def DNone(self) -> None:
         """Return a dummy pin object for DNone"""
         return None
+
+
+def DummyColor(r: int, g: int, b: int, w: int = 0) -> int:
+    """Mimic rpi_ws281x.Color – pack WRGB into a single integer."""
+    return (w << 24) | (r << 16) | (g << 8) | b
+
+
+class DummyPixelStrip:
+    """Mimic rpi_ws281x.PixelStrip for dev/testing without hardware."""
+
+    def __init__(
+        self,
+        num: int,
+        pin: int,
+        freq_hz: int = 800_000,
+        dma: int = 5,
+        invert: bool = False,
+        brightness: int = 255,
+        channel: int = 0,
+    ) -> None:
+        logger.warning("Using DummyPixelStrip (rpi_ws281x not available)")
+        self._leds: list[int] = [0] * num
+        self._brightness: int = brightness
+
+    def begin(self) -> None:
+        pass
+
+    def setPixelColor(self, n: int, color: int) -> None:
+        if 0 <= n < len(self._leds):
+            self._leds[n] = color
+
+    def show(self) -> None:
+        pass
+
+    def setBrightness(self, brightness: int) -> None:
+        self._brightness = brightness
+
+    def numPixels(self) -> int:
+        return len(self._leds)

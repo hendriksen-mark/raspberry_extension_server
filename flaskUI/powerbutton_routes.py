@@ -48,7 +48,7 @@ class PowerButtonRoute(Resource):
         if powerButton:
             logger.info(f"PowerButton already exists, updating it")
             # Only allow updating certain safe attributes
-            allowed_attributes = {'button_pin', 'long_press_duration', 'debounce_time'}
+            allowed_attributes = {'button_pin', 'long_press_duration', 'debounce_time', 'led_pin', 'led_brightness', 'led_dma'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(powerButton, key):
                     setattr(powerButton, key, value)
