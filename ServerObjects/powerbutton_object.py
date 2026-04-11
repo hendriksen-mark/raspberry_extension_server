@@ -1,6 +1,6 @@
 try:
     import RPi.GPIO as IO  # type: ignore
-except ImportError:
+except (ImportError, RuntimeError):
     from services.dummy_import import DummyGPIO as IO  # Import a dummy GPIO class for testing
 import time
 import subprocess

@@ -3,7 +3,7 @@ import time
 from typing import Any, cast
 try:
     import RPi.GPIO as IO  # type: ignore
-except ImportError:
+except (ImportError, RuntimeError):
     from services.dummy_import import DummyGPIO as IO
 
 from time import sleep

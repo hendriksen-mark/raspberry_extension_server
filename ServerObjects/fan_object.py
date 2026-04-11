@@ -1,7 +1,7 @@
 from typing import Any
 try:
     import pigpio  # type: ignore
-except ImportError:
+except (ImportError, RuntimeError):
     from services.dummy_import import DummyPigpio as pigpio  # Import a dummy pigpio class for testing
 
 import logging

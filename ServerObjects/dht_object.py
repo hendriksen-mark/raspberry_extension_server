@@ -8,10 +8,10 @@ import logManager
 from typing import Any, Callable, cast
 from time import sleep
 
-if sys.platform == 'linux':
+try:
     import adafruit_dht
     import board
-else:
+except (ImportError, RuntimeError):
     from services.dummy_import import DummyDHT as adafruit_dht
     from services.dummy_import import DummyBoard as board
 
