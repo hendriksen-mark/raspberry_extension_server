@@ -176,7 +176,7 @@ jobs:
           echo ${DOCKER_REPO}:${{ matrix.arch }}-${GITHUB_REF##*/}-$GITHUB_SHA published
 
       - name: Deploy Latest
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           docker tag ${GITHUB_REPOSITORY,,}:ci ${DOCKER_REPO}:${{ matrix.arch }}-latest
           docker push ${DOCKER_REPO}:${{ matrix.arch }}-latest
@@ -252,7 +252,7 @@ jobs:
           echo ${DOCKER_REPO}:$GITHUB_RUN_NUMBER published
 
       - name: Deploy Latest
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           docker manifest create \
             ${DOCKER_REPO}:latest \
