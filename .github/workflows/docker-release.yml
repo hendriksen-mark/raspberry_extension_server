@@ -339,7 +339,7 @@ jobs:
           docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }}
 
       - name: Latest
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest
           docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest --arch arm --variant ${{ matrix.version }}
