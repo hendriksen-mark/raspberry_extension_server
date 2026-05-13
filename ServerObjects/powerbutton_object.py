@@ -206,14 +206,17 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            # In Docker (root + privileged), trigger poweroff via kernel SysRq —
-            # no init system or D-Bus dependency.
+            # In Docker (root + privileged), use the SysRq graceful sequence:
+            # s = sync all filesystems, u = remount read-only, o = power off.
             # On a host install, call shutdown directly.
             if os.geteuid() == 0 and os.path.exists('/proc/sysrq-trigger'):
                 with open('/proc/sys/kernel/sysrq', 'w') as f:
                     f.write('1')
-                with open('/proc/sysrq-trigger', 'w') as f:
-                    f.write('o')
+                for cmd, delay in [('s', 2), ('u', 2), ('o', 0)]:
+                    logger.info(f"SysRq: {cmd}")
+                    with open('/proc/sysrq-trigger', 'w') as f:
+                        f.write(cmd)
+                    time.sleep(delay)
             elif os.geteuid() == 0:
                 subprocess.run(['/sbin/shutdown', '-h', 'now'], check=True)
             else:
