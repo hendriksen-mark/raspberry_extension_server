@@ -14,7 +14,8 @@ def find_powerbutton() -> PowerButtonObject | None:
     """
     Find powerbutton service in server configuration
     """
-    return serverConfig.get("powerbutton")
+    powerbutton = serverConfig.get("powerbutton")
+    return powerbutton if isinstance(powerbutton, PowerButtonObject) else None
 
 def create_powerbutton(postDict: dict[str, Any] = {}) -> PowerButtonObject:
     """

@@ -17,7 +17,8 @@ def find_dht() -> DHTObject | None:
     """
     Find DHT service in server configuration
     """
-    return serverConfig.get("dht")
+    dht = serverConfig.get("dht")
+    return dht if isinstance(dht, DHTObject) else None
 
 def create_dht(postDict: dict[str, Any] = {}) -> DHTObject:
     """

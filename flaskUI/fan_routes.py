@@ -14,7 +14,8 @@ def find_fan() -> FanObject | None:
     """
     Find fan service in server configuration
     """
-    return serverConfig.get("fan")
+    fan = serverConfig.get("fan")
+    return fan if isinstance(fan, FanObject) else None
 
 def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
     """

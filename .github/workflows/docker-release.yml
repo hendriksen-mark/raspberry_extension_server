@@ -328,36 +328,56 @@ jobs:
       - name: Commit ID
         if: ${{ github.sha != '' }}
         run: |
-          docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA
-          docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA --arch arm --variant ${{ matrix.version }}
-          docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA
+          for i in 1 2 3; do
+            docker manifest rm ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA 2>/dev/null || true
+            docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA && \
+            docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA --arch arm --variant ${{ matrix.version }} && \
+            docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}-$GITHUB_SHA && break
+            echo "Attempt $i failed, retrying in 30s..."; sleep 30
+          done
 
       - name: Run ID
         run: |
-          docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }}
-          docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} --arch arm --variant ${{ matrix.version }}
-          docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }}
+          for i in 1 2 3; do
+            docker manifest rm ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} 2>/dev/null || true
+            docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} && \
+            docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} --arch arm --variant ${{ matrix.version }} && \
+            docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${{ github.run_number }} && break
+            echo "Attempt $i failed, retrying in 30s..."; sleep 30
+          done
 
       - name: Latest
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest
-          docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest --arch arm --variant ${{ matrix.version }}
-          docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest
+          for i in 1 2 3; do
+            docker manifest rm ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest 2>/dev/null || true
+            docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest && \
+            docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest --arch arm --variant ${{ matrix.version }} && \
+            docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-latest && break
+            echo "Attempt $i failed, retrying in 30s..."; sleep 30
+          done
 
       - name: Branch
         if: ${{ startsWith(github.ref, 'refs/heads/') }}
         run: |
-          docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}
-          docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} --arch arm --variant ${{ matrix.version }}
-          docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}
+          for i in 1 2 3; do
+            docker manifest rm ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} 2>/dev/null || true
+            docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} && \
+            docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} --arch arm --variant ${{ matrix.version }} && \
+            docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} && break
+            echo "Attempt $i failed, retrying in 30s..."; sleep 30
+          done
 
       - name: Tag
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
-          docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}
-          docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} --arch arm --variant ${{ matrix.version }}
-          docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/}
+          for i in 1 2 3; do
+            docker manifest rm ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} 2>/dev/null || true
+            docker manifest create ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} && \
+            docker manifest annotate ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} --arch arm --variant ${{ matrix.version }} && \
+            docker manifest push ${DOCKER_REPO}:${{ matrix.arch_friendly }}-${GITHUB_REF##*/} && break
+            echo "Attempt $i failed, retrying in 30s..."; sleep 30
+          done
 
   cleanup_failed:
     needs: [build, test]

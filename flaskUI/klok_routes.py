@@ -14,7 +14,8 @@ def find_klok() -> KlokObject | None:
     """
     Find klok service in server configuration
     """
-    return serverConfig.get("klok")
+    klok = serverConfig.get("klok")
+    return klok if isinstance(klok, KlokObject) else None
 
 def create_klok(postDict: dict[str, Any] = {}) -> KlokObject:
     """
