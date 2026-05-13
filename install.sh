@@ -219,6 +219,24 @@ BRANCH=$branchSelection
 EOF
 
     sudo docker compose -f "$COMPOSE_DIR/docker-compose.yml" down 2>/dev/null || true
+
+    # Ensure pigpiod is installed and running on the host (required for fan GPIO control)
+    echo -e "\033[36mChecking pigpiod on host.\033[0m"
+    if ! command -v pigpiod &>/dev/null; then
+        echo -e "\033[33mpigpiod not found, installing pigpio.\033[0m"
+        sudo apt-get install -y pigpio
+    fi
+    if ! systemctl is-active --quiet pigpiod; then
+        sudo systemctl enable pigpiod
+        sudo systemctl start pigpiod
+        echo -e "\033[32mpigpiod enabled and started.\033[0m"
+    else
+        echo -e "\033[32mpigpiod is already running.\033[0m"
+    fi
+
+    echo -e "\033[36mPulling latest Docker image.\033[0m"
+    sudo docker compose -f "$COMPOSE_DIR/docker-compose.yml" pull
+
     sudo docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
 fi
 

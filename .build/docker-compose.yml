@@ -10,6 +10,7 @@ services:
       - DEBUG=true
       - IP=${IP}
       - BRANCH=${BRANCH:-main}
+      - PIGPIO_ADDR=localhost
       # - CONFIG_PATH=/opt/raspberry_extension_server/config
       # - BIND_IP=0.0.0.0
       # - HTTP_PORT=5002

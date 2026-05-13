@@ -27,7 +27,10 @@ class FanObject:
         self.full_speed_time_duration: int = data.get("full_speed_time_duration", 5)  # Duration for full speed mode in seconds
         self.pi = pigpio.pi()
         if not self.pi.connected:
-            raise RuntimeError("Could not connect to pigpio daemon. Make sure pigpiod is running.")
+            logger.warning("Could not connect to pigpio daemon, fan control disabled (using dummy)")
+            from services.dummy_import import DummyPigpioInstance
+            self.pi = DummyPigpioInstance()
+            return
         # Set PWM frequency and start with 0% duty cycle
         self.pi.set_PWM_frequency(self.gpio_pin, self.pwm_frequency)
         self.pi.set_PWM_dutycycle(self.gpio_pin, 0)
