@@ -1,4 +1,4 @@
-name: raspberry_extension_server CI Build
+name: ${{ github.event.repository.name }} CI Build
 
 on:
   push:
@@ -84,7 +84,6 @@ jobs:
       - name: Run docker image
         if: success()
         run: |
-          echo repo: ${{ github.event.repository.name }}
           docker run -d --name ${{ github.event.repository.name }} --network=host -v /mnt/${{ github.event.repository.name }}/export:/opt/${{ github.event.repository.name }}/export -e IP=192.168.1.123 -e DEBUG=true ${GITHUB_REPOSITORY,,}:ci
           sleep 15
           docker logs ${{ github.event.repository.name }}

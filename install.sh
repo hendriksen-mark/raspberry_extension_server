@@ -116,15 +116,13 @@ case $installMethod in
         ;;
 esac
 
+if [ "$installMethod" == "host" ]; then
+  echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
   echo "https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip"
-  # installing Raspberry Extension Server
-  echo -e "\033[36m Installing Raspberry Extension Server.\033[0m"
+  echo -e "\033[36m Downloading Raspberry Extension Server.\033[0m"
   curl -sL https://github.com/hendriksen-mark/raspberry_extension_server/archive/$branchSelection.zip -o server.zip
   unzip -qo server.zip
   cd raspberry_extension_server-$branchSelection/
-
-if [ "$installMethod" == "host" ]; then
-  echo -e "\033[36mInstalling Raspberry Extension Server as host service.\033[0m"
   # Check for Python 3
   if ! command -v python3 &>/dev/null; then
       apt-get install -y python3 python3-pip libgpiod-dev python3-libgpiod
@@ -183,6 +181,7 @@ if [ "$installMethod" == "host" ]; then
   sudo systemctl daemon-reload
   sudo systemctl enable raspberry_extension_server.service
   sudo systemctl start raspberry_extension_server.service
+  cd /tmp
 
 else
     echo -e "\033[36mInstalling Raspberry Extension Server with Docker.\033[0m"
@@ -196,25 +195,31 @@ else
     fi
     interface=$(ip route | grep default | awk '{print $5}')
     ip=`ip addr show $interface | grep 'inet ' | awk '{print $2}' | cut -d/ -f1`
-    ARCH=$(uname -m)
-    PLATFORM=""
 
-    case "$ARCH" in
-      armv7l)  PLATFORM="linux/arm/v7" ;;
-      armv6l)  PLATFORM="linux/arm/v6" ;;
-      aarch64) PLATFORM="linux/arm64" ;;
-      x86_64)  PLATFORM="linux/amd64" ;;
-      i386|i686) PLATFORM="linux/386" ;;
-      *)       PLATFORM="linux/$ARCH" ;;
-    esac
+    if ! sudo docker compose version &>/dev/null 2>&1; then
+        echo -e "\033[31mDocker Compose plugin is not installed. Installing.\033[0m"
+        sudo apt-get -y install docker-compose-plugin
+    else
+        echo -e "\033[32mDocker Compose is already installed.\033[0m"
+    fi
+
+    COMPOSE_DIR="/opt/raspberry_extension_server"
+    sudo mkdir -p "$COMPOSE_DIR"
 
     updateConfig
 
-    sudo docker stop raspberry_extension_server 2>/dev/null || true
-    sudo docker rm raspberry_extension_server 2>/dev/null || true
-    sudo docker build --build-arg TARGETPLATFORM=$PLATFORM --build-arg BRANCH=$branchSelection -t raspberry_extension_server/raspberry_extension_server:ci -f ./.build/Dockerfile .
-    sudo docker run -d --name raspberry_extension_server --privileged --network=host -v /opt/raspberry_extension_server/config:/opt/raspberry_extension_server/config -e IP=$ip -e DEBUG=true -e BRANCH=$branchSelection raspberry_extension_server/raspberry_extension_server:ci
-    cd ..
+    # Download compose file
+    echo -e "\033[36mDownloading Docker Compose file.\033[0m"
+    sudo curl -sL "https://raw.githubusercontent.com/hendriksen-mark/raspberry_extension_server/$branchSelection/.build/docker-compose.yml" -o "$COMPOSE_DIR/docker-compose.yml"
+
+    # Write .env file for docker compose
+    sudo tee "$COMPOSE_DIR/.env" > /dev/null << EOF
+IP=$ip
+BRANCH=$branchSelection
+EOF
+
+    sudo docker compose -f "$COMPOSE_DIR/docker-compose.yml" down 2>/dev/null || true
+    sudo docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
 fi
 
 echo -e "\033[36mWould you like to view the logs on startup? (y/n)\033[0m"
@@ -222,21 +227,28 @@ read -r view_logs
 if [[ "$view_logs" == "y" ]]; then
     apt-get install -y xterm
     sudo mkdir -p ~/.config/autostart
-    DESKTOP_FILE="/tmp/raspberry_extension_server-$branchSelection/Server.desktop"
     if [ "$installMethod" == "host" ]; then
+      DESKTOP_FILE="/tmp/raspberry_extension_server-$branchSelection/Server.desktop"
       sed -i '' 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e journalctl -o cat -xefu raspberry_extension_server.service -n 100|' "$DESKTOP_FILE"
+      sudo mv "$DESKTOP_FILE" ~/.config/autostart/
     else
-      sed -i '' 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e sudo docker logs raspberry_extension_server --tail 100 -f|' "$DESKTOP_FILE"
+      cat > /tmp/Server.desktop << 'DESKTOPEOF'
+[Desktop Entry]
+Encoding=UTF-8
+Name=Terminal autostart
+Comment=Start a terminal and monitor the Server
+Exec=xterm -T Server -geometry 240x32+700+0 -e sudo docker logs raspberry_extension_server --tail 100 -f
+DESKTOPEOF
+      sudo mv /tmp/Server.desktop ~/.config/autostart/
     fi
-
-    # Move the edited desktop file to autostart
-    sudo mv "$DESKTOP_FILE" ~/.config/autostart/
 fi
 
 # Set proper ownership for config files and autostart
 sudo chown -R $USER:$USER /opt/raspberry_extension_server/
 sudo chown -R $USER:$USER ~/.config/autostart/
 
-rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
+if [ "$installMethod" == "host" ]; then
+    rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
+fi
 
 echo -e "\033[32m Installation completed.\033[0m"
