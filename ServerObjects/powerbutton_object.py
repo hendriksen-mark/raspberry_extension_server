@@ -206,18 +206,19 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            # In Docker (root + privileged), use nsenter to run shutdown in the
-            # host's namespaces via PID 1. On a host install, call shutdown directly.
-            if os.geteuid() == 0 and os.path.exists('/proc/1/ns/mnt'):
-                subprocess.run(
-                    ['nsenter', '-t', '1', '-m', '-u', '-i', '-n', '-p', '--', 'shutdown', '-h', 'now'],
-                    check=True
-                )
+            # In Docker (root + privileged), trigger poweroff via kernel SysRq —
+            # no init system or D-Bus dependency.
+            # On a host install, call shutdown directly.
+            if os.geteuid() == 0 and os.path.exists('/proc/sysrq-trigger'):
+                with open('/proc/sys/kernel/sysrq', 'w') as f:
+                    f.write('1')
+                with open('/proc/sysrq-trigger', 'w') as f:
+                    f.write('o')
             elif os.geteuid() == 0:
                 subprocess.run(['/sbin/shutdown', '-h', 'now'], check=True)
             else:
                 subprocess.run(['sudo', '/sbin/shutdown', '-h', 'now'], check=True)
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             logger.error(f"Shutdown command failed: {e}")
 
     # ------------------------------------------------------------------ #
