@@ -206,10 +206,17 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            shutdown_cmd = ['/sbin/shutdown', '-h', 'now']
-            if os.geteuid() != 0:
-                shutdown_cmd = ['sudo'] + shutdown_cmd
-            subprocess.run(shutdown_cmd, check=True)
+            # In Docker (root + privileged), use nsenter to run shutdown in the
+            # host's namespaces via PID 1. On a host install, call shutdown directly.
+            if os.geteuid() == 0 and os.path.exists('/proc/1/ns/mnt'):
+                subprocess.run(
+                    ['nsenter', '-t', '1', '-m', '-u', '-i', '-n', '-p', '--', 'shutdown', '-h', 'now'],
+                    check=True
+                )
+            elif os.geteuid() == 0:
+                subprocess.run(['/sbin/shutdown', '-h', 'now'], check=True)
+            else:
+                subprocess.run(['sudo', '/sbin/shutdown', '-h', 'now'], check=True)
         except subprocess.CalledProcessError as e:
             logger.error(f"Shutdown command failed: {e}")
 
