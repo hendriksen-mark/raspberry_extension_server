@@ -21,7 +21,7 @@ COPY requirements.txt ./
 RUN apt update
 RUN dpkg --configure -a
 RUN apt install --no-install-recommends -y \
-        curl unzip python3 python3-pip python3-dev python3-setuptools gcc bluez git
+        curl unzip python3 python3-pip python3-dev python3-setuptools gcc bluez git pigpio
 RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages --ignore-installed
 
 ## Install Raspberry Extension Server
@@ -48,4 +48,4 @@ RUN curl -sL -A "Mozilla/5.0" https://github.com/hendriksen-mark/raspberry_exten
 ## Expose ports
 EXPOSE 5002
 
-CMD [ "python3", "-u", "/opt/raspberry_extension_server/api.py" ]
+CMD [ "sh", "-c", "pigpiod && python3 -u /opt/raspberry_extension_server/api.py" ]

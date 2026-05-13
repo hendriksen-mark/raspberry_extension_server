@@ -19,3 +19,4 @@ eqiva-smart-radiator-thermostat @ git+https://github.com/hendriksen-mark/Eqiva-S
 RPi.GPIO
 rpi-ws281x
 adafruit-circuitpython-dht
+pigpio
