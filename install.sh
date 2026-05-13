@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# bash <(curl -sL https://raw.githubusercontent.com/hendriksen-mark/raspberry_extension_server/main/install.sh)
+
 updateConfig () {
 # Create or update config.yaml with selected branch
   sudo mkdir -p /opt/raspberry_extension_server/config
@@ -223,8 +225,34 @@ EOF
     # Ensure pigpiod is installed and running on the host (required for fan GPIO control)
     echo -e "\033[36mChecking pigpiod on host.\033[0m"
     if ! command -v pigpiod &>/dev/null; then
-        echo -e "\033[33mpigpiod not found, installing pigpio.\033[0m"
-        sudo apt-get install -y pigpio
+        echo -e "\033[33mpigpiod not found, building pigpio from source.\033[0m"
+        sudo apt-get install -y make gcc
+        cd /tmp
+        wget -q https://github.com/joan2937/pigpio/archive/master.zip -O pigpio.zip
+        unzip -qo pigpio.zip
+        cd pigpio-master
+        make -j$(nproc) 2>/dev/null
+        sudo make install
+        cd /tmp
+        sudo rm -rf pigpio.zip pigpio-master
+        cd "$COMPOSE_DIR"
+    fi
+    if ! systemctl is-enabled --quiet pigpiod 2>/dev/null; then
+        echo -e "\033[33mCreating pigpiod systemd service.\033[0m"
+        sudo tee /etc/systemd/system/pigpiod.service > /dev/null << 'EOF'
+[Unit]
+Description=Daemon required to control GPIO pins via pigpio
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/pigpiod -l
+ExecStop=/bin/systemctl kill pigpiod
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        sudo systemctl daemon-reload
     fi
     if ! systemctl is-active --quiet pigpiod; then
         sudo systemctl enable pigpiod

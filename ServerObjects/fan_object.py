@@ -13,7 +13,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
     def __init__(self, data: dict[str, Any]) -> None:
-        self.gpio_pin: int = data.get("gpio_pin", 18)
+        self.gpio_pin: int = data.get("gpio_pin", 12)
         self.pwm_frequency: int = data.get("pwm_frequency", 25000)  # Default PWM frequency
         self.min_temperature: int = data.get("min_temperature", 25)  # Minimum temperature setting
         self.max_temperature: int = data.get("max_temperature", 80)  # Maximum temperature setting

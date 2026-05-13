@@ -9,6 +9,7 @@ except (ImportError, RuntimeError):
     from services.dummy_import import DummyPixelStrip as PixelStrip, DummyColor as Color  # type: ignore
 
 import math
+import os
 import time
 import subprocess
 import threading
@@ -38,7 +39,7 @@ class PowerButtonObject:
         self.debounce_time: float = data.get("debounce_time", 0.05)
         self.led_pin: int = data.get("led_pin", 18)
         self.led_brightness: int = data.get("led_brightness", 150)
-        self.led_dma: int = data.get("led_dma", 10)
+        self.led_dma: int = data.get("led_dma", 5)
 
         self.shutdown_event: Event = Event()
 
@@ -57,7 +58,21 @@ class PowerButtonObject:
             self.led_brightness,
             _LED_CHANNEL,
         )
-        self._strip.begin()
+        try:
+            self._strip.begin()
+        except RuntimeError as e:
+            logger.warning(f"LED strip init failed ({e}), falling back to dummy LED")
+            from services.dummy_import import DummyPixelStrip, DummyColor as Color
+            self._strip = DummyPixelStrip(
+                _LED_COUNT,
+                self.led_pin,
+                _LED_FREQ_HZ,
+                self.led_dma,
+                _LED_INVERT,
+                self.led_brightness,
+                _LED_CHANNEL,
+            )
+            self._strip.begin()
 
         self._led_stop_event: threading.Event = threading.Event()
         self._led_thread: threading.Thread | None = None
@@ -191,7 +206,10 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=True)
+            shutdown_cmd = ['/sbin/shutdown', '-h', 'now']
+            if os.geteuid() != 0:
+                shutdown_cmd = ['sudo'] + shutdown_cmd
+            subprocess.run(shutdown_cmd, check=True)
         except subprocess.CalledProcessError as e:
             logger.error(f"Shutdown command failed: {e}")
 
