@@ -46,8 +46,14 @@ def get_pi_temp() -> float:
         output: subprocess.CompletedProcess = subprocess.run(['vcgencmd', 'measure_temp'], capture_output=True, check=True)
         temp_str: str = output.stdout.decode()
         return float(temp_str.split('=')[1].split('\'')[0])
-    except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError):
-        raise RuntimeError('Could not get temperature')
+    except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError, PermissionError):
+        pass
+    try:
+        with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+            return round(int(f.read().strip()) / 1000.0, 1)
+    except (OSError, ValueError):
+        pass
+    raise RuntimeError('Could not get temperature')
 
 def nextFreeId(serverConfig: dict[str, Any], element: str) -> str:
     """
