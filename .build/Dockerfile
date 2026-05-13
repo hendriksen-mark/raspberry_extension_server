@@ -22,7 +22,7 @@ RUN apt update
 RUN dpkg --configure -a
 RUN apt install --no-install-recommends -y \
         curl unzip python3 python3-pip python3-dev python3-setuptools gcc bluez git
-RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages
+RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages --ignore-installed
 
 ## Install Raspberry Extension Server
 COPY ./flaskUI/ /opt/raspberry_extension_server/flaskUI/

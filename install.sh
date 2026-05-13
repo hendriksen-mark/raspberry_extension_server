@@ -5,7 +5,7 @@ updateConfig () {
   sudo mkdir -p /opt/raspberry_extension_server/config
   if [ ! -f "/opt/raspberry_extension_server/config/config.yaml" ]; then
     # Create minimal config.yaml for fresh installation with just the selected branch
-    sudo cat > /opt/raspberry_extension_server/config/config.yaml << EOF
+    sudo tee /opt/raspberry_extension_server/config/config.yaml > /dev/null << EOF
 system:
   branch: $branchSelection
 EOF
@@ -229,7 +229,7 @@ if [[ "$view_logs" == "y" ]]; then
     sudo mkdir -p ~/.config/autostart
     if [ "$installMethod" == "host" ]; then
       DESKTOP_FILE="/tmp/raspberry_extension_server-$branchSelection/Server.desktop"
-      sed -i '' 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e journalctl -o cat -xefu raspberry_extension_server.service -n 100|' "$DESKTOP_FILE"
+      sed -i 's|^Exec=.*|Exec=xterm -T Server -geometry 240x32+700+0 -e journalctl -o cat -xefu raspberry_extension_server.service -n 100|' "$DESKTOP_FILE"
       sudo mv "$DESKTOP_FILE" ~/.config/autostart/
     else
       cat > /tmp/Server.desktop << 'DESKTOPEOF'
@@ -245,7 +245,9 @@ fi
 
 # Set proper ownership for config files and autostart
 sudo chown -R $USER:$USER /opt/raspberry_extension_server/
-sudo chown -R $USER:$USER ~/.config/autostart/
+if [ -d ~/.config/autostart ]; then
+    sudo chown -R $USER:$USER ~/.config/autostart/
+fi
 
 if [ "$installMethod" == "host" ]; then
     rm -rf /tmp/server.zip /tmp/raspberry_extension_server-$branchSelection
