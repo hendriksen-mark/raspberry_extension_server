@@ -48,4 +48,4 @@ RUN curl -sL -A "Mozilla/5.0" https://github.com/hendriksen-mark/raspberry_exten
 ## Expose ports
 EXPOSE 5002
 
-CMD [ "sh", "-c", "pigpiod && python3 -u /opt/raspberry_extension_server/api.py" ]
+CMD [ "sh", "-c", "pigpiod 2>/dev/null || true && python3 -u /opt/raspberry_extension_server/api.py" ]
