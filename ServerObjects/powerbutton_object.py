@@ -206,17 +206,16 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            # In Docker (root + privileged), use the SysRq graceful sequence:
-            # s = sync all filesystems, u = remount read-only, o = power off.
-            # On a host install, call shutdown directly.
-            if os.geteuid() == 0 and os.path.exists('/proc/sysrq-trigger'):
-                with open('/proc/sys/kernel/sysrq', 'w') as f:
-                    f.write('1')
-                for cmd, delay in [('s', 2), ('u', 2), ('o', 0)]:
-                    logger.info(f"SysRq: {cmd}")
-                    with open('/proc/sysrq-trigger', 'w') as f:
-                        f.write(cmd)
-                    time.sleep(delay)
+            if os.geteuid() == 0 and os.path.exists('/var/run/dbus/system_bus_socket'):
+                # Docker with D-Bus mounted: send PowerOff to host's systemd via D-Bus.
+                # This triggers a full graceful shutdown (services stopped, fs unmounted).
+                logger.info("Shutting down via D-Bus (systemd PowerOff)")
+                subprocess.run([
+                    'dbus-send', '--system', '--print-reply',
+                    '--dest=org.freedesktop.systemd1',
+                    '/org/freedesktop/systemd1',
+                    'org.freedesktop.systemd1.Manager.PowerOff'
+                ], check=True)
             elif os.geteuid() == 0:
                 subprocess.run(['/sbin/shutdown', '-h', 'now'], check=True)
             else:
