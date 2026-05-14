@@ -69,7 +69,8 @@ class ThermostatRoute(Resource):
             return {
                 "mac": mac,
                 "available_endpoints": [
-                    "status", 
+                    "status",
+                    "poll",
                     "targetTemperature", 
                     "targetHeatingCoolingState"
                 ],
@@ -78,7 +79,18 @@ class ThermostatRoute(Resource):
 
         if resource == 'status':
             return thermostat.get_status(), 200
-        
+
+        elif resource == 'poll':
+            try:
+                await thermostat.poll_status()
+                return thermostat.get_status(), 200
+            except BleakError:
+                logger.error(f"Device with address {mac} was not found")
+                return {"error": f"Device with address {mac} was not found"}, 404
+            except Exception as e:
+                logger.error(f"Poll failed for {mac}: {e}")
+                return {"error": f"Poll failed: {e}"}, 500
+
 
         elif resource == 'targetTemperature':
             if value is None:

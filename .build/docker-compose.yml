@@ -16,3 +16,4 @@ services:
       # - HTTP_PORT=5002
     volumes:
       - /opt/raspberry_extension_server/config:/opt/raspberry_extension_server/config
+      - /var/run/dbus:/var/run/dbus
