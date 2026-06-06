@@ -12,6 +12,8 @@ import math
 import os
 import time
 import subprocess
+import urllib.request
+import urllib.error
 import threading
 from typing import Any, cast
 import logging
@@ -40,6 +42,15 @@ class PowerButtonObject:
         self.led_pin: int = data.get("led_pin", 18)
         self.led_brightness: int = data.get("led_brightness", 150)
         self.led_dma: int = data.get("led_dma", 5)
+        # Host shutdown configuration (can be set via web UI)
+        self.host_shutdown_url: str = data.get(
+            "host_shutdown_url",
+            os.environ.get(
+                'HOST_SHUTDOWN_URL',
+                'http://localhost:5000/api/system/commands/core/reboot'
+            ),
+        )
+        self.host_api_key: str | None = data.get("host_api_key", os.environ.get('HOST_API_KEY'))
 
         self.shutdown_event: Event = Event()
 
@@ -206,17 +217,32 @@ class PowerButtonObject:
         logger.info("Initiating system shutdown...")
         try:
             subprocess.run(['sync'], check=True)
-            if os.geteuid() == 0 and os.path.exists('/var/run/dbus/system_bus_socket'):
-                # Docker with D-Bus mounted: send PowerOff to host's systemd via D-Bus.
-                # This triggers a full graceful shutdown (services stopped, fs unmounted).
-                logger.info("Shutting down via D-Bus (systemd PowerOff)")
-                subprocess.run([
-                    'dbus-send', '--system', '--print-reply',
-                    '--dest=org.freedesktop.systemd1',
-                    '/org/freedesktop/systemd1',
-                    'org.freedesktop.systemd1.Manager.PowerOff'
-                ], check=True)
-            elif os.geteuid() == 0:
+            if os.geteuid() == 0:
+                # Attempt to call configured host shutdown service (useful when running in Docker).
+                if self.host_api_key:
+                    logger.info(f"Shutting down host via HTTP POST to {self.host_shutdown_url}")
+                    try:
+                        req = urllib.request.Request(
+                            self.host_shutdown_url,
+                            data=b'',
+                            method='POST',
+                            headers={
+                                'X-Api-Key': self.host_api_key,
+                                'Content-Type': 'application/json',
+                            },
+                        )
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            status = getattr(resp, 'status', None) or resp.getcode()
+                            logger.info(f"Host shutdown service responded: {status}")
+                            return
+                    except urllib.error.HTTPError as e:
+                        logger.error(f"Host shutdown HTTP error: {e.code} {e.reason}")
+                    except urllib.error.URLError as e:
+                        logger.error(f"Host shutdown URL error: {e}")
+                    except Exception as e:
+                        logger.error(f"Unexpected error calling host shutdown service: {e}")
+                    # If the HTTP call failed, fall through to local shutdown fallback
+                # Fallback to direct shutdown if no API key or HTTP call fails
                 subprocess.run(['/sbin/shutdown', '-h', 'now'], check=True)
             else:
                 subprocess.run(['sudo', '/sbin/shutdown', '-h', 'now'], check=True)
@@ -293,6 +319,8 @@ class PowerButtonObject:
             "led_pin": self.led_pin,
             "led_brightness": self.led_brightness,
             "led_dma": self.led_dma,
+            "host_shutdown_url": self.host_shutdown_url,
+            "host_api_key": self.host_api_key,
         }
 
     def save(self) -> dict[str, Any]:
