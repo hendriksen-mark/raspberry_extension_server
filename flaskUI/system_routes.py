@@ -7,6 +7,7 @@ from subprocess import run
 import os
 import logging
 import logManager
+from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.fan_object import FanObject
 from ServerObjects.klok_object import KlokObject
 from ServerObjects.powerbutton_object import PowerButtonObject
@@ -39,10 +40,10 @@ class SystemRoute(Resource):
                 
                 # Handle thermostats (always a dict of objects)
                 if "thermostats" in serverConfig:
-                    response["thermostats"] = {key: obj.get_all_data() for key, obj in serverConfig["thermostats"].items()}
+                    response["thermostats"] = {key: obj.get_all_data() for key, obj in serverConfig["thermostats"].items() if isinstance(obj, ThermostatObject)}
                 
                 # Handle single objects that might be dicts or objects
-                for resource_name in ["dht", "klok", "fan", "powerbutton"]:
+                for resource_name in ["dht", "klok", "powerbutton"]:
                     if resource_name in serverConfig:
                         resource_obj: Any = serverConfig[resource_name]
                         if hasattr(resource_obj, 'get_all_data'):
@@ -50,8 +51,11 @@ class SystemRoute(Resource):
                         elif hasattr(resource_obj, 'save'):
                             response[resource_name] = resource_obj.save()
                         else:
-                            # If it's still a dict, return it as is
                             response[resource_name] = resource_obj
+
+                # Handle fans (dict of FanObjects)
+                if "fan" in serverConfig:
+                    response["fan"] = {fid: f.get_all_data() for fid, f in serverConfig["fan"].items() if isinstance(f, FanObject)}
                             
                 uname = os.uname()
                 response["config"] = serverConfig["config"]
@@ -82,7 +86,8 @@ class SystemRoute(Resource):
             try:
                 response: dict[str, Any] = {
                     "config": serverConfig["config"],
-                    "thermostats": {key: obj.save() for key, obj in serverConfig["thermostats"].items()} if len(serverConfig.get("thermostats", {})) > 0 else "No Thermostats Configured"
+                    "thermostats": {key: obj.save() for key, obj in serverConfig["thermostats"].items() if isinstance(obj, ThermostatObject)} if len(serverConfig.get("thermostats", {})) > 0 else "No Thermostats Configured",
+                    "fan": {fid: f.save() for fid, f in serverConfig.get("fan", {}).items() if isinstance(f, FanObject)} if len(serverConfig.get("fan", {})) > 0 else "No Fans Configured"
                 }
                 
                 # Handle single objects that might be dicts or objects
@@ -97,12 +102,6 @@ class SystemRoute(Resource):
                     response["klok"] = klok_obj.save() if hasattr(klok_obj, 'save') else klok_obj
                 else:
                     response["klok"] = "Not Configured"
-
-                fan_obj: FanObject | None = serverConfig.get("fan")
-                if fan_obj:
-                    response["fan"] = fan_obj.save() if hasattr(fan_obj, 'save') else fan_obj
-                else:
-                    response["fan"] = "Not Configured"
 
                 powerbutton_obj: PowerButtonObject | None = serverConfig.get("powerbutton")
                 if powerbutton_obj:
