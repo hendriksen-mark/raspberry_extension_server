@@ -182,8 +182,12 @@ class Config:
         Load fan configuration from the YAML file.
         """
         fan_data: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("fan.yaml", {}))
-        if fan_data != {}:
-            self.yaml_config["fan"] = FanObject(fan_data)
+        # Migrate old single-fan format (flat keys, no nested dicts)
+        if fan_data and not any(isinstance(v, dict) for v in fan_data.values()):
+            fan_data = {"1": {**fan_data, "name": "Fan 1"}}
+        for fan_id, data in fan_data.items():
+            data["id"] = fan_id
+            self.yaml_config["fan"][fan_id] = FanObject(data)
 
     def _load_powerbutton(self) -> None:
         """
@@ -281,7 +285,7 @@ class Config:
             dumpDict: dict[str, Any] = {}
 
             # Handle single service objects (not dictionaries)
-            if object in ["dht", "klok", "fan", "powerbutton"]:
+            if object in ["dht", "klok", "powerbutton"]:
                 if object in self.yaml_config and hasattr(self.yaml_config[object], 'save'):
                     savedData: dict[str, Any] = self.yaml_config[object].save()
                     if savedData:
@@ -294,8 +298,8 @@ class Config:
                         continue  # Skip writing the file since we removed it
                     except OSError as e:
                         logger.error(f"Failed to remove config file {filePath}: {e}")
-            elif object in ["thermostats"]:
-                # Handle other objects that are dictionaries (like thermostats)
+            elif object in ["thermostats", "fan"]:
+                # Handle dict-based objects (thermostats and fans)
                 for element in self.yaml_config[object]:
                     if element != "0":
                         savedData: dict[str, Any] = self.yaml_config[object][element].save()

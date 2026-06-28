@@ -5,101 +5,114 @@ import logManager
 from typing import Any
 import configManager
 from ServerObjects.fan_object import FanObject
+from services.utils import nextFreeId
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
 
-def find_fan() -> FanObject | None:
+def find_fan(fan_id: str) -> FanObject | None:
     """
-    Find fan service in server configuration
+    Find a fan by id in server configuration
     """
-    fan = serverConfig.get("fan")
+    fans = serverConfig.get("fan", {})
+    fan = fans.get(fan_id)
     return fan if isinstance(fan, FanObject) else None
 
-def create_fan(postDict: dict[str, Any] = {}) -> FanObject:
+def create_fan(fan_id: str, postDict: dict[str, Any] = {}) -> FanObject:
     """
-    Create a new fan object if it doesn't exist
+    Create a new fan object with the given id
     """
-    if not postDict:
-        logger.warning("No POST data provided, creating default fan object")
-    return FanObject(postDict)
+    if find_fan(fan_id) is not None:
+        raise ValueError(f"Fan with id {fan_id} already exists")
+    data: dict[str, Any] = {"id": fan_id}
+    data.update(postDict)
+    return FanObject(data)
 
 class FanRoute(Resource):
-    def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
+    def get(self, fan_id: str | None = None, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources
         URL patterns:
-        - /fan/
-        - /fan/full_speed
-        - /fan/off  
-        - /fan/status
+        - GET /fan/              - return all fans
+        - GET /fan/<fan_id>      - return specific fan
+        - GET /fan/<fan_id>/full_speed - trigger full speed
         """
-        # Get the fan service
-        fan: FanObject | None = find_fan()
+        if fan_id is None:
+            fans = serverConfig.get("fan", {})
+            return {fid: f.get_all_data() for fid, f in fans.items() if isinstance(f, FanObject)}, 200
 
+        fan: FanObject | None = find_fan(fan_id)
         if fan is None:
-            return {"error": "Fan service not found in server configuration"}, 404
+            return {"error": f"Fan {fan_id} not found"}, 404
 
         if resource == "full_speed":
             fan.setFull()
 
         return fan.get_all_data(), 200
-    
-    def post(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
+
+    def post(self, fan_id: str | None = None, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
-        Update fan configuration
-        URL: /fan/<resource>
+        Create or update fan configuration
+        URL patterns:
+        - POST /fan/         - create new fan (auto-assigns id)
+        - POST /fan/<fan_id> - update existing fan or create with given id
         """
         postDict: dict[str, Any] = request.get_json(force=True) if request.get_data(as_text=True) != "" else {}
         logger.info(f"POST data received: {postDict}")
 
-        fan: FanObject | None = find_fan()
-
-        if fan:
-            logger.info(f"Fan already exists, updating configuration")
-            # Only allow updating certain safe attributes
-            allowed_attributes: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold', 'full_speed_time_duration'}
-            for key, value in postDict.items():
-                if key in allowed_attributes and hasattr(fan, key):
-                    setattr(fan, key, value)
-                elif key not in allowed_attributes:
-                    logger.warning(f"Attempted to set non-allowed attribute: {key}")
-        else:
-            logger.info(f"Fan not found, creating a new one")
+        if fan_id is None:
+            new_id: str = nextFreeId(serverConfig, "fan")
             try:
-                fan = create_fan(postDict)
-                serverConfig["fan"] = fan
+                fan: FanObject = create_fan(new_id, postDict)
+                serverConfig["fan"][new_id] = fan
             except ValueError as e:
                 logger.error(f"Failed to create fan: {e}")
                 return {"error": str(e)}, 400
-
-        if not fan:
-            return {"error": "Fan not found or failed to create fan"}, 500
+        else:
+            fan_or_none: FanObject | None = find_fan(fan_id)
+            if fan_or_none is None:
+                logger.info(f"Fan {fan_id} not found, creating a new one")
+                try:
+                    fan = create_fan(fan_id, postDict)
+                    serverConfig["fan"][fan_id] = fan
+                except ValueError as e:
+                    logger.error(f"Failed to create fan: {e}")
+                    return {"error": str(e)}, 400
+            else:
+                logger.info(f"Fan {fan_id} exists, updating configuration")
+                fan = fan_or_none
+                allowed: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold', 'full_speed_time_duration', 'name'}
+                for key, value in postDict.items():
+                    if key in allowed and hasattr(fan, key):
+                        setattr(fan, key, value)
+                    elif key not in allowed:
+                        logger.warning(f"Attempted to set non-allowed attribute: {key}")
 
         try:
-            logger.info(f"Updated fan configuration: {fan.save()}")
             configManager.serverConfig.save_config(backup=False, resource="fan")
-            return fan.save(), 200
+            return fan.get_all_data(), 200
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
 
-    def delete(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
+    def delete(self, fan_id: str | None = None, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
-        Delete fan service
-        URL: /fan/<resource>
+        Delete a fan
+        URL: DELETE /fan/<fan_id>
         """
-        fan: FanObject | None = find_fan()
-        if fan:
-            try:
-                logger.info("Deleting fan service")
-                del serverConfig["fan"]
-                configManager.serverConfig.save_config(backup=False, resource="fan")
-                return {"success": True}, 200
-            except Exception as e:
-                logger.error(f"Failed to delete fan service: {e}")
-                return {"error": "Failed to delete fan service"}, 500
-        else:
-            logger.error("Fan service not found in server configuration")
-            return {"error": "Fan service not found in server configuration"}, 404
+        if fan_id is None:
+            return {"error": "fan_id required for delete"}, 400
+
+        fan: FanObject | None = find_fan(fan_id)
+        if fan is None:
+            return {"error": f"Fan {fan_id} not found"}, 404
+
+        try:
+            fan.cleanup()
+            del serverConfig["fan"][fan_id]
+            configManager.serverConfig.save_config(backup=False, resource="fan")
+            return {"success": True}, 200
+        except Exception as e:
+            logger.error(f"Failed to delete fan: {e}")
+            return {"error": "Failed to delete fan"}, 500

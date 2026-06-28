@@ -13,6 +13,8 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
     def __init__(self, data: dict[str, Any]) -> None:
+        self.id: str = str(data.get("id") or "")
+        self.name: str = str(data.get("name") or "Fan")
         self.gpio_pin: int = data.get("gpio_pin", 12)
         self.pwm_frequency: int = data.get("pwm_frequency", 25000)  # Default PWM frequency
         self.min_temperature: int = data.get("min_temperature", 25)  # Minimum temperature setting
@@ -94,6 +96,8 @@ class FanObject:
     def get_all_data(self) -> dict[str, Any]:
         """Get all fan service data"""
         return {
+            "id": self.id,
+            "name": self.name,
             "gpio_pin": self.gpio_pin,
             "pwm_frequency": self.pwm_frequency,
             "min_temperature": self.min_temperature,
@@ -106,4 +110,6 @@ class FanObject:
 
     def save(self) -> dict[str, Any]:
         """Save the fan service configuration"""
-        return self.get_all_data()
+        data = self.get_all_data()
+        data.pop("id", None)  # id is stored as the yaml key, not in the value
+        return data

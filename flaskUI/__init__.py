@@ -109,7 +109,8 @@ def create_app(serverConfig) -> Flask:
     api.add_resource(ConfigRoute,       '/config/',
                                         '/config/<string:resource>',                        strict_slashes=False)
     api.add_resource(FanRoute,          '/fan/',
-                                        '/fan/<string:resource>',                           strict_slashes=False)
+                                        '/fan/<string:fan_id>',
+                                        '/fan/<string:fan_id>/<string:resource>',           strict_slashes=False)
     api.add_resource(PowerButtonRoute,  '/powerbutton/',
                                         '/powerbutton/<string:resource>',                   strict_slashes=False)
 

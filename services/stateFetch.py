@@ -163,11 +163,11 @@ def run_fan_service() -> None:
     Placeholder for fan service logic.
     This function should be implemented to control the fan based on temperature.
     """
-    while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set() and "fan" in serverConfig:
+    while serverConfig["config"]["fan"]["enabled"] and not _fan_shutdown.is_set() and serverConfig.get("fan"):
         interval: int = serverConfig["config"]["fan"]["interval"]
         try:
-            fan: FanObject = serverConfig["fan"]
-            if fan:
+            for fan in list(serverConfig["fan"].values()):
+                fan: FanObject = fan
                 fan.run()
         except Exception as e:
             logger.error(f"Error in fan service: {e}")
@@ -184,10 +184,10 @@ def stop_fan_service() -> None:
     """
     _fan_shutdown.set()  # Signal immediate shutdown
     try:
-        fan: FanObject = serverConfig["fan"]
-        if fan:
+        for fan in serverConfig.get("fan", {}).values():
+            fan: FanObject = fan
             fan.cleanup()
-            logger.info("Fan service stopped successfully.")
+        logger.info("Fan service stopped successfully.")
     except Exception as e:
         logger.error(f"Error stopping fan service: {e}")
 
