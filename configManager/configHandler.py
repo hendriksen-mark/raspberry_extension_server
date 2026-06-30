@@ -1,10 +1,13 @@
 from .argumentHandler import parse_arguments
 import os
 import subprocess
+import zipfile
+import tempfile
 import logging
 import logManager
 import yaml
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Optional, cast
 import sys
 from ServerObjects.thermostat_object import ThermostatObject
@@ -333,31 +336,38 @@ class Config:
 
     def download_config(self) -> str:
         """
-        Download the current configuration as a tar file.
+        Download the current configuration as a zip file.
 
         Returns:
-            str: The path to the tar file containing the configuration.
+            str: The path to the zip file containing the configuration.
         """
         self.save_config()
-        subprocess.run(f'tar --exclude=\'config_debug.yaml\' -cvf {self.configDir}/config.tar ' + self.configDir + '/*.yaml', shell=True, capture_output=True, text=True)
-        return f"{self.configDir}/config.tar"
+        zip_path = str(Path(self.configDir) / "config.zip")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for yaml_file in Path(self.configDir).glob("*.yaml"):
+                if yaml_file.name != "config_debug.yaml":
+                    zf.write(yaml_file, yaml_file.name)
+        return zip_path
 
     def download_log(self) -> str:
         """
-        Download the log files as a tar file.
+        Download the log files as a zip file.
 
         Returns:
-            str: The path to the tar file containing the log files.
+            str: The path to the zip file containing the log files.
         """
-        subprocess.run(f'tar -cvf {self.configDir}/server_log.tar {self.runningDir}/*.log*', shell=True, check=True)
-        return f"{self.configDir}/server_log.tar"
+        zip_path = str(Path(self.configDir) / "server_log.zip")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for log_file in Path(self.runningDir).glob("*.log*"):
+                zf.write(log_file, log_file.name)
+        return zip_path
 
     def download_debug(self) -> str:
         """
-        Download the debug information as a tar file.
+        Download the debug information as a zip file.
 
         Returns:
-            str: The path to the tar file containing the debug information.
+            str: The path to the zip file containing the debug information.
         """
         debug: dict[str, Any] = deepcopy(self.yaml_config["config"])
         info: dict[str, Any] = {}
@@ -368,11 +378,20 @@ class Config:
         info["Server Version"] = subprocess.run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
         info["WebUI Version"] = subprocess.run("stat -c %y flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
         info["arguments"] = {k: str(v) for k, v in self.argsDict.items()}
-        _write_yaml(f"{self.configDir}/config_debug.yaml", debug)
-        _write_yaml(f"{self.configDir}/system_info.yaml", info)
-        subprocess.run(f'tar --exclude=\'config.yaml\' -cvf {self.configDir}/config_debug.tar {self.configDir}/*.yaml {self.runningDir}/*.log* ', shell=True, capture_output=True, text=True)
-        subprocess.run(f'rm -r {self.configDir}/config_debug.yaml', check=True)
-        return f"{self.configDir}/config_debug.tar"
+        zip_path = str(Path(self.configDir) / "config_debug.zip")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            _write_yaml(str(temp_path / "config_debug.yaml"), debug)
+            _write_yaml(str(temp_path / "system_info.yaml"), info)
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for yaml_file in Path(self.configDir).glob("*.yaml"):
+                    if yaml_file.name != "config.yaml":
+                        zf.write(yaml_file, yaml_file.name)
+                for temp_file in temp_path.glob("*.yaml"):
+                    zf.write(temp_file, temp_file.name)
+                for log_file in Path(self.runningDir).glob("*.log*"):
+                    zf.write(log_file, log_file.name)
+        return zip_path
 
     def restart_python(self) -> None:
         """
