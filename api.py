@@ -2,45 +2,46 @@
 """
 Main entry point for the Eqiva Smart Radiator Thermostat API
 """
-import logging
-import logManager
-logManager.logger.enable_file_logging()
-import configManager
 from threading import Thread
 import os
 import signal
 from typing import Any
+import logging
 from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
-from flaskUI import create_app
-from services import scheduler, stateFetch, updateManager, LogWS
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+import logManager
+logManager.logger.enable_file_logging()
+from flask_ui import create_app
+from services import log_ws, scheduler, state_fetch, update_manager
+import config_manager
+
+SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 werkzeug_logger: logging.Logger = logManager.logger.get_logger("werkzeug")
 cherrypy_logger: logging.Logger = logManager.logger.get_logger("cherrypy")
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 # Create app using factory pattern (diyHue style)
-app: Flask = create_app(serverConfig)
+app: Flask = create_app(SERVER_CONFIG)
 
-def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
-    logger.debug(f"Starting HTTP server on {BIND_IP}:{HOST_HTTP_PORT}")
-    hostIp = configManager.serverConfig.ip
-    logger.info(f"You can access the server on {hostIp}:{HOST_HTTP_PORT}")
-    app.run(host=BIND_IP, port=HOST_HTTP_PORT)
+def run_http(bind_ip: str, host_http_port: int) -> None:
+    logger.debug(f"Starting HTTP server on {bind_ip}:{host_http_port}")
+    host_ip = SERVER_CONFIG.get("ip", "0.0.0.0")
+    logger.info(f"You can access the server on {host_ip}:{host_http_port}")
+    app.run(host=bind_ip, port=host_http_port)
 
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
     logger.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
 
     # Stop all services immediately using threading events
-    stateFetch.stop_all_services()
+    state_fetch.stop_all_services()
 
     # Clean up specific services
-    stateFetch.disconnectThermostats()
+    state_fetch.disconnect_thermostats()
     scheduler.stop_scheduler()
-    LogWS.stop_ws_server()
+    log_ws.stop_ws_server()
 
     # Give threads a moment to exit gracefully
     import time
@@ -56,18 +57,18 @@ def setup_signal_handlers() -> None:
 def main():
     try:
         setup_signal_handlers()
-        BIND_IP: str = configManager.serverConfig.bindIp
-        HOST_HTTP_PORT: int = configManager.serverConfig.httpPort
-        updateManager.startupCheck()
+        bind_ip: str = SERVER_CONFIG.get("bindIp", "0.0.0.0")
+        host_http_port: int = SERVER_CONFIG.get("httpPort", 5000)
+        update_manager.startup_check()
 
-        Thread(target=stateFetch.syncWithThermostats_threaded).start()
-        Thread(target=stateFetch.run_dht_service).start()
-        Thread(target=stateFetch.run_fan_service).start()
-        Thread(target=stateFetch.run_klok_service).start()
-        Thread(target=stateFetch.run_powerbutton_service).start()
-        Thread(target=scheduler.runScheduler).start()
-        Thread(target=LogWS.start_ws_server).start()
-        runHttp(BIND_IP, HOST_HTTP_PORT)
+        Thread(target=state_fetch.sync_with_thermostats_threaded).start()
+        Thread(target=state_fetch.run_dht_service).start()
+        Thread(target=state_fetch.run_fan_service).start()
+        Thread(target=state_fetch.run_klok_service).start()
+        Thread(target=state_fetch.run_powerbutton_service).start()
+        Thread(target=scheduler.run_scheduler).start()
+        Thread(target=log_ws.start_ws_server).start()
+        run_http(bind_ip, host_http_port)
     except KeyboardInterrupt:
         logger.info("Received KeyboardInterrupt, shutting down gracefully...")
         handle_exit(signal.SIGINT, None)

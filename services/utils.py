@@ -91,18 +91,18 @@ def get_pi_temp() -> float:
 
     raise RuntimeError('Could not get temperature')
 
-def nextFreeId(serverConfig: dict[str, Any], element: str) -> str:
+def next_free_id(server_config: dict[str, Any], element: str) -> str:
     """
     Find the next free ID for a given element in the server configuration.
 
     Args:
-        serverConfig (dict[str, Any]): The server configuration.
+        server_config (dict[str, Any]): The server configuration.
         element (str): The element to find the next free ID for.
 
     Returns:
         str: The next free ID as a string.
     """
     i: int = 1
-    while str(i) in serverConfig[element]:
+    while str(i) in server_config[element]:
         i += 1
     return str(i)

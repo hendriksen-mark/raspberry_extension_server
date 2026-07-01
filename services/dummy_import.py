@@ -1,3 +1,4 @@
+"""Dummy hardware stubs used when running without Raspberry Pi hardware."""
 import random
 import logging
 import importlib
@@ -18,65 +19,60 @@ class DummyGPIO:
     PUD_OFF: str = "PUD_OFF"
 
     @staticmethod
-    def setwarnings(state: bool) -> None:
+    def setwarnings(_state: bool) -> None:
         """Dummy setwarnings"""
-        pass
 
     @staticmethod
-    def setmode(mode: str) -> None:
+    def setmode(_mode: str) -> None:
         """Dummy setmode"""
-        pass
 
     @staticmethod
-    def setup(pin: int, mode: str, pull_up_down: str = "") -> None:
+    def setup(_pin: int, _mode: str, pull_up_down: str = "") -> None:
         """Dummy setup with pull_up_down parameter"""
-        pass
 
     @staticmethod
-    def output(pin: int, state: int) -> None:
+    def output(_pin: int, _state: int) -> None:
         """Dummy output"""
-        pass
 
     @staticmethod
-    def input(pin: int) -> int:
+    def input(_pin: int) -> int:
         """Dummy input"""
         return 0
 
     @staticmethod
-    def cleanup(channel: int | list[int] | tuple[int, ...] = -666) -> None:
+    def cleanup(_channel: int | list[int] | tuple[int, ...] = -666) -> None:
         """Dummy cleanup"""
-        pass
 
 class DummyDHT:
 
     def __init__(self, sensor_type="DHT22"):
-        logger.warning(f"Using DummyDHT")
+        logger.warning("Using DummyDHT")
         self.sensor_type = sensor_type
 
     @staticmethod
-    def read_retry(sensor: int, pin: int) -> tuple[float, float]:
+    def read_retry(_sensor: int, _pin: int) -> tuple[float, float]:
         temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
         humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
         return humidity, temp
 
     @staticmethod
-    def read(sensor: int, pin: int) -> tuple[float, float]:
+    def read(_sensor: int, _pin: int) -> tuple[float, float]:
         temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
         humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
         return humidity, temp
 
     @staticmethod
-    def DHT22(pin: int) -> 'DummyDHT':
+    def DHT22(_pin: int) -> 'DummyDHT': # pylint: disable=invalid-name
         """Return a dummy DHT22 sensor instance"""
         return DummyDHT("DHT22")
 
     @staticmethod
-    def DHT11(pin: int) -> 'DummyDHT':
+    def DHT11(_pin: int) -> 'DummyDHT': # pylint: disable=invalid-name
         """Return a dummy DHT11 sensor instance"""
         return DummyDHT("DHT11")
 
     @staticmethod
-    def DHT21(pin: int) -> 'DummyDHT':
+    def DHT21(_pin: int) -> 'DummyDHT': # pylint: disable=invalid-name
         """Return a dummy DHT21 sensor instance"""
         return DummyDHT("DHT21")
 
@@ -95,7 +91,7 @@ class DummyDHT:
         """Return mock humidity with some variation"""
         return random.uniform(0.0, 100.0)  # Simulate a humidity reading
 
-    def getReal(self):
+    def getReal(self): # pylint: disable=invalid-name
         """Return the real adafruit_dht module if available, otherwise use the dummy class"""
         try:
             return importlib.import_module("adafruit_dht")
@@ -107,17 +103,14 @@ class DummyPigpioInstance:
     def __init__(self) -> None:
         self.connected = True
 
-    def set_PWM_frequency(self, gpio: int, frequency: int) -> None:
+    def set_PWM_frequency(self, gpio: int, frequency: int) -> None: # pylint: disable=invalid-name
         """Dummy PWM frequency setter"""
-        pass
 
-    def set_PWM_dutycycle(self, gpio: int, duty_cycle: int) -> None:
+    def set_PWM_dutycycle(self, gpio: int, duty_cycle: int) -> None: # pylint: disable=invalid-name
         """Dummy PWM duty cycle setter"""
-        pass
 
     def stop(self) -> None:
         """Dummy stop method"""
-        pass
 
 class DummyPigpio:
     @staticmethod
@@ -130,18 +123,17 @@ class DummyBoard:
 
     def __init__(self) -> None:
         """Initialize dummy board"""
-        pass
 
     def __getattr__(self, name: str) -> Any:
-        raise AttributeError(f"Using DummyBoard")
+        raise AttributeError("Using DummyBoard")
 
     @property
-    def DNone(self) -> None:
+    def DNone(self) -> None:  # pylint: disable=invalid-name
         """Return a dummy pin object for DNone"""
         return None
 
 
-def DummyColor(r: int, g: int, b: int, w: int = 0) -> int:
+def DummyColor(r: int, g: int, b: int, w: int = 0) -> int: # pylint: disable=invalid-name
     """Mimic rpi_ws281x.Color – pack WRGB into a single integer."""
     return (w << 24) | (r << 16) | (g << 8) | b
 
@@ -152,12 +144,12 @@ class DummyPixelStrip:
     def __init__(
         self,
         num: int,
-        pin: int,
-        freq_hz: int = 800_000,
-        dma: int = 5,
-        invert: bool = False,
+        _pin: int,
+        _freq_hz: int = 800_000,
+        _dma: int = 5,
+        _invert: bool = False,
         brightness: int = 255,
-        channel: int = 0,
+        _channel: int = 0,
     ) -> None:
         logger.warning("Using DummyPixelStrip (rpi_ws281x not available)")
         self._leds: list[int] = [0] * num
@@ -166,15 +158,15 @@ class DummyPixelStrip:
     def begin(self) -> None:
         pass
 
-    def setPixelColor(self, n: int, color: int) -> None:
+    def setPixelColor(self, n: int, color: int) -> None: # pylint: disable=invalid-name
         if 0 <= n < len(self._leds):
             self._leds[n] = color
 
     def show(self) -> None:
         pass
 
-    def setBrightness(self, brightness: int) -> None:
+    def setBrightness(self, brightness: int) -> None: # pylint: disable=invalid-name
         self._brightness = brightness
 
-    def numPixels(self) -> int:
+    def numPixels(self) -> int: # pylint: disable=invalid-name
         return len(self._leds)

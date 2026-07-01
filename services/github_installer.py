@@ -9,9 +9,9 @@ import requests
 
 import logManager
 
-import configManager
+import config_manager
 
-serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
+SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class GitHubInstaller:
@@ -20,7 +20,7 @@ class GitHubInstaller:
     """
 
     def __init__(self):
-        self.server_path = Path(configManager.serverConfig.runningDir)
+        self.server_path = Path(config_manager.SERVER_CONFIG.runningDir)
         self.temp_dir: Path | None = None
 
     def install_updates(self, state: str, branch: str) -> bool:
@@ -63,7 +63,7 @@ class GitHubInstaller:
         """Install server update from GitHub."""
         try:
             # Set state to transferring while downloading
-            serverConfig["config"]["swupdate2"]["state"] = "transferring"
+            SERVER_CONFIG["config"]["swupdate2"]["state"] = "transferring"
             # Download server archive
             server_url = f"https://github.com/hendriksen-mark/raspberry_extension_server/archive/{branch}.zip"
             temp_dir = self._require_temp_dir()
@@ -74,7 +74,7 @@ class GitHubInstaller:
                 logger.error(f"Failed to download server update from {server_url} to {server_zip_path}")
                 return False
 
-            serverConfig["config"]["swupdate2"]["state"] = "installing"
+            SERVER_CONFIG["config"]["swupdate2"]["state"] = "installing"
 
             # Extract archive
             extract_dir = temp_dir / "server_extract"
@@ -132,7 +132,7 @@ class GitHubInstaller:
         """Install UI update from GitHub releases."""
         try:
             # Set state to transferring while downloading
-            serverConfig["config"]["swupdate2"]["state"] = "transferring"
+            SERVER_CONFIG["config"]["swupdate2"]["state"] = "transferring"
             # Download UI archive
             ui_url = "https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip"
             temp_dir = self._require_temp_dir()
@@ -143,7 +143,7 @@ class GitHubInstaller:
                 logger.error(f"Failed to download UI update from {ui_url} to {ui_zip_path}")
                 return False
 
-            serverConfig["config"]["swupdate2"]["state"] = "installing"
+            SERVER_CONFIG["config"]["swupdate2"]["state"] = "installing"
 
             # Extract UI archive
             ui_extract_dir = temp_dir / "raspberry_extension_server_ui"
@@ -211,7 +211,7 @@ class GitHubInstaller:
     def _download_file(self, url: str, dest_path: Path) -> bool:
         """Download a file from URL to destination path."""
         try:
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True, timeout=30)
             response.raise_for_status()
 
             with open(dest_path, 'wb') as f:
