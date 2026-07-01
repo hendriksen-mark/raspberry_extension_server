@@ -1,8 +1,11 @@
-from flask import request
-from typing import Any
-from flask_restful import Resource
 import logging
+from typing import Any
+
+from flask import request
+from flask_restful import Resource
+
 import logManager
+
 import configManager
 from services.updateManager import githubCheck, githubInstall
 from werkzeug.security import generate_password_hash
@@ -97,11 +100,11 @@ class ConfigRoute(Resource):
                 if users_data[key] == user_info:
                     if "password" in value:
                         serverConfig["config"]["users"][email]["password"] = generate_password_hash(str(value['password']))
-    
+
     def _update_service_config(self, service: str, service_data: dict[str, Any]) -> list[str]:
         """Update service configuration and return list of changes made"""
         changes: list[str] = []
-        
+    
         # Ensure the service config exists
         if service not in serverConfig["config"]:
             serverConfig["config"][service] = {}
@@ -113,7 +116,7 @@ class ConfigRoute(Resource):
             if old_enabled != new_enabled:
                 serverConfig["config"][service]["enabled"] = new_enabled
                 changes.append(f"enabled: {old_enabled} -> {new_enabled}")
-        
+
         # Update interval (if applicable)
         if "interval" in service_data and service in ["thermostats", "dht", "fan", "webserver"]:
             old_interval: float | None = serverConfig["config"][service].get("interval")
@@ -139,5 +142,5 @@ class ConfigRoute(Resource):
                 if old_value != value:
                     serverConfig["config"][service][key] = value
                     changes.append(f"{key}: {old_value} -> {value}")
-        
+
         return changes

@@ -2,15 +2,15 @@
 API module with Flask app factory and resource registration
 Following diyHue architectural patterns
 """
+import os
+import logging
+from typing import Any, cast
 
 from flask import Flask, Request
 from flask_cors import CORS
 from flask_restful import Api
-import os
-import logging
 import logManager
 import flask_login
-from typing import Any, cast
 from flaskUI.core import User  # dummy import for flask_login module
 import configManager
 

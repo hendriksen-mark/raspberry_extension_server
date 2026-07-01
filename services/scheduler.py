@@ -1,10 +1,11 @@
 from datetime import datetime
 from time import sleep
 from typing import Any
+import logging
+
+import logManager
 
 import configManager
-import logging
-import logManager
 from services import updateManager
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
@@ -19,7 +20,7 @@ def runScheduler() -> None:
     """
     global _scheduler_running
     _scheduler_running = True
-    
+
     while _scheduler_running:
 
         if "updatetime" not in serverConfig["config"]["swupdate2"]["autoinstall"]:

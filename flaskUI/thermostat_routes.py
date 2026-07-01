@@ -1,13 +1,17 @@
 """
 HomeKit/Homebridge compatible routes
 """
-from flask import request
-from bleak.exc import BleakError
-from typing import Any
-from flask_restful import Resource
 import logging
+from typing import Any
+
+from flask import request
+from flask_restful import Resource
+from bleak.exc import BleakError
+
 import logManager
+
 import configManager
+
 from services.utils import validate_mac_address, format_mac, nextFreeId, async_route
 from ServerObjects.thermostat_object import ThermostatObject
 
@@ -30,7 +34,7 @@ def create_thermostat(mac: str, postDict: dict[str, Any] | None = None) -> Therm
     """
     if find_thermostat(mac) is not None:
         raise ValueError(f"Thermostat with MAC {mac} already exists")
-    
+
     data: dict[str, Any] = {"mac": mac}
     data["id"] = nextFreeId(serverConfig, "thermostats")
     if postDict:
@@ -99,7 +103,7 @@ class ThermostatRoute(Resource):
                 temp_value = value
             if not temp_value:
                 return {"error": "Temperature value is required as 'value' parameter"}, 400
-            
+
             try:
                 temperature: float = float(temp_value)
                 if not (thermostat.min_temperature <= temperature <= thermostat.max_temperature):
@@ -111,17 +115,17 @@ class ThermostatRoute(Resource):
             try:
                 result: dict[str, Any] = await thermostat.set_temperature(str(temperature))
                 logger.info(f"HomeKit: Set targetTemperature for {mac} to {temperature}: {result}")
-                
+
                 if result["result"] == "ok":
                     return {"success": True, "temperature": temperature}, 200
                 else:
                     return result, 400
-                    
+
             except BleakError:
                 logger.error(f"Device with address {mac} was not found")
                 return {"error": f"Device with address {mac} was not found"}, 404
-            
-    
+
+
         elif resource == 'targetHeatingCoolingState':
             if value is None:
                 mode_value: str | None = request.args.get('value')
@@ -129,19 +133,19 @@ class ThermostatRoute(Resource):
                 mode_value = value
             if not mode_value:
                 return {"error": "Mode value is required as 'value' parameter"}, 400
-            
+
             if mode_value not in ['0', '1', '2', '3']:
                 return {"error": "Mode must be 0 (off), 1 (heat), 2 (cool), or 3 (auto)"}, 400
-            
+
             try:
                 result: dict[str, Any] = await thermostat.set_mode(mode_value)
                 logger.info(f"HomeKit: Set targetHeatingCoolingState for {mac} to {mode_value}: {result}")
-                
+
                 if result["result"] == "ok":
                     return {"success": True, "mode": int(mode_value)}, 200
                 else:
                     return result, 400
-                    
+
             except BleakError:
                 logger.error(f"Device with address {mac} was not found")
                 return {"error": f"Device with address {mac} was not found"}, 404
@@ -156,7 +160,7 @@ class ThermostatRoute(Resource):
         """
         if not validate_mac_address(mac):
             return {"error": "Invalid MAC address format"}, 400
-        
+
         mac = format_mac(mac)
 
         thermostat: ThermostatObject | None = find_thermostat(mac)
@@ -171,7 +175,7 @@ class ThermostatRoute(Resource):
         if thermostat:
             logger.info(f"Thermostat with MAC {mac} already exists, updating it")
             # Only allow updating certain safe attributes
-            allowed_attributes = {'targetHeatingCoolingState', 'targetTemperature', 'min_temperature', 'max_temperature'}
+            allowed_attributes: set[str] = {'targetHeatingCoolingState', 'targetTemperature', 'min_temperature', 'max_temperature'}
             for key, value in postDict.items():
                 if key in allowed_attributes and hasattr(thermostat, key):
                     setattr(thermostat, key, value)

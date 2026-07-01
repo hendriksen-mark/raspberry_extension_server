@@ -54,11 +54,11 @@ def get_pi_temp() -> float:
                 temp_file = os.path.join(zone_path, "temp")
 
                 if os.path.exists(type_file) and os.path.exists(temp_file):
-                    with open(type_file, "r") as f:
+                    with open(type_file, "r", encoding="utf-8") as f:
                         zone_type = f.read().strip().lower()
 
                     if any(kw in zone_type for kw in ["x86_pkg_temp", "cpu-thermal", "soc_thermal", "coretemp"]):
-                        with open(temp_file, "r") as tf:
+                        with open(temp_file, "r", encoding="utf-8") as tf:
                             try:
                                 return round(float(tf.read().strip()) / 1000.0, 2)
                             except ValueError:
@@ -71,7 +71,7 @@ def get_pi_temp() -> float:
                 temp_file = os.path.join(base_path, folder, "temp")
                 if os.path.exists(temp_file):
                     try:
-                        with open(temp_file, "r") as tf:
+                        with open(temp_file, "r", encoding="utf-8") as tf:
                             t = float(tf.read().strip()) / 1000.0
                             if 5.0 < t < 100.0 and t > highest_temp:
                                 highest_temp = t

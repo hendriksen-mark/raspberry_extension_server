@@ -1,12 +1,13 @@
 from typing import Any
+import threading
+import logging
 try:
     import pigpio  # type: ignore
 except (ImportError, RuntimeError):
     from services.dummy_import import DummyPigpio as pigpio  # Import a dummy pigpio class for testing
 
-import logging
 import logManager
-import threading
+
 from services.utils import get_pi_temp
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -56,13 +57,13 @@ class FanObject:
         # Skip normal temperature control if in full speed mode
         if self.is_full_speed_mode:
             return
-            
+
         temp: float = get_pi_temp()
         temp = max(self.min_temperature, min(self.max_temperature, temp))
         # Convert temp to pigpio duty cycle (0-255)
         duty_cycle: int = int(round(self.renormalize(temp, (self.min_temperature, self.max_temperature), (self.min_speed, self.max_speed))))
         self.pi.set_PWM_dutycycle(self.gpio_pin, duty_cycle)
-        
+
         # Only log when temperature changes significantly or this is the first reading
         if self.last_logged_temp is None or abs(temp - self.last_logged_temp) >= self.temp_change_threshold:
             logger.info(f"Fan: Temperature {temp}°C, Duty Cycle {duty_cycle}")
@@ -75,7 +76,7 @@ class FanObject:
         # Cancel any existing timer
         if self.full_speed_timer:
             self.full_speed_timer.cancel()
-        
+
         # Set full speed mode
         self.is_full_speed_mode = True
         self.pi.set_PWM_dutycycle(self.gpio_pin, self.max_speed)

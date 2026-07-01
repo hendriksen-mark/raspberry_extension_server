@@ -1,12 +1,12 @@
 """
 DHT sensor service for temperature and humidity monitoring
 """
-import sys
 from threading import Lock
 import logging
-import logManager
 from typing import Any, Callable, cast
 from time import sleep
+
+import logManager
 
 try:
     import adafruit_dht
@@ -22,7 +22,7 @@ HumidityCallback = Callable[[float], None]
 
 class DHTObject:
     """DHT sensor service for reading temperature and humidity"""
-    
+
     def __init__(self, data: dict[str, Any]) -> None:
         self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
         if self.sensor_type not in ["DHT22", "DHT11"]:
@@ -136,7 +136,7 @@ class DHTObject:
             except Exception as e:
                 error_str = str(e).lower()
                 # These are normal DHT sensor errors that should trigger a retry
-                if ("checksum did not validate" in error_str or 
+                if ("checksum did not validate" in error_str or
                     "full buffer was not returned" in error_str or
                     "try again" in error_str):
                     if attempt < max_retries - 1:
@@ -159,46 +159,46 @@ class DHTObject:
         logger.debug(f"Raw DHT read: temperature={temperature}, humidity={humidity}")
 
         with self.dht_lock:
-                # Only update if values are valid
-                if temperature is not None and self.MIN_DHT_TEMP < temperature < self.MAX_DHT_TEMP:
-                    rounded_temp: float = round(float(temperature), 1)
-                    logged_info = False
-                    if self.latest_temperature != rounded_temp:
-                        self.latest_temperature = rounded_temp
-                        # Only log when temperature changes significantly or this is the first reading
-                        if (self.last_logged_dht_temp is None or 
-                            abs(rounded_temp - self.last_logged_dht_temp) >= self.DHT_TEMP_CHANGE_THRESHOLD):
-                            logger.info(f"Updated temperature: {self.latest_temperature}°C")
-                            self.last_logged_dht_temp = rounded_temp
-                            # Notify callbacks about temperature change
-                            self._notify_temperature_callbacks(rounded_temp)
-                            logged_info = True
+            # Only update if values are valid
+            if temperature is not None and self.MIN_DHT_TEMP < temperature < self.MAX_DHT_TEMP:
+                rounded_temp: float = round(float(temperature), 1)
+                logged_info = False
+                if self.latest_temperature != rounded_temp:
+                    self.latest_temperature = rounded_temp
+                    # Only log when temperature changes significantly or this is the first reading
+                    if (self.last_logged_dht_temp is None or
+                        abs(rounded_temp - self.last_logged_dht_temp) >= self.DHT_TEMP_CHANGE_THRESHOLD):
+                        logger.info(f"Updated temperature: {self.latest_temperature}°C")
+                        self.last_logged_dht_temp = rounded_temp
+                        # Notify callbacks about temperature change
+                        self._notify_temperature_callbacks(rounded_temp)
+                        logged_info = True
 
-                    # Always log current temperature for debugging (unless we just logged at info level)
-                    if not logged_info:
-                        logger.debug(f"Temperature: {rounded_temp}°C")
-                else:
-                    logger.error("Temperature value not updated (None or out of range)")
+                # Always log current temperature for debugging (unless we just logged at info level)
+                if not logged_info:
+                    logger.debug(f"Temperature: {rounded_temp}°C")
+            else:
+                logger.error("Temperature value not updated (None or out of range)")
 
-                if humidity is not None and self.MIN_HUMIDITY <= humidity <= self.MAX_HUMIDITY:
-                    rounded_humidity: float = round(float(humidity), 1)
-                    logged_info = False
-                    if self.latest_humidity != rounded_humidity:
-                        self.latest_humidity = rounded_humidity
-                        # Only log when humidity changes significantly or this is the first reading
-                        if (self.last_logged_dht_humidity is None or 
-                            abs(rounded_humidity - self.last_logged_dht_humidity) >= self.DHT_HUMIDITY_CHANGE_THRESHOLD):
-                            logger.info(f"Updated humidity: {self.latest_humidity}%")
-                            self.last_logged_dht_humidity = rounded_humidity
-                            # Notify callbacks about humidity change
-                            self._notify_humidity_callbacks(rounded_humidity)
-                            logged_info = True
+            if humidity is not None and self.MIN_HUMIDITY <= humidity <= self.MAX_HUMIDITY:
+                rounded_humidity: float = round(float(humidity), 1)
+                logged_info = False
+                if self.latest_humidity != rounded_humidity:
+                    self.latest_humidity = rounded_humidity
+                    # Only log when humidity changes significantly or this is the first reading
+                    if (self.last_logged_dht_humidity is None or
+                        abs(rounded_humidity - self.last_logged_dht_humidity) >= self.DHT_HUMIDITY_CHANGE_THRESHOLD):
+                        logger.info(f"Updated humidity: {self.latest_humidity}%")
+                        self.last_logged_dht_humidity = rounded_humidity
+                        # Notify callbacks about humidity change
+                        self._notify_humidity_callbacks(rounded_humidity)
+                        logged_info = True
 
-                    # Always log current humidity for debugging (unless we just logged at info level)
-                    if not logged_info:
-                        logger.debug(f"Humidity: {rounded_humidity}%")
-                else:
-                    logger.error("Humidity value not updated (None or out of range)")
+                # Always log current humidity for debugging (unless we just logged at info level)
+                if not logged_info:
+                    logger.debug(f"Humidity: {rounded_humidity}%")
+            else:
+                logger.error("Humidity value not updated (None or out of range)")
 
     def get_all_data(self) -> dict[str, Any]:
         """Get all DHT data as a dictionary"""

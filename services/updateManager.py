@@ -1,11 +1,13 @@
-import requests
-import subprocess
+import os
 from datetime import datetime, timezone
-from typing import Any, List
+from typing import Any
+
+import logging
+import requests
+
+import logManager
 
 import configManager
-import logging
-import logManager
 from .github_installer import install_github_updates
 
 serverConfig: dict[str, Any] = configManager.serverConfig.yaml_config
@@ -60,13 +62,11 @@ def get_file_creation_time(filepath: str) -> str:
         str: The creation time of the file in the format "%Y-%m-%d %H".
     """
     try:
-        creation_time = subprocess.run(f"stat -c %y {filepath}", shell=True, capture_output=True, text=True)
-        creation_time_text: str = creation_time.stdout if creation_time.stdout else "2999-01-01 01:01:01 000000000 +0100\n"
-        creation_time_arg1: list[str] = creation_time_text.replace(".", " ").split(" ")
-        return parse_creation_time(creation_time_arg1)
-    except subprocess.SubprocessError as e:
+        mtime: float = os.stat(filepath).st_mtime
+        return datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d %H")
+    except OSError as e:
         logger.error(f"Error getting file creation time: {e}")
-        return "2999-01-01 01:01:01"
+        return "2999-01-01 01"
 
 def get_github_publish_time(url: str) -> str:
     """
@@ -79,7 +79,7 @@ def get_github_publish_time(url: str) -> str:
         str: The publish time in the format "%Y-%m-%d %H".
     """
     try:
-        response: requests.Response = requests.get(url)
+        response: requests.Response = requests.get(url, timeout=10)
         response.raise_for_status()
         device_data: dict[str, Any] = response.json()
         if "commit" in device_data:
@@ -93,27 +93,6 @@ def get_github_publish_time(url: str) -> str:
         # Set state to unknown when there's no connection to update server
         serverConfig["config"]["swupdate2"]["state"] = "unknown"
         return "1970-01-01 00:00:00"
-
-def parse_creation_time(creation_time_arg1: List[str]) -> str:
-    """
-    Parse the creation time from the output of the stat command.
-    
-    Args:
-        creation_time_arg1 (List[str]): The list of strings representing the creation time.
-    
-    Returns:
-        str: The parsed creation time in the format "%Y-%m-%d %H".
-    """
-    try:
-        if len(creation_time_arg1) < 4:
-            creation_time: str = f"{creation_time_arg1[0]} {creation_time_arg1[1]}".replace('\n', '')
-            return datetime.strptime(creation_time, "%Y-%m-%d %H:%M:%S").astimezone(timezone.utc).strftime("%Y-%m-%d %H")
-        else:
-            creation_time: str = f"{creation_time_arg1[0]} {creation_time_arg1[1]} {creation_time_arg1[3]}".replace('\n', '')
-            return datetime.strptime(creation_time, "%Y-%m-%d %H:%M:%S %z").astimezone(timezone.utc).strftime("%Y-%m-%d %H")
-    except ValueError as e:
-        logger.error(f"Error parsing creation time: {e}")
-        return "2999-01-01 01:01:01"
 
 def update_swupdate2_timestamps() -> None:
     """

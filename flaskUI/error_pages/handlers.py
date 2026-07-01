@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template
 from typing import Tuple
+from flask import Blueprint, render_template
 
 error_pages: Blueprint = Blueprint('error_pages', __name__)
 

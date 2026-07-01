@@ -1,11 +1,12 @@
 """
 System and configuration routes
 """
-from typing import Any, cast
-from flask_restful import Resource
-from subprocess import run
+from typing import Any
 import os
 import logging
+from datetime import datetime, timezone
+from flask_restful import Resource
+
 import logManager
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.fan_object import FanObject
@@ -32,16 +33,15 @@ class SystemRoute(Resource):
             except RuntimeError as e:
                 logger.error(f"Error reading Pi temperature: {e}")
                 return {"error": "Could not read Pi temperature"}, 503
-            
+
         elif resource == "all":
             try:
-                getResources: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
                 response: dict[str, Any] = {}
-                
+
                 # Handle thermostats (always a dict of objects)
                 if "thermostats" in serverConfig:
                     response["thermostats"] = {key: obj.get_all_data() for key, obj in serverConfig["thermostats"].items() if isinstance(obj, ThermostatObject)}
-                
+
                 # Handle single objects that might be dicts or objects
                 for resource_name in ["dht", "klok", "powerbutton"]:
                     if resource_name in serverConfig:
@@ -56,29 +56,29 @@ class SystemRoute(Resource):
                 # Handle fans (dict of FanObjects)
                 if "fan" in serverConfig:
                     response["fan"] = {fid: f.get_all_data() for fid, f in serverConfig["fan"].items() if isinstance(f, FanObject)}
-                            
+
                 uname = os.uname()
                 response["config"] = serverConfig["config"]
                 response["pi_temp"] = get_pi_temp() if uname.sysname == "Linux" else "Unsupported OS"
-                
+
                 # Build stat command based on OS
                 stat_flag = "-c %y" if uname.sysname == "Linux" else "-f %Sm"
-                server_cmd = f"stat {stat_flag} {configManager.serverConfig.runningDir}/api.py"
-                webui_cmd = f"stat {stat_flag} {configManager.serverConfig.runningDir}/flaskUI/templates/index.html"
+                server_file = f"{configManager.serverConfig.runningDir}/api.py"
+                webui_file = f"{configManager.serverConfig.runningDir}/flaskUI/templates/index.html"
 
                 response["info"] = {
                         "sysname": uname.sysname,
                         "machine": uname.machine,
                         "os_version": uname.version,
                         "os_release": uname.release,
-                        "server": run(server_cmd, shell=True, capture_output=True, text=True).stdout.strip(),
-                        "webui": run(webui_cmd, shell=True, capture_output=True, text=True).stdout.strip()
+                        "server": datetime.fromtimestamp(os.stat(server_file).st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        "webui": datetime.fromtimestamp(os.stat(webui_file).st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                     }
                 return response, 200
             except Exception as e:
                 logger.error(f"Error getting all system info: {e}")
                 return {"error": "Failed to retrieve system information"}, 500
-        
+
         elif resource == "health":
             return health_check()
 
@@ -89,7 +89,7 @@ class SystemRoute(Resource):
                     "thermostats": {key: obj.save() for key, obj in serverConfig["thermostats"].items() if isinstance(obj, ThermostatObject)} if len(serverConfig.get("thermostats", {})) > 0 else "No Thermostats Configured",
                     "fan": {fid: f.save() for fid, f in serverConfig.get("fan", {}).items() if isinstance(f, FanObject)} if len(serverConfig.get("fan", {})) > 0 else "No Fans Configured"
                 }
-                
+
                 # Handle single objects that might be dicts or objects
                 dht_obj: DHTObject | None = serverConfig.get("dht")
                 if dht_obj:

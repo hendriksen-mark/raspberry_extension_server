@@ -1,8 +1,10 @@
 import logging
-import logManager
 from typing import Any
 from datetime import datetime
 import time
+
+import logManager
+
 from services.tm1637 import TM1637
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -70,7 +72,7 @@ class KlokObject:
     def get_brightness_percent(self) -> int:
         """Get brightness as percentage"""
         return int(self.brightness * 100)
-    
+
     def get_all_data(self) -> dict[str, Any]:
         """Get all klok service data"""
         return {

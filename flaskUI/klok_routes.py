@@ -1,8 +1,11 @@
-from flask import request
-from typing import Any
-from flask_restful import Resource
 import logging
+from typing import Any
+
+from flask import request
+from flask_restful import Resource
+
 import logManager
+
 import configManager
 from ServerObjects.klok_object import KlokObject
 
@@ -49,12 +52,12 @@ class KlokRoute(Resource):
                 ],
                 "description": "Klok (clock) control endpoints"
             }, 200
-            
+
         # Validate request type
         valid_resources: list[str] = ["on", "off", "status", "Bri", "infoBri"]
         if resource not in valid_resources:
             return {"error": "Invalid request type. Valid types are: " + ", ".join(valid_resources)}, 400
-        
+
         # Get value from URL parameter or query string
         value_param: str | None = value if value is not None else request.args.get("value")
 
@@ -70,15 +73,15 @@ class KlokRoute(Resource):
         if resource == "on":
             klok.set_power(True)
             return {"status": "on"}, 200
-            
+
         elif resource == "off":
             klok.set_power(False)
             return {"status": "off"}, 200
-            
+
         elif resource == "status":
             state: int = 1 if klok.power_state else 0
             return str(state), 200
-            
+
         elif resource == "Bri":
             if value_param is not None:
                 try:
@@ -89,11 +92,11 @@ class KlokRoute(Resource):
                     return {"error": "Invalid brightness value"}, 400
             else:
                 return {"error": "Brightness value is required"}, 400
-                
+
         elif resource == "infoBri":
             bri_percent: int = klok.get_brightness_percent()
             return str(bri_percent), 200
-        
+
         return klok.get_all_data(), 200
 
     def post(self, resource: str | None = None, value: str | None = None) -> tuple[dict[str, Any], int]:
@@ -139,7 +142,7 @@ class KlokRoute(Resource):
         """
         Handle DELETE requests for klok resources
         URL: /klok
-        """ 
+        """
         klok: KlokObject | None = find_klok()
         if klok:
             try:

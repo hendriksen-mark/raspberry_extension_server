@@ -4,10 +4,11 @@ Thermostat service for managing thermostat operations
 import asyncio
 from time import localtime, strftime
 from typing import Any, TypedDict, cast
+import logging
+
 from bleak.exc import BleakError
 
 from eqiva_thermostat import Thermostat, Temperature, EqivaException
-import logging
 import logManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)

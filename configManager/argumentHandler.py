@@ -1,10 +1,11 @@
 import argparse
 import socket
 import logging
-import logManager
 from os import getenv
 from typing import Union, Optional, Any
 import pathlib
+
+import logManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
@@ -62,7 +63,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     """
     argumentDict: dict[str, Union[str, int, bool]] = {
         "BIND_IP": '0.0.0.0', "HOST_IP": '', "HTTP_PORT": 5002,
-        "FULLMAC": '', "MAC": '', "DEBUG": False, "BRANCH": '',
+        "DEBUG": False, "BRANCH": '',
     }
     ap = argparse.ArgumentParser(description="Raspberry Extension Server Argument Handler")
 
@@ -79,7 +80,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
     argumentDict["DEBUG"] = args.debug or (debug_env if isinstance(debug_env, bool) else False)
     argumentDict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/raspberry_extension_server/config'
     argumentDict["BIND_IP"] = args.bind_ip or get_environment_variable('BIND_IP') or '0.0.0.0'
-    
+
     # Handle HOST_IP with proper type narrowing
     host_ip_value: str | None = None
     if isinstance(args.ip, str):
@@ -96,7 +97,7 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
         fallback = getIpAddress()
         host_ip_value = fallback if fallback else '0.0.0.0'
     argumentDict["HOST_IP"] = host_ip_value
-    
+
     # Handle HTTP_PORT with proper type narrowing
     http_port_value: int | None = None
     if isinstance(args.http_port, int):

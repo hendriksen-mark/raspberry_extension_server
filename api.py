@@ -33,19 +33,19 @@ def runHttp(BIND_IP: str, HOST_HTTP_PORT: int) -> None:
 def handle_exit(signum: int, frame: Any) -> None:
     """Handle exit signals"""
     logger.info(f"Received signal {signum} on {frame}, shutting down gracefully...")
-    
+
     # Stop all services immediately using threading events
     stateFetch.stop_all_services()
-    
+
     # Clean up specific services
     stateFetch.disconnectThermostats()
     scheduler.stop_scheduler()
     LogWS.stop_ws_server()
-    
+
     # Give threads a moment to exit gracefully
     import time
     time.sleep(2)
-    
+
     os._exit(0)
 
 def setup_signal_handlers() -> None:

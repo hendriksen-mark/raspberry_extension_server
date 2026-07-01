@@ -1,10 +1,13 @@
-from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-from ws4py.websocket import WebSocket
-import cherrypy
 import threading
 import time
 import logging
+
+from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+from ws4py.websocket import WebSocket
+import cherrypy
+
 import logManager
+
 import configManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
@@ -62,19 +65,19 @@ def start_ws_server() -> None:
         autoreload = getattr(cherrypy.engine, "autoreload", None)
         if autoreload is not None:
             autoreload.unsubscribe()
-        
+
         # Check if port is available
         import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('0.0.0.0', 9000))
         sock.close()
-        
+
         if result == 0:
             logger.warning("Port 9000 appears to be already in use")
             raise RuntimeError("Port 9000 is already in use. Please stop the service using this port before starting the WebSocket server.")
 
         _server_running = True
-        
+
         # This is a blocking call - the server runs here
         cherrypy.quickstart(Root(), '/', config={
             '/ws': {

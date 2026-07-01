@@ -1,8 +1,11 @@
 import logging
+from typing import Any
+
 from flask import request
 from flask_restful import Resource
+
 import logManager
-from typing import Any
+
 import configManager
 from ServerObjects.fan_object import FanObject
 from services.utils import nextFreeId

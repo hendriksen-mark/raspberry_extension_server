@@ -2,10 +2,13 @@
 DHT sensor related routes
 """
 import logging
+from typing import Any
+
 from flask import request
 from flask_restful import Resource
+
 import logManager
-from typing import Any
+
 import configManager
 from ServerObjects.dht_object import DHTObject
 
@@ -29,14 +32,14 @@ def create_dht(postDict: dict[str, Any] = {}) -> DHTObject:
     return DHTObject(postDict)
 
 def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
-        """
-        Return default sensor data with a warning message
-        """
-        return {
-            "temperature": 22.0,  # Default temperature
-            "humidity": 50.0,     # Default humidity
-            "warning": warning_message
-        }, 200
+    """
+    Return default sensor data with a warning message
+    """
+    return {
+        "temperature": 22.0,  # Default temperature
+        "humidity": 50.0,     # Default humidity
+        "warning": warning_message
+    }, 200
 
 class DHTRoute(Resource):
     def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
@@ -49,7 +52,7 @@ class DHTRoute(Resource):
         if dht is None:
             logger.error("DHT service not found in server configuration, returning default values")
             return get_default_sensor_data("DHT sensor not configured")
-        
+
         if resource == "info":
             # Return DHT configuration info
             try:
@@ -62,7 +65,7 @@ class DHTRoute(Resource):
             except Exception as e:
                 logger.error(f"Failed to retrieve DHT info: {e}")
                 return {"error": "Failed to retrieve DHT info"}, 500
-        
+
         else:
             pin: int | None = dht.get_pin()
             # If no pin is set at all, return default values
@@ -76,7 +79,7 @@ class DHTRoute(Resource):
             if temp is None or hum is None:
                 logger.warning("DHT sensor data not available, returning default values")
                 return get_default_sensor_data("DHT sensor data not available")
-            
+
             logger.info(f"Returning DHT data")
             logger.debug(f"Temperature: {temp}°C, Humidity: {hum}%, Pin: {pin}")
 
@@ -122,7 +125,7 @@ class DHTRoute(Resource):
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             return {"error": "Failed to save configuration"}, 500
-        
+
     def delete(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Delete DHT sensor configuration

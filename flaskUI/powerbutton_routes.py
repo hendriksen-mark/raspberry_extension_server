@@ -1,8 +1,11 @@
 import logging
+from typing import Any
+
 from flask import request
 from flask_restful import Resource
+
 import logManager
-from typing import Any
+
 import configManager
 from ServerObjects.powerbutton_object import PowerButtonObject
 
@@ -34,7 +37,7 @@ class PowerButtonRoute(Resource):
 
         if powerbutton is None:
             return {"error": "PowerButton service not found in server configuration"}, 404
-            
+
         return powerbutton.get_all_data(), 200
 
     def post(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
@@ -72,10 +75,10 @@ class PowerButtonRoute(Resource):
             except ValueError as e:
                 logger.error(f"Failed to create powerbutton: {e}")
                 return {"error": str(e)}, 400
-        
+
         if not powerButton:
             return {"error": "PowerButton not found or failed to create PowerButton"}, 500
-        
+
         try:
             logger.info(f"Updated PowerButton configuration: {powerButton.save()}")
             configManager.serverConfig.save_config(backup=False, resource="powerbutton")

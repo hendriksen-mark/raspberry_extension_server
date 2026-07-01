@@ -1,13 +1,13 @@
 from typing import Any
-from bleak.exc import BleakError
 import asyncio
 import threading
+import logging
+from bleak.exc import BleakError
 
 from eqiva_thermostat import EqivaException
+import logManager
 
 import configManager
-import logging
-import logManager
 from ServerObjects.dht_object import DHTObject
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.fan_object import FanObject
@@ -42,11 +42,11 @@ async def syncWithThermostats() -> None:
     Synchronize the state of the thermostats with their actual state.
     """
     _ensure_async_event_loop()  # Ensure async event is valid for this loop
-    
+
     while serverConfig["config"]["thermostats"]["enabled"] and not _thermostat_shutdown.is_set():
         logger.debug("start thermostats sync")
         interval: int = serverConfig["config"]["thermostats"]["interval"]
-        
+
         for thermostat in serverConfig["thermostats"].values():
             if _thermostat_shutdown.is_set():
                 break
@@ -106,7 +106,7 @@ def disconnectThermostats() -> None:
     """
     loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
     async def cleanup_all():
         tasks: list[asyncio.Task[None]] = []
         for thermostat in serverConfig["thermostats"].values():
@@ -119,13 +119,13 @@ def disconnectThermostats() -> None:
                 tasks.append(task)
             except Exception as e:
                 logger.error(f"Cleanup: Error preparing disconnect for {thermostat.mac}: {e}")
-        
+
         if tasks:
             try:
                 await asyncio.gather(*tasks, return_exceptions=True)
             except Exception as e:
                 logger.error(f"Cleanup: Error during gather: {e}")
-    
+
     try:
         logger.info("Disconnecting all thermostats...")
         loop.run_until_complete(cleanup_all())
@@ -136,7 +136,7 @@ def disconnectThermostats() -> None:
             loop.close()
         except Exception as e:
             logger.error(f"Cleanup: Error closing loop: {e}")
-    
+
     logger.info("Cleanup: All thermostats disconnected.")
 
 def run_dht_service() -> None:
@@ -152,7 +152,7 @@ def run_dht_service() -> None:
                 dht._read_dht_temperature()
         except Exception as e:
             logger.error(f"Error reading DHT temperature: {e}")
-        
+
         # Use event.wait() instead of sleep loops for immediate shutdown
         if _dht_shutdown.wait(timeout=max(5, interval)):
             # Event was set - shutdown requested
@@ -171,7 +171,7 @@ def run_fan_service() -> None:
                 fan.run()
         except Exception as e:
             logger.error(f"Error in fan service: {e}")
-        
+
         # Use event.wait() instead of sleep loops for immediate shutdown
         if _fan_shutdown.wait(timeout=max(5, interval)):
             # Event was set - shutdown requested
@@ -203,7 +203,7 @@ def run_klok_service() -> None:
                 klok.show()
         except Exception as e:
             logger.error(f"Error in klok service: {e}")
-        
+
         # Use event.wait() with shorter timeout for responsive doublepoint updates
         if _klok_shutdown.wait(timeout=0.1):
             # Event was set - shutdown requested
@@ -235,7 +235,7 @@ def run_powerbutton_service() -> None:
                 powerbutton.run()
         except Exception as e:
             logger.error(f"Error in power button service: {e}")
-        
+
         # Use event.wait() instead of sleep for immediate shutdown
         if _powerbutton_shutdown.wait(timeout=0.1):
             # Event was set - shutdown requested

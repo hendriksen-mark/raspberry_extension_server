@@ -17,8 +17,8 @@ import urllib.error
 import threading
 from typing import Any, cast
 import logging
-import logManager
 from threading import Event
+import logManager
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 

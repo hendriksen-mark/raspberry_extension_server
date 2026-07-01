@@ -1,20 +1,24 @@
-from .argumentHandler import parse_arguments
+
+from pathlib import Path
+from typing import Any, Optional, cast
+import sys
 import os
+from datetime import datetime, timezone
 import subprocess
 import zipfile
 import tempfile
 import logging
-import logManager
 import yaml
 from copy import deepcopy
-from pathlib import Path
-from typing import Any, Optional, cast
-import sys
+
+import logManager
+
 from ServerObjects.thermostat_object import ThermostatObject
 from ServerObjects.dht_object import DHTObject
 from ServerObjects.klok_object import KlokObject
 from ServerObjects.fan_object import FanObject
 from ServerObjects.powerbutton_object import PowerButtonObject
+from .argumentHandler import parse_arguments
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
@@ -124,7 +128,7 @@ class Config:
         Upgrade the configuration if necessary.
 
         Args:
-            config (Dict[str, Any]): The configuration dictionary.
+            config (dict[str, Any]): The configuration dictionary.
 
         Returns:
             dict[str, Any]: The upgraded configuration dictionary.
@@ -132,7 +136,7 @@ class Config:
         # Only set branch to default if it's missing (new installation)
         if "branch" not in config["system"]:
             config["system"]["branch"] = "main"
-        
+
         if "loglevel" not in config["system"] or config["system"]["loglevel"] != ("DEBUG" if self.argDebug else "INFO"):
             config["system"]["loglevel"] = "DEBUG" if self.argDebug else "INFO"
         logManager.logger.configure_logger(config["system"]["loglevel"])
@@ -210,7 +214,7 @@ class Config:
         if dht_obj is None:
             logger.debug("No DHT object found, skipping callback setup")
             return
-        
+
         def handle_temperature_update(temperature: float) -> None:
             """Handle temperature updates from DHT sensor"""
             for thermostat in self.yaml_config["thermostats"].values():
@@ -219,7 +223,7 @@ class Config:
                     thermostat.update_dht_related_status(temperature=temperature)
                 except Exception as e:
                     logger.error(f"Error updating thermostat with temperature {temperature}: {e}")
-        
+
         def handle_humidity_update(humidity: float) -> None:
             """Handle humidity updates from DHT sensor"""
             for thermostat in self.yaml_config["thermostats"].values():
@@ -228,7 +232,7 @@ class Config:
                     thermostat.update_dht_related_status(humidity=humidity)
                 except Exception as e:
                     logger.error(f"Error updating thermostat with humidity {humidity}: {e}")
-        
+
         # Register the callbacks
         dht_obj.register_temperature_callback(handle_temperature_update)
         dht_obj.register_humidity_callback(handle_humidity_update)
@@ -249,7 +253,7 @@ class Config:
             self._load_klok()
             self._load_fan()
             self._load_powerbutton()
-            
+
             # Set up DHT callbacks after all objects are loaded
             self._setup_dht_callbacks()
 
@@ -308,7 +312,7 @@ class Config:
                         savedData: dict[str, Any] = self.yaml_config[object][element].save()
                         if savedData:
                             dumpDict[self.yaml_config[object][element].id] = savedData
-            
+
             _write_yaml(filePath, dumpDict)
             logger.debug("Dump config file " + filePath)
 
@@ -375,8 +379,8 @@ class Config:
         info["Architecture"] = os.uname().machine
         info["os_version"] = os.uname().version
         info["os_release"] = os.uname().release
-        info["Server Version"] = subprocess.run("stat -c %y api.py", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
-        info["WebUI Version"] = subprocess.run("stat -c %y flaskUI/templates/index.html", shell=True, capture_output=True, text=True).stdout.replace("\n", "")
+        info["Server Version"] = datetime.fromtimestamp(os.stat("api.py").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        info["WebUI Version"] = datetime.fromtimestamp(os.stat("flaskUI/templates/index.html").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         info["arguments"] = {k: str(v) for k, v in self.argsDict.items()}
         zip_path = str(Path(self.configDir) / "config_debug.zip")
         with tempfile.TemporaryDirectory() as temp_dir:
