@@ -100,10 +100,10 @@ class GitHubInstaller:
 
             # Copy server files
             files_to_copy = [
-                "flaskUI",
-                "ServerObjects", 
+                "flask_ui",
+                "server_objects", 
                 "services",
-                "configManager",
+                "config_manager",
                 "api.py"
             ]
 
@@ -164,7 +164,7 @@ class GitHubInstaller:
 
             # Copy index.html
             index_source = ui_source / "index.html"
-            index_dest = self.server_path / "flaskUI" / "templates" / "index.html"
+            index_dest = self.server_path / "flask_ui" / "templates" / "index.html"
             if index_source.exists():
                 shutil.copy2(index_source, index_dest)
                 logger.debug("Copied UI index.html")
@@ -173,7 +173,7 @@ class GitHubInstaller:
 
             # Copy assets (merge instead of replace to preserve existing server assets)
             assets_source = ui_source / "assets"
-            assets_dest = self.server_path / "flaskUI" / "assets"
+            assets_dest = self.server_path / "flask_ui" / "assets"
             if assets_source.exists():
                 # Ensure destination directory exists
                 assets_dest.mkdir(parents=True, exist_ok=True)

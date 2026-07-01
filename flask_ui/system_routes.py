@@ -63,7 +63,7 @@ class SystemRoute(Resource):
 
                 # Build stat command based on OS (unused, using os.stat directly)
                 server_file = f"{config_manager.SERVER_CONFIG.runningDir}/api.py"
-                webui_file = f"{config_manager.SERVER_CONFIG.runningDir}/flaskUI/templates/index.html"
+                webui_file = f"{config_manager.SERVER_CONFIG.runningDir}/flask_ui/templates/index.html"
 
                 response["info"] = {
                         "sysname": uname.sysname,

@@ -23,8 +23,8 @@ def create_app(server_config) -> Flask:
     """
     root_dir: str = config_manager.SERVER_CONFIG.runningDir
 
-    template_dir: str = os.path.join(root_dir, 'flaskUI', 'templates')
-    static_dir: str = os.path.join(root_dir, 'flaskUI', 'assets')
+    template_dir: str = os.path.join(root_dir, 'flask_ui', 'templates')
+    static_dir: str = os.path.join(root_dir, 'flask_ui', 'assets')
 
     if not os.path.exists(template_dir):
         logger.error(f"Template directory {template_dir} does not exist.")

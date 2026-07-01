@@ -163,6 +163,7 @@ cython_debug/
 status_store.yaml
 .DS_Store
 flask_ui/assets
-/config*
+/config/
+/config_backup/
 *.log*
 flask_ui/templates/index.html

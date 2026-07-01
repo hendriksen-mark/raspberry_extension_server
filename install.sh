@@ -161,18 +161,18 @@ if [ "$installMethod" == "host" ]; then
   fi
 
 
-  sudo cp -r flaskUI /opt/raspberry_extension_server/
-  sudo cp -r ServerObjects /opt/raspberry_extension_server/
+  sudo cp -r flask_ui /opt/raspberry_extension_server/
+  sudo cp -r server_objects /opt/raspberry_extension_server/
   sudo cp -r services /opt/raspberry_extension_server/
-  sudo cp -r configManager /opt/raspberry_extension_server/
+  sudo cp -r config_manager /opt/raspberry_extension_server/
   sudo cp -r api.py /opt/raspberry_extension_server/
 
   # Copy web interface files
 
   curl -sL https://github.com/hendriksen-mark/raspberry_extension_server_ui/releases/latest/download/raspberry_extension_server_ui-release.zip -o serverUI.zip
   unzip -qo serverUI.zip
-  sudo mv dist/index.html /opt/raspberry_extension_server/flaskUI/templates/
-  sudo cp -r dist/assets /opt/raspberry_extension_server/flaskUI/
+  sudo mv dist/index.html /opt/raspberry_extension_server/flask_ui/templates/
+  sudo cp -r dist/assets /opt/raspberry_extension_server/flask_ui/
   sudo rm -r dist serverUI.zip
 
   updateConfig

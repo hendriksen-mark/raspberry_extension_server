@@ -152,7 +152,7 @@ def info() -> dict[str, str]:
         "os_version": uname.version,
         "os_release": uname.release,
         "server": datetime.fromtimestamp(os.stat("api.py").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "webui": datetime.fromtimestamp(os.stat("flaskUI/templates/index.html").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        "webui": datetime.fromtimestamp(os.stat("flask_ui/templates/index.html").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     }
 
 @core.route('/login', methods=['GET', 'POST'])

@@ -25,10 +25,10 @@ RUN apt install --no-install-recommends -y \
 RUN pip3 install -r requirements.txt --no-cache-dir --break-system-packages --ignore-installed
 
 ## Install Raspberry Extension Server
-COPY ./flaskUI/ /opt/raspberry_extension_server/flaskUI/
-COPY ./ServerObjects/ /opt/raspberry_extension_server/ServerObjects/
+COPY ./flask_ui/ /opt/raspberry_extension_server/flask_ui/
+COPY ./server_objects/ /opt/raspberry_extension_server/server_objects/
 COPY ./services/ /opt/raspberry_extension_server/services/
-COPY ./configManager/ /opt/raspberry_extension_server/configManager/
+COPY ./config_manager/ /opt/raspberry_extension_server/config_manager/
 COPY ./api.py /opt/raspberry_extension_server/
 
 ## Install the web interface
@@ -41,8 +41,8 @@ RUN curl -sL -A "Mozilla/5.0" https://github.com/hendriksen-mark/raspberry_exten
     && mkdir serverUI \
     && unzip -qo serverUI.zip -d serverUI \
     && rm serverUI.zip \
-    && mv serverUI/dist/index.html flaskUI/templates/ \
-    && cp -r serverUI/dist/assets flaskUI/ \
+    && mv serverUI/dist/index.html flask_ui/templates/ \
+    && cp -r serverUI/dist/assets flask_ui/ \
     && rm -r serverUI
 
 ## Expose ports
