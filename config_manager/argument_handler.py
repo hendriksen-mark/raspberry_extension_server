@@ -1,3 +1,6 @@
+"""
+This module provides functions to handle command-line arguments and environment variables.
+"""
 import argparse
 import socket
 import logging
@@ -76,10 +79,32 @@ def parse_arguments() -> dict[str, Union[str, int, bool]]:
 
     args: argparse.Namespace = ap.parse_args()
 
-    debug_env: Any = get_environment_variable('DEBUG', True)
-    argument_dict["DEBUG"] = args.debug or (debug_env if isinstance(debug_env, bool) else False)
-    argument_dict["CONFIG_PATH"] = args.config_path or get_environment_variable('CONFIG_PATH') or '/opt/raspberry_extension_server/config'
-    argument_dict["BIND_IP"] = args.bind_ip or get_environment_variable('BIND_IP') or '0.0.0.0'
+    debud_enable: bool = False
+    if args.debug:
+        debud_enable = True
+    else:
+        debug_env: Any = get_environment_variable('DEBUG', True)
+        if isinstance(debug_env, bool):
+            debud_enable = debug_env
+    argument_dict["DEBUG"] = debud_enable
+
+    config_path_value: str | None = None
+    if isinstance(args.config_path, str):
+        config_path_value = args.config_path
+    if not config_path_value:
+        config_env: Any = get_environment_variable('CONFIG_PATH')
+        if isinstance(config_env, str):
+            config_path_value = config_env
+    argument_dict["CONFIG_PATH"] = config_path_value if config_path_value else '/opt/raspberry_extension_server/config'
+
+    bind_ip_value: str | None = None
+    if isinstance(args.bind_ip, str):
+        bind_ip_value = args.bind_ip
+    if not bind_ip_value:
+        bind_ip_env: Any = get_environment_variable('BIND_IP')
+        if isinstance(bind_ip_env, str):
+            bind_ip_value = bind_ip_env
+    argument_dict["BIND_IP"] = bind_ip_value if bind_ip_value else '0.0.0.0'
 
     # Handle HOST_IP with proper type narrowing
     host_ip_value: str | None = None

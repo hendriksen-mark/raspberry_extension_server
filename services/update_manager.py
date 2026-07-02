@@ -1,3 +1,6 @@
+"""
+This module provides functions to check for updates on GitHub.
+"""
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -13,13 +16,15 @@ from .github_installer import install_github_updates
 SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
+base_url: str = "https://api.github.com/repos/hendriksen-mark/raspberry_extension_server"
+
 def github_check() -> None:
     """
     Check for updates on GitHub for both the main server repository and the UI repository.
     Update the server configuration based on the availability of updates.
     """
     creation_time: str = get_file_creation_time("api.py")
-    publish_time: str = get_github_publish_time(f"https://api.github.com/repos/hendriksen-mark/raspberry_extension_server/branches/{SERVER_CONFIG['config']['system']['branch']}")
+    publish_time: str = get_github_publish_time(f"{base_url}/branches/{SERVER_CONFIG['config']['system']['branch']}")
 
     logger.debug(f"creation_time server : {creation_time}")
     logger.debug(f"publish_time  server : {publish_time}")
@@ -44,7 +49,7 @@ def github_ui_check() -> bool:
         bool: True if there is a new update available, False otherwise.
     """
     creation_time: str = get_file_creation_time("flask_ui/templates/index.html")
-    publish_time: str = get_github_publish_time("https://api.github.com/repos/hendriksen-mark/raspberry_extension_server_ui/releases/latest")
+    publish_time: str = get_github_publish_time(f"{base_url}_ui/releases/latest")
 
     logger.debug(f"creation_time UI : {creation_time}")
     logger.debug(f"publish_time  UI : {publish_time}")
@@ -83,9 +88,11 @@ def get_github_publish_time(url: str) -> str:
         response.raise_for_status()
         device_data: dict[str, Any] = response.json()
         if "commit" in device_data:
-            return datetime.strptime(device_data["commit"]["commit"]["author"]["date"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
+            commit_date = device_data["commit"]["commit"]["author"]["date"]
+            return datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
         if "published_at" in device_data:
-            return datetime.strptime(device_data["published_at"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
+            publish_date = device_data["published_at"]
+            return datetime.strptime(publish_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H")
         logger.error("Unexpected GitHub API response format")
         return "1970-01-01 00:00:00"
     except requests.RequestException as e:

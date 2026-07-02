@@ -25,6 +25,7 @@ ADDR_FIXED: int = 0x44
 STARTADDR: int = 0xC0
 
 class TM1637:
+    """Driver for TM1637 four-digit seven-segment LED display."""
     __double_point: bool = False
     __clk_pin: int = 0
     __data_pin: int = 0
@@ -49,6 +50,7 @@ class TM1637:
         IO.cleanup()
 
     def clear(self) -> None:
+        """Clear the display by sending 0x7F to all digits"""
         b: int = self.__brightness
         point: bool = self.__double_point
         self.__brightness = 0
@@ -60,6 +62,10 @@ class TM1637:
         self.__double_point = point
 
     def show(self, data: list[int]) -> None:
+        """
+        Show the data on the display.
+        Data should be a list of 4 integers (0-15) or 0x7F for blank.
+        """
         for i in range(0, 4):
             self.__current_data[i] = data[i]
 
@@ -83,12 +89,13 @@ class TM1637:
             self.show(self.__current_data)
 
     def show_double_point(self, on: bool) -> None:
-        """show or hide double point divider"""
+        """Show or hide double point divider"""
         if self.__double_point != on:
             self.__double_point = on
             self.show(self.__current_data)
 
     def write_byte(self, data: int) -> None:
+        """Write a byte to the display."""
         for _ in range(0, 8):
             IO.output(self.__clk_pin, GPIO_LOW)
             if data & 0x01:
@@ -122,6 +129,7 @@ class TM1637:
         IO.output(self.__clk_pin, GPIO_LOW)
 
     def stop(self) -> None:
+        """send stop signal to TM1637"""
         IO.output(self.__clk_pin, GPIO_LOW)
         IO.output(self.__data_pin, GPIO_LOW)
         IO.output(self.__clk_pin, GPIO_HIGH)
@@ -133,6 +141,7 @@ class TM1637:
         self.start()
 
     def coding(self, data: int) -> int:
+        """Convert data to TM1637 encoding"""
         if self.__double_point:
             point_data: int = 0x80
         else:

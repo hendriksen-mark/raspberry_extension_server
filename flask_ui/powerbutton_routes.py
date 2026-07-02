@@ -31,6 +31,9 @@ def create_powerbutton(post_dict: dict[str, Any] | None = None) -> PowerButtonOb
     return PowerButtonObject(post_dict)
 
 class PowerButtonRoute(Resource):
+    """
+    Flask-RESTful resource for managing power button configuration and control.
+    """
     def get(self, _resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for powerbutton resources
@@ -54,7 +57,7 @@ class PowerButtonRoute(Resource):
         if power_button:
             logger.info("PowerButton already exists, updating it")
             # Only allow updating certain safe attributes
-            allowed_attributes = {
+            allowed_attributes: set[str] = {
                 'button_pin',
                 'long_press_duration',
                 'debounce_time',

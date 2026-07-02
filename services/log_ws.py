@@ -1,6 +1,10 @@
+"""
+This module implements a WebSocket server that streams log messages to connected clients.
+"""
 import threading
 import time
 import logging
+import socket
 
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
@@ -12,10 +16,13 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 LOG_FILE = logManager.logger._get_log_file_path()
 
-# Global variable to track server state
-_SERVER_RUNNING: bool = False
+# Module-level flag to track server state
+_SERVER_RUNNING = threading.Event()
 
 class LogWebSocketHandler(WebSocket):
+    """
+    WebSocket handler that streams log messages to connected clients.
+    """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._running: bool = False
@@ -31,6 +38,9 @@ class LogWebSocketHandler(WebSocket):
         self._running = False
 
     def tail_log(self) -> None:
+        """
+        Continuously read the log file and send new lines to the WebSocket client.
+        """
         try:
             with open(LOG_FILE, encoding='utf-8') as f:
                 f.seek(0, 2)
@@ -52,16 +62,26 @@ WebSocketPlugin(cherrypy.engine).subscribe()
 cherrypy.tools.websocket = WebSocketTool()
 
 class Root:
+    """
+    Root class for CherryPy WebSocket server.
+    """
     @cherrypy.expose
     def index(self) -> str:
+        """
+        Serve a simple HTML page for testing the WebSocket connection.
+        """
         return "WebSocket log server running."
 
     @cherrypy.expose
     def ws(self) -> None:
-        pass  # ws4py handles this
+        """
+        Handle WebSocket connections.
+        """
 
 def start_ws_server() -> None:
-    global _SERVER_RUNNING
+    """
+    Start the CherryPy WebSocket server to stream log messages.
+    """
     try:
         cherrypy.log.screen = False
         autoreload = getattr(cherrypy.engine, "autoreload", None)
@@ -69,16 +89,18 @@ def start_ws_server() -> None:
             autoreload.unsubscribe()
 
         # Check if port is available
-        import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('0.0.0.0', 9000))
         sock.close()
 
         if result == 0:
             logger.warning("Port 9000 appears to be already in use")
-            raise RuntimeError("Port 9000 is already in use. Please stop the service using this port before starting the WebSocket server.")
+            raise RuntimeError(
+                "Port 9000 is already in use. " \
+                "Please stop the service using this port before starting the WebSocket server."
+                )
 
-        _SERVER_RUNNING = True
+        _SERVER_RUNNING.set()
 
         # This is a blocking call - the server runs here
         cherrypy.quickstart(Root(), '/', config={
@@ -92,18 +114,17 @@ def start_ws_server() -> None:
         logger.exception("Full traceback:")
         raise
     finally:
-        _SERVER_RUNNING = False
+        _SERVER_RUNNING.clear()
 
 def stop_ws_server() -> None:
     """
     Gracefully stop the CherryPy WebSocket server.
     """
-    global _SERVER_RUNNING
     try:
-        if _SERVER_RUNNING:
+        if _SERVER_RUNNING.is_set():
             logger.info("Stopping CherryPy WebSocket server...")
             cherrypy.engine.exit()
-            _SERVER_RUNNING = False
+            _SERVER_RUNNING.clear()
             logger.info("CherryPy WebSocket server stopped.")
         else:
             logger.info("CherryPy WebSocket server is not running.")

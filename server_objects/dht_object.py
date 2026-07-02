@@ -21,8 +21,9 @@ TemperatureCallback = Callable[[float], None]
 HumidityCallback = Callable[[float], None]
 
 class DHTObject:
-    """DHT sensor service for reading temperature and humidity"""
-
+    """
+    DHT sensor service for reading temperature and humidity
+    """
     def __init__(self, data: dict[str, Any]) -> None:
         self.sensor_type: str = data.get("sensor_type", "DHT22").upper()
         if self.sensor_type not in ["DHT22", "DHT11"]:

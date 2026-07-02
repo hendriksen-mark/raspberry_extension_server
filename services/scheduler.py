@@ -1,4 +1,8 @@
+"""
+This module provides a scheduler service that runs in the background.
+"""
 from datetime import datetime
+from threading import Event
 from time import sleep
 from typing import Any
 import logging
@@ -11,17 +15,16 @@ from services import update_manager
 SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
-# Global variable to control scheduler state
-_SCHEDULER_RUNNING: bool = False
+# Scheduler state flag
+_SCHEDULER_RUNNING: Event = Event()
 
 def run_scheduler() -> None:
     """
     Run the scheduler to process schedules, behavior instances, and smart scenes.
     """
-    global _SCHEDULER_RUNNING
-    _SCHEDULER_RUNNING = True
+    _SCHEDULER_RUNNING.set()
 
-    while _SCHEDULER_RUNNING:
+    while _SCHEDULER_RUNNING.is_set():
 
         if "updatetime" not in SERVER_CONFIG["config"]["swupdate2"]["autoinstall"]:
             SERVER_CONFIG["config"]["swupdate2"]["autoinstall"]["updatetime"] = "T14:00:00"
@@ -39,6 +42,5 @@ def stop_scheduler() -> None:
     """
     Stop the scheduler gracefully.
     """
-    global _SCHEDULER_RUNNING
     logger.info("Stopping scheduler...")
-    _SCHEDULER_RUNNING = False
+    _SCHEDULER_RUNNING.clear()

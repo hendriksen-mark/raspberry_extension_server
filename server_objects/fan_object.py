@@ -1,18 +1,24 @@
+"""
+FanObject: Handles GPIO PWM output for a fan service.
+"""
 from typing import Any
 import threading
 import logging
+import logManager
+
 try:
     import pigpio  # type: ignore
 except (ImportError, RuntimeError):
     from services.dummy_import import DummyPigpio as pigpio  # Import a dummy pigpio class for testing
-
-import logManager
-
+from services.dummy_import import DummyPigpioInstance
 from services.utils import get_pi_temp
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class FanObject:
+    """
+    Class representing a fan object with PWM control based on temperature.
+    """
     def __init__(self, data: dict[str, Any]) -> None:
         self.id: str = str(data.get("id") or "")
         self.name: str = str(data.get("name") or "Fan")
@@ -24,14 +30,13 @@ class FanObject:
         self.max_speed: int = data.get("max_speed", 255)  # Maximum speed setting
         self.cleanup_done: bool = False
         self.last_logged_temp: float | None = None
-        self.temp_change_threshold: float = data.get("temp_change_threshold", 0.5)  # Only log when temperature changes by more than 0.5°C
+        self.temp_change_threshold: float = data.get("temp_change_threshold", 0.5)  # Log threshold
         self.full_speed_timer: threading.Timer | None = None
         self.is_full_speed_mode: bool = False
-        self.full_speed_time_duration: int = data.get("full_speed_time_duration", 5)  # Duration for full speed mode in seconds
+        self.full_speed_time_duration: int = data.get("full_speed_time_duration", 5)  # Full speed mode in seconds
         self.pi = pigpio.pi()
         if not self.pi.connected:
             logger.warning("Could not connect to pigpio daemon, fan control disabled (using dummy)")
-            from services.dummy_import import DummyPigpioInstance
             self.pi = DummyPigpioInstance()
             return
         # Set PWM frequency and start with 0% duty cycle
@@ -45,6 +50,7 @@ class FanObject:
         return (delta2 * (n - range1[0]) / delta1) + range2[0]
 
     def cleanup(self) -> None:
+        """Cleanup the fan object, stopping PWM and releasing resources."""
         if not self.cleanup_done and self.pi.connected:
             # Cancel any pending timer
             if self.full_speed_timer:
@@ -54,14 +60,16 @@ class FanObject:
             self.cleanup_done = True
 
     def run(self) -> None:
+        """Run the fan control logic based on the current temperature."""
         # Skip normal temperature control if in full speed mode
         if self.is_full_speed_mode:
             return
 
-        temp: float = get_pi_temp()
-        temp = max(self.min_temperature, min(self.max_temperature, temp))
+        temp: float = max(self.min_temperature, min(self.max_temperature, get_pi_temp()))
         # Convert temp to pigpio duty cycle (0-255)
-        duty_cycle: int = int(round(self.renormalize(temp, (self.min_temperature, self.max_temperature), (self.min_speed, self.max_speed))))
+        range_temp: tuple[float, float] = (self.min_temperature, self.max_temperature)
+        range_speed: tuple[float, float] = (self.min_speed, self.max_speed)
+        duty_cycle: int = int(round(self.renormalize(temp, range_temp, range_speed)))
         self.pi.set_PWM_dutycycle(self.gpio_pin, duty_cycle)
 
         # Only log when temperature changes significantly or this is the first reading

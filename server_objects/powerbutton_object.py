@@ -1,13 +1,6 @@
-try:
-    import RPi.GPIO as IO  # type: ignore
-except (ImportError, RuntimeError):
-    from services.dummy_import import DummyGPIO as IO  # Import a dummy GPIO class for testing
-
-try:
-    from rpi_ws281x import PixelStrip, Color  # type: ignore
-except (ImportError, RuntimeError):
-    from services.dummy_import import DummyPixelStrip as PixelStrip, DummyColor as Color  # type: ignore
-
+"""
+PowerButtonObject: Handles GPIO button input and WS2811 LED output for a power button service.
+"""
 import math
 import os
 import time
@@ -19,6 +12,15 @@ from typing import Any, cast
 import logging
 from threading import Event
 import logManager
+
+try:
+    import RPi.GPIO as IO  # type: ignore
+    from rpi_ws281x import PixelStrip, Color  # type: ignore
+except (ImportError, RuntimeError):
+    from services.dummy_import import DummyGPIO as IO  # Import a dummy GPIO class for testing
+    from services.dummy_import import DummyPixelStrip as PixelStrip, DummyColor as Color  # type: ignore
+from services.dummy_import import DummyPixelStrip
+
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
@@ -35,6 +37,9 @@ _LED_CHANNEL: int = 0
 
 
 class PowerButtonObject:
+    """
+    Power button service for handling GPIO button input and WS2811 LED output.
+    """
     def __init__(self, data: dict[str, Any]) -> None:
         self.button_pin: int = data.get("button_pin", 3)
         self.long_press_duration: float = data.get("long_press_duration", 3.0)
@@ -73,7 +78,6 @@ class PowerButtonObject:
             self._strip.begin()
         except RuntimeError as e:
             logger.warning(f"LED strip init failed ({e}), falling back to dummy LED")
-            from services.dummy_import import DummyPixelStrip
             self._strip = DummyPixelStrip(
                 _LED_COUNT,
                 self.led_pin,
@@ -312,6 +316,7 @@ class PowerButtonObject:
     # ------------------------------------------------------------------ #
 
     def get_all_data(self) -> dict[str, Any]:
+        """Get all power button service data"""
         return {
             "button_pin": self.button_pin,
             "long_press_duration": self.long_press_duration,
@@ -324,4 +329,5 @@ class PowerButtonObject:
         }
 
     def save(self) -> dict[str, Any]:
+        """Save the power button service configuration"""
         return self.get_all_data()

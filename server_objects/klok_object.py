@@ -1,3 +1,6 @@
+"""
+KlokObject: Handles TM1637 display for a clock service.
+"""
 import logging
 from typing import Any
 from datetime import datetime
@@ -10,6 +13,9 @@ from services.tm1637 import TM1637
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class KlokObject:
+    """
+    Class representing a klok object with TM1637 display functionality.
+    """
     def __init__(self, data: dict[str, Any]) -> None:
         self.clk_pin: int = data.get("CLK_pin", 24)
         self.dio_pin: int = data.get("DIO_pin", 23)  # GPIO pin for the fan
@@ -28,6 +34,7 @@ class KlokObject:
         self.brightness = step / 7.0
 
     def show(self) -> None:
+        """Update the display with the current time, brightness, and doublepoint state."""
         if not self.power_state:
             if self.last_time is not None or self.last_brightness is not None or self.last_double_point is not None:
                 self.display.clear()

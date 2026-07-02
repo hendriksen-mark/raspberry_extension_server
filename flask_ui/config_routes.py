@@ -16,6 +16,9 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 
 class ConfigRoute(Resource):
+    """
+    Flask-RESTful resource for managing server configuration.
+    """
     def get(self, _resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for configuration resources
@@ -67,7 +70,10 @@ class ConfigRoute(Resource):
                     changes_made.append(f"changed branch to {put_dict['system']['branch']}")
 
             # Handle service configuration updates
-            service_configs: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton", "webserver", "system", "swupdate2"]
+            service_configs: list[str] = [
+                "thermostats", "dht", "klok", "fan",
+                "powerbutton", "webserver", "system", "swupdate2"
+                ]
             for service in service_configs:
                 if service in put_dict:
                     service_changes: list[str] = self._update_service_config(service, put_dict[service])
@@ -100,7 +106,8 @@ class ConfigRoute(Resource):
             for email, user_info in SERVER_CONFIG["config"]["users"].items():
                 if users_data[key] == user_info:
                     if "password" in value:
-                        SERVER_CONFIG["config"]["users"][email]["password"] = generate_password_hash(str(value['password']))
+                        password_hash: str = generate_password_hash(str(value['password']))
+                        SERVER_CONFIG["config"]["users"][email]["password"] = password_hash
 
     def _update_service_config(self, service: str, service_data: dict[str, Any]) -> list[str]:
         """Update service configuration and return list of changes made"""

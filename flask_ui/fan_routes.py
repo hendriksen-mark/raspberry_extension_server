@@ -35,6 +35,9 @@ def create_fan(fan_id: str, post_dict: dict[str, Any] | None = None) -> FanObjec
     return FanObject(data)
 
 class FanRoute(Resource):
+    """
+    Flask-RESTful resource for managing fan configuration and control.
+    """
     def get(self, fan_id: str | None = None, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for fan resources
@@ -87,11 +90,21 @@ class FanRoute(Resource):
             else:
                 logger.info(f"Fan {fan_id} exists, updating configuration")
                 fan = fan_or_none
-                allowed: set[str] = {'gpio_pin', 'pwm_frequency', 'min_temperature', 'max_temperature', 'min_speed', 'max_speed', 'temp_change_threshold', 'full_speed_time_duration', 'name'}
+                allowed_attributes: set[str] = {
+                    'gpio_pin',
+                    'pwm_frequency',
+                    'min_temperature',
+                    'max_temperature',
+                    'min_speed',
+                    'max_speed',
+                    'temp_change_threshold',
+                    'full_speed_time_duration',
+                    'name'
+                }
                 for key, value in post_dict.items():
-                    if key in allowed and hasattr(fan, key):
+                    if key in allowed_attributes and hasattr(fan, key):
                         setattr(fan, key, value)
-                    elif key not in allowed:
+                    elif key not in allowed_attributes:
                         logger.warning(f"Attempted to set non-allowed attribute: {key}")
 
         try:

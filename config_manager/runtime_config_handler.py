@@ -1,9 +1,15 @@
+"""
+This module defines the Config dataclass.
+"""
 from dataclasses import dataclass, field
 from typing import Any
 from config_manager.argument_handler import parse_arguments
 
 @dataclass
 class Config:
+    """
+    Dataclass for managing the runtime configuration of the Raspberry Extension Server.
+    """
     arg: dict[str, Any] = field(default_factory=dict)
 
     def populate(self) -> None:

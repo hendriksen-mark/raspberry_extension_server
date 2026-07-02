@@ -1,4 +1,6 @@
-
+"""
+This module provides the Config class for managing the configuration.
+"""
 from pathlib import Path
 from typing import Any, Optional, cast
 import sys
@@ -7,10 +9,12 @@ import signal
 from copy import deepcopy
 from datetime import datetime, timezone
 import subprocess
+import shutil
 import zipfile
 import tempfile
 import logging
 import yaml
+from werkzeug.security import generate_password_hash
 
 import logManager
 
@@ -24,6 +28,9 @@ from .argument_handler import parse_arguments
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 class NoAliasDumper(yaml.SafeDumper):
+    """
+    YAML dumper that ignores aliases to prevent the use of anchors and references in the output.
+    """
     def ignore_aliases(self, data: Any) -> bool:
         return True
 
@@ -52,9 +59,16 @@ def _write_yaml(path: str, contents: Any) -> None:
         yaml.dump(contents, fp, Dumper=NoAliasDumper, allow_unicode=True, sort_keys=False)
 
 class Config:
+    """
+    Config class for managing the configuration.
+    """
     argsDict: dict[str, Any] = parse_arguments()
     configDir: str = argsDict["CONFIG_PATH"]
     runningDir: str = argsDict["RUNNING_PATH"]
+    serverCreateEpoch: float = os.stat(f"{runningDir}/api.py").st_mtime
+    serverCreateTime: str = datetime.fromtimestamp(serverCreateEpoch, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    WebUICreateEpoch: float = os.stat("flask_ui/templates/index.html").st_mtime
+    WebUICreateTime: str = datetime.fromtimestamp(WebUICreateEpoch, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     ip: str = argsDict["HOST_IP"]
     argDebug: bool = argsDict["DEBUG"]
     bindIp: str = argsDict["BIND_IP"]
@@ -81,7 +95,7 @@ class Config:
         defaults: dict[str, Any] = {
             "users": {
                 "admin": {
-                    "password": "pbkdf2:sha256:150000$bqqXSOkI$199acdaf81c18f6ff2f29296872356f4eb78827784ce4b3f3b6262589c788742"
+                    "password": generate_password_hash("admin")
                 }
             },
             "thermostats": {
@@ -243,7 +257,9 @@ class Config:
         """
         Load the entire configuration from YAML files.
         """
-        self.yaml_config: dict[str, Any] = {"config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}}
+        self.yaml_config: dict[str, Any] = {
+            "config": {}, "thermostats": {}, "dht": {}, "klok": {}, "fan": {}, "powerbutton": {}
+            }
         try:
             config: dict[str, Any] = cast(dict[str, Any], self._load_yaml_file("config.yaml", {}))
             config = self._set_default_config_values(config)
@@ -264,6 +280,47 @@ class Config:
             logger.exception("CRITICAL! Config file was not loaded")
             raise SystemExit("CRITICAL! Config file was not loaded") from exc
 
+    def _save_resource(self, resource_name: str, path: str) -> None:
+        """
+        Save a single named resource to its YAML file.
+
+        Args:
+            resource_name (str): The resource key (e.g. "dht", "thermostats").
+            path (str): The directory path to write the file into.
+        """
+        file_path: str = path + resource_name + ".yaml"
+        dump_dict: dict[str, Any] = {}
+
+        if resource_name in ["dht", "klok", "powerbutton"]:
+            obj = self.yaml_config.get(resource_name)
+            if obj is not None and hasattr(obj, 'save'):
+                saved_data: dict[str, Any] = obj.save()
+                if saved_data:
+                    dump_dict.update(saved_data)
+            elif obj is None and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    logger.debug(f"Removed config file {file_path}")
+                    return
+                except OSError as e:
+                    logger.error(f"Failed to remove config file {file_path}: {e}")
+        elif resource_name in ["thermostats", "fan"]:
+            for element, obj in self.yaml_config[resource_name].items():
+                if element != "0":
+                    saved_data = obj.save()
+                    if saved_data:
+                        dump_dict[obj.id] = saved_data
+            if not dump_dict and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    logger.debug(f"Removed config file {file_path}")
+                    return
+                except OSError as e:
+                    logger.error(f"Failed to remove config file {file_path}: {e}")
+
+        _write_yaml(file_path, dump_dict)
+        logger.debug("Dump config file " + file_path)
+
     def save_config(self, backup: bool = False, resource: str = "all") -> None:
         """
         Save the current configuration to YAML files.
@@ -274,7 +331,7 @@ class Config:
         """
         path: str = self.configDir + '/'
         if backup:
-            path: str = self.configDir + '/backup/'
+            path = self.configDir + '/backup/'
             if not os.path.exists(path):
                 os.makedirs(path)
         if resource in ["all", "config"]:
@@ -283,39 +340,10 @@ class Config:
             logger.debug("Dump config file " + path + "config.yaml")
             if resource == "config":
                 return
-        save_resources: list[str] = []
-        if resource == "all":
-            save_resources = ["thermostats", "dht", "klok", "fan", "powerbutton"]
-        else:
-            save_resources.append(resource)
+        all_resources: list[str] = ["thermostats", "dht", "klok", "fan", "powerbutton"]
+        save_resources: list[str] = all_resources if resource == "all" else [resource]
         for resource_name in save_resources:
-            file_path: str = path + resource_name + ".yaml"
-            dump_dict: dict[str, Any] = {}
-
-            # Handle single service objects (not dictionaries)
-            if resource_name in ["dht", "klok", "powerbutton"]:
-                if resource_name in self.yaml_config and hasattr(self.yaml_config[resource_name], 'save'):
-                    saved_data: dict[str, Any] = self.yaml_config[resource_name].save()
-                    if saved_data:
-                        dump_dict.update(saved_data)
-                # If the object doesn't exist in config (was deleted), remove the YAML file
-                elif resource_name not in self.yaml_config and os.path.exists(file_path):
-                    try:
-                        os.remove(file_path)
-                        logger.debug(f"Removed config file {file_path}")
-                        continue  # Skip writing the file since we removed it
-                    except OSError as e:
-                        logger.error(f"Failed to remove config file {file_path}: {e}")
-            elif resource_name in ["thermostats", "fan"]:
-                # Handle dict-based objects (thermostats and fans)
-                for element in self.yaml_config[resource_name]:
-                    if element != "0":
-                        saved_data = self.yaml_config[resource_name][element].save()
-                        if saved_data:
-                            dump_dict[self.yaml_config[resource_name][element].id] = saved_data
-
-            _write_yaml(file_path, dump_dict)
-            logger.debug("Dump config file " + file_path)
+            self._save_resource(resource_name, path)
 
     def reset_config(self) -> None:
         """
@@ -323,8 +351,9 @@ class Config:
         """
         self.save_config(backup=True)
         try:
-            subprocess.run(f'rm -r {self.configDir}/*.yaml', check=True)
-        except subprocess.CalledProcessError:
+            for yaml_file in Path(self.configDir).glob("*.yaml"):
+                os.remove(yaml_file)
+        except OSError:
             logger.exception("Something went wrong when deleting the config")
         self.load_config()
 
@@ -333,10 +362,12 @@ class Config:
         Restore the configuration from a backup.
         """
         try:
-            subprocess.run(f'rm -r {self.configDir}/*.yaml', check=True)
-        except subprocess.CalledProcessError:
+            for yaml_file in Path(self.configDir).glob("*.yaml"):
+                os.remove(yaml_file)
+        except OSError:
             logger.exception("Something went wrong when deleting the config")
-        subprocess.run(f'cp -r {self.configDir}/backup/*.yaml {self.configDir}/', shell=True, check=True)
+        for yaml_file in Path(self.configDir, "backup").glob("*.yaml"):
+            shutil.copy(yaml_file, self.configDir)
         self.load_config()
 
     def download_config(self) -> str:
@@ -380,8 +411,8 @@ class Config:
         info["Architecture"] = os.uname().machine
         info["os_version"] = os.uname().version
         info["os_release"] = os.uname().release
-        info["Server Version"] = datetime.fromtimestamp(os.stat("api.py").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        info["WebUI Version"] = datetime.fromtimestamp(os.stat("flask_ui/templates/index.html").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        info["Server Version"] = self.serverCreateTime
+        info["WebUI Version"] = self.WebUICreateTime
         info["arguments"] = {k: str(v) for k, v in self.argsDict.items()}
         zip_path = str(Path(self.configDir) / "config_debug.zip")
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -404,12 +435,17 @@ class Config:
         """
         try:
             logger.info("restart using systemctl")
-            subprocess.run(['sudo', 'systemctl', 'restart', 'raspberry_extension_server.service'], check=True)
+            subprocess.run(
+                ['sudo', 'systemctl', 'restart', 'raspberry_extension_server.service'],
+                check=True)
             return  # Should not reach here if systemctl works
         except subprocess.CalledProcessError as e:
             # If the process was killed by SIGTERM, do nothing (systemd is restarting us)
             if e.returncode == -signal.SIGTERM:
-                logger.info("Process terminated by SIGTERM (expected during systemctl restart). Not falling back to os.execl.")
+                logger.info(
+                    "Process terminated by SIGTERM (expected during systemctl restart)." \
+                    "Not falling back to os.execl."
+                    )
                 sys.exit(0)
             logger.error(f"systemctl restart failed: {e}, falling back to os.execl")
             logger.info(f"restart {sys.executable} with args: {sys.argv}")

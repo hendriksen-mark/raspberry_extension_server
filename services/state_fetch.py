@@ -1,3 +1,6 @@
+"""
+This module provides functionality to fetch and synchronize the state of various devices.
+"""
 from typing import Any
 import asyncio
 import threading
@@ -25,17 +28,18 @@ _fan_shutdown = threading.Event()
 _klok_shutdown = threading.Event()
 _powerbutton_shutdown = threading.Event()
 
-# Async event for thermostat shutdown
-_thermostat_shutdown_async = asyncio.Event()
-_THERMOSTAT_SHUTDOWN_LOOP: asyncio.AbstractEventLoop | None = None
+# Async event/loop state for thermostat shutdown
+_thermostat_async_state: dict[str, Any] = {
+    "shutdown_event": asyncio.Event(),
+    "shutdown_loop": None,
+}
 
 def _ensure_async_event_loop():
     """Ensure async events are properly initialized for current event loop"""
-    global _thermostat_shutdown_async, _THERMOSTAT_SHUTDOWN_LOOP
     current_loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
-    if _THERMOSTAT_SHUTDOWN_LOOP is not current_loop:
-        _thermostat_shutdown_async = asyncio.Event()
-        _THERMOSTAT_SHUTDOWN_LOOP = current_loop
+    if _thermostat_async_state["shutdown_loop"] is not current_loop:
+        _thermostat_async_state["shutdown_event"] = asyncio.Event()
+        _thermostat_async_state["shutdown_loop"] = current_loop
 
 async def sync_with_thermostats() -> None:
     """
@@ -72,7 +76,7 @@ async def sync_with_thermostats() -> None:
         sleep_time: float = max(10, interval)
         try:
             await asyncio.wait_for(
-                _thermostat_shutdown_async.wait(),
+                _thermostat_async_state["shutdown_event"].wait(),
                 timeout=sleep_time
             )
             # If we get here, shutdown was requested
@@ -265,8 +269,9 @@ def stop_thermostat_service() -> None:
     Stop the thermostat synchronization service.
     """
     _thermostat_shutdown.set()  # Signal immediate shutdown
-    if _THERMOSTAT_SHUTDOWN_LOOP and not _THERMOSTAT_SHUTDOWN_LOOP.is_closed():
-        _THERMOSTAT_SHUTDOWN_LOOP.call_soon_threadsafe(_thermostat_shutdown_async.set)
+    shutdown_loop: asyncio.AbstractEventLoop | None = _thermostat_async_state["shutdown_loop"]
+    if shutdown_loop and not shutdown_loop.is_closed():
+        shutdown_loop.call_soon_threadsafe(_thermostat_async_state["shutdown_event"].set)
     logger.info("Thermostat service stopped.")
 
 def stop_all_services() -> None:
@@ -275,8 +280,9 @@ def stop_all_services() -> None:
     """
     _shutdown_event.set()
     _thermostat_shutdown.set()
-    if _THERMOSTAT_SHUTDOWN_LOOP and not _THERMOSTAT_SHUTDOWN_LOOP.is_closed():
-        _THERMOSTAT_SHUTDOWN_LOOP.call_soon_threadsafe(_thermostat_shutdown_async.set)
+    shutdown_loop: asyncio.AbstractEventLoop | None = _thermostat_async_state["shutdown_loop"]
+    if shutdown_loop and not shutdown_loop.is_closed():
+        shutdown_loop.call_soon_threadsafe(_thermostat_async_state["shutdown_event"].set)
     _dht_shutdown.set()
     _fan_shutdown.set()
     _klok_shutdown.set()

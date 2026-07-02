@@ -43,6 +43,9 @@ def get_default_sensor_data(warning_message: str) -> tuple[dict[str, Any], int]:
     }, 200
 
 class DHTRoute(Resource):
+    """
+    Flask-RESTful resource for managing DHT sensor data and configuration.
+    """
     def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
             Handle GET requests for DHT sensor data
@@ -101,7 +104,16 @@ class DHTRoute(Resource):
 
         if dht:
             logger.info("DHT already exists, updating configuration")
-            allowed_attributes = ["dht_pin", "sensor_type", "MIN_DHT_TEMP", "MAX_DHT_TEMP", "MIN_HUMIDITY", "MAX_HUMIDITY", "DHT_TEMP_CHANGE_THRESHOLD", "DHT_HUMIDITY_CHANGE_THRESHOLD"]
+            allowed_attributes: set[str] = {
+                'dht_pin',
+                'sensor_type',
+                'MIN_DHT_TEMP',
+                'MAX_DHT_TEMP',
+                'MIN_HUMIDITY',
+                'MAX_HUMIDITY',
+                'DHT_TEMP_CHANGE_THRESHOLD',
+                'DHT_HUMIDITY_CHANGE_THRESHOLD'
+                }
             for key, value in post_dict.items():
                 if key in allowed_attributes and hasattr(dht, key):
                     setattr(dht, key, value)

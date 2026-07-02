@@ -1,7 +1,5 @@
 """Stub for RPi.GPIO - provides BCM pin naming conventions and GPIO control."""
 
-from typing import Any, Literal
-
 # Pin numbering modes
 BCM: str
 BOARD: str

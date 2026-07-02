@@ -31,6 +31,9 @@ def create_klok(post_dict: dict[str, Any] | None = None) -> KlokObject:
     return KlokObject(post_dict)
 
 class KlokRoute(Resource):
+    """
+    Flask-RESTful resource for managing klok (TM1637 clock display) configuration and control.
+    """
     def get(self, resource: str | None = None, value: str | None = None) -> tuple[dict[str, Any] | str, int]:
         """
         Handle GET requests for klok resources
@@ -114,7 +117,13 @@ class KlokRoute(Resource):
         if klok:
             logger.info("Klok already exists, updating configuration")
             # Only allow updating certain safe attributes
-            allowed_attributes: set[str] = {'CLK_pin', 'DIO_pin', 'brightness', 'power_state', 'doublepoint'}
+            allowed_attributes: set[str] = {
+                'CLK_pin',
+                'DIO_pin',
+                'brightness',
+                'power_state',
+                'doublepoint'
+            }
             for key, item_value in post_dict.items():
                 if key in allowed_attributes and hasattr(klok, key):
                     setattr(klok, key, item_value)

@@ -4,7 +4,6 @@ System and configuration routes
 from typing import Any
 import os
 import logging
-from datetime import datetime, timezone
 from flask_restful import Resource
 
 import logManager
@@ -21,99 +20,50 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 SERVER_CONFIG: dict[str, Any] = config_manager.SERVER_CONFIG.yaml_config
 
 class SystemRoute(Resource):
+    """
+    Flask-RESTful resource for managing system information and configuration.
+    """
     def get(self, resource: str | None = None) -> tuple[dict[str, Any], int]:
         """
         Handle GET requests for system resources
         URL: /system/ or /system/resource
         """
+        response: tuple[dict[str, Any], int]
         if resource == 'pi_temp':
             try:
                 temp: float = get_pi_temp()
-                return {"temperature": temp}, 200
+                response = {"temperature": temp}, 200
             except RuntimeError as e:
                 logger.error(f"Error reading Pi temperature: {e}")
-                return {"error": "Could not read Pi temperature"}, 503
+                response = {"error": "Could not read Pi temperature"}, 503
 
         elif resource == "all":
             try:
-                response: dict[str, Any] = {}
-
-                # Handle thermostats (always a dict of objects)
-                if "thermostats" in SERVER_CONFIG:
-                    response["thermostats"] = {key: obj.get_all_data() for key, obj in SERVER_CONFIG["thermostats"].items() if isinstance(obj, ThermostatObject)}
-
-                # Handle single objects that might be dicts or objects
-                for resource_name in ["dht", "klok", "powerbutton"]:
-                    if resource_name in SERVER_CONFIG:
-                        resource_obj: Any = SERVER_CONFIG[resource_name]
-                        if hasattr(resource_obj, 'get_all_data'):
-                            response[resource_name] = resource_obj.get_all_data()
-                        elif hasattr(resource_obj, 'save'):
-                            response[resource_name] = resource_obj.save()
-                        else:
-                            response[resource_name] = resource_obj
-
-                # Handle fans (dict of FanObjects)
-                if "fan" in SERVER_CONFIG:
-                    response["fan"] = {fid: f.get_all_data() for fid, f in SERVER_CONFIG["fan"].items() if isinstance(f, FanObject)}
-
+                response_data, status_code = _get_all_config()
                 uname = os.uname()
-                response["config"] = SERVER_CONFIG["config"]
-                response["pi_temp"] = get_pi_temp() if uname.sysname == "Linux" else "Unsupported OS"
+                response_data["pi_temp"] = get_pi_temp() if uname.sysname == "Linux" else "Unsupported OS"
 
-                # Build stat command based on OS (unused, using os.stat directly)
-                server_file = f"{config_manager.SERVER_CONFIG.runningDir}/api.py"
-                webui_file = f"{config_manager.SERVER_CONFIG.runningDir}/flask_ui/templates/index.html"
-
-                response["info"] = {
+                response_data["info"] = {
                         "sysname": uname.sysname,
                         "machine": uname.machine,
                         "os_version": uname.version,
                         "os_release": uname.release,
-                        "server": datetime.fromtimestamp(os.stat(server_file).st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                        "webui": datetime.fromtimestamp(os.stat(webui_file).st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                        "server": config_manager.SERVER_CONFIG.serverCreateTime,
+                        "webui": config_manager.SERVER_CONFIG.WebUICreateTime
                     }
-                return response, 200
+                response = response_data, status_code
             except Exception as e:
                 logger.error(f"Error getting all system info: {e}")
-                return {"error": "Failed to retrieve system information"}, 500
+                response = {"error": "Failed to retrieve system information"}, 500
 
         elif resource == "health":
-            return health_check()
+            response = health_check()
 
         elif resource == "config":
-            try:
-                response: dict[str, Any] = {
-                    "config": SERVER_CONFIG["config"],
-                    "thermostats": {key: obj.save() for key, obj in SERVER_CONFIG["thermostats"].items() if isinstance(obj, ThermostatObject)} if len(SERVER_CONFIG.get("thermostats", {})) > 0 else "No Thermostats Configured",
-                    "fan": {fid: f.save() for fid, f in SERVER_CONFIG.get("fan", {}).items() if isinstance(f, FanObject)} if len(SERVER_CONFIG.get("fan", {})) > 0 else "No Fans Configured"
-                }
-
-                # Handle single objects that might be dicts or objects
-                dht_obj: DHTObject | None = SERVER_CONFIG.get("dht")
-                if dht_obj:
-                    response["dht"] = dht_obj.save() if hasattr(dht_obj, 'save') else dht_obj
-                else:
-                    response["dht"] = "Not Configured"
-
-                klok_obj: KlokObject | None = SERVER_CONFIG.get("klok")
-                if klok_obj:
-                    response["klok"] = klok_obj.save() if hasattr(klok_obj, 'save') else klok_obj
-                else:
-                    response["klok"] = "Not Configured"
-
-                powerbutton_obj: PowerButtonObject | None = SERVER_CONFIG.get("powerbutton")
-                if powerbutton_obj:
-                    response["powerbutton"] = powerbutton_obj.save() if hasattr(powerbutton_obj, 'save') else powerbutton_obj
-                else:
-                    response["powerbutton"] = "Not Configured"
-
-                return response, 200
-            except Exception as e:
-                logger.error(f"Error getting config: {e}")
-                return {"error": "Failed to retrieve configuration"}, 500
+            response = _get_all_config()
         else:
-            return {"error": "Resource not found"}, 404
+            response = {"error": "Resource not found"}, 404
+        return response
 
 def health_check() -> tuple[dict[str, Any], int]:
     """Health check endpoint"""
@@ -139,3 +89,86 @@ def health_check() -> tuple[dict[str, Any], int]:
         "temperature_available": temp is not None,
         "humidity_available": humidity is not None
     }, 200
+
+def _get_all_config() -> tuple[dict[str, Any], int]:
+    """Return the server configuration"""
+    try:
+
+        response: dict[str, Any] = {
+            "config": SERVER_CONFIG["config"],
+            "thermostats": _get_thermostat_config(),
+            "fan": _get_fan_config(),
+            "dht": _get_dht_config(),
+            "klok": _get_klok_config(),
+            "powerbutton": _get_powerbutton_config()
+        }
+
+        return response, 200
+    except Exception as e:
+        logger.error(f"Error getting config: {e}")
+        return {"error": "Failed to retrieve configuration"}, 500
+
+def _get_thermostat_config() -> dict[str, Any] | str:
+    """Return the thermostat configuration"""
+    try:
+        thermostats = SERVER_CONFIG.get("thermostats", {})
+        thermostats_data = {}
+        if len(thermostats) > 0:
+            for key, obj in thermostats.items():
+                if isinstance(obj, ThermostatObject):
+                    thermostats_data.update({key: obj.save()})
+        else:
+            thermostats_data = "No Thermostats Configured"
+        return thermostats_data
+    except Exception as e:
+        logger.error(f"Error getting thermostat config: {e}")
+        return "Error getting Thermostats config"
+
+def _get_fan_config() -> dict[str, Any] | str:
+    """Return the fan configuration"""
+    try:
+        fans = SERVER_CONFIG.get("fan", {})
+        fans_data = {}
+        if len(fans) > 0:
+            for fid, f in fans.items():
+                if isinstance(f, FanObject):
+                    fans_data.update({fid: f.save()})
+        else:
+            fans_data = "No Fans Configured"
+        return fans_data
+    except Exception as e:
+        logger.error(f"Error getting fan config: {e}")
+        return "Error getting Fan config"
+
+def _get_dht_config() -> dict[str, Any] | str:
+    """Return the DHT sensor configuration"""
+    try:
+        dht_obj: DHTObject | None = SERVER_CONFIG.get("dht")
+        if dht_obj and isinstance(dht_obj, DHTObject):
+            return dht_obj.save()
+        return "No DHT Sensor Configured"
+    except Exception as e:
+        logger.error(f"Error getting DHT config: {e}")
+        return "Error getting DHT config"
+
+def _get_klok_config() -> dict[str, Any] | str:
+    """Return the Klok configuration"""
+    try:
+        klok_obj: KlokObject | None = SERVER_CONFIG.get("klok")
+        if klok_obj and isinstance(klok_obj, KlokObject):
+            return klok_obj.save()
+        return "No Klok Configured"
+    except Exception as e:
+        logger.error(f"Error getting Klok config: {e}")
+        return "Error getting Klok config"
+
+def _get_powerbutton_config() -> dict[str, Any] | str:
+    """Return the PowerButton configuration"""
+    try:
+        powerbutton_obj: PowerButtonObject | None = SERVER_CONFIG.get("powerbutton")
+        if powerbutton_obj and isinstance(powerbutton_obj, PowerButtonObject):
+            return powerbutton_obj.save()
+        return "No PowerButton Configured"
+    except Exception as e:
+        logger.error(f"Error getting PowerButton config: {e}")
+        return "Error getting PowerButton config"

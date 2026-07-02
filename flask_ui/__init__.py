@@ -9,10 +9,21 @@ from typing import Any, cast
 from flask import Flask, Request
 from flask_cors import CORS
 from flask_restful import Api
+from werkzeug.security import check_password_hash
 import logManager
 import flask_login
-from flask_ui.core import User  # dummy import for flask_login module
 import config_manager
+from flask_ui.core import User  # dummy import for flask_login module
+from flask_ui.core.views import core
+from flask_ui.error_pages.handlers import error_pages
+from .system_routes import SystemRoute
+from .dht_routes import DHTRoute
+from .thermostat_routes import ThermostatRoute
+from .klok_routes import KlokRoute
+from .config_routes import ConfigRoute
+from .fan_routes import FanRoute
+from .powerbutton_routes import PowerButtonRoute
+
 
 logger: logging.Logger = logManager.logger.get_logger(__name__)
 
@@ -63,7 +74,6 @@ def create_app(server_config) -> Flask:
 
     @login_manager.request_loader
     def request_loader(request: Request) -> User | None:
-        from werkzeug.security import check_password_hash
 
         email: str | None = request.form.get('email')
         if email is None:
@@ -86,37 +96,33 @@ def create_app(server_config) -> Flask:
     # Flask-RESTful API setup
     api: Api = Api(app)
 
-    # Register other routes
-    from .system_routes import SystemRoute
-    from .dht_routes import DHTRoute
-    from .thermostat_routes import ThermostatRoute
-    from .klok_routes import KlokRoute
-    from .config_routes import ConfigRoute
-    from .fan_routes import FanRoute
-    from .powerbutton_routes import PowerButtonRoute
-
     # Register routes with both optional and required resource patterns
     api.add_resource(SystemRoute,       '/system/',
-                                        '/system/<string:resource>',                        strict_slashes=False)
+                                        '/system/<string:resource>',
+                                        strict_slashes=False)
     api.add_resource(DHTRoute,          '/dht/',
-                                        '/dht/<string:resource>',                           strict_slashes=False)
+                                        '/dht/<string:resource>',
+                                        strict_slashes=False)
     api.add_resource(ThermostatRoute,   '/<string:mac>/',
                                         '/<string:mac>/<string:resource>',
-                                        '/<string:mac>/<string:resource>/<string:value>',   strict_slashes=False)
+                                        '/<string:mac>/<string:resource>/<string:value>',
+                                        strict_slashes=False)
     api.add_resource(KlokRoute,         '/klok/',
                                         '/klok/<string:resource>',
-                                        '/klok/<string:resource>/<string:value>',           strict_slashes=False)
+                                        '/klok/<string:resource>/<string:value>',
+                                        strict_slashes=False)
     api.add_resource(ConfigRoute,       '/config/',
-                                        '/config/<string:resource>',                        strict_slashes=False)
+                                        '/config/<string:resource>',
+                                        strict_slashes=False)
     api.add_resource(FanRoute,          '/fan/',
                                         '/fan/<string:fan_id>',
-                                        '/fan/<string:fan_id>/<string:resource>',           strict_slashes=False)
+                                        '/fan/<string:fan_id>/<string:resource>',
+                                        strict_slashes=False)
     api.add_resource(PowerButtonRoute,  '/powerbutton/',
-                                        '/powerbutton/<string:resource>',                   strict_slashes=False)
+                                        '/powerbutton/<string:resource>',
+                                        strict_slashes=False)
 
     # Register web interface blueprints
-    from flask_ui.core.views import core
-    from flask_ui.error_pages.handlers import error_pages
     app.register_blueprint(core)
     app.register_blueprint(error_pages)
 

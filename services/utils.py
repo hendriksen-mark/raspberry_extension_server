@@ -57,7 +57,8 @@ def get_pi_temp() -> float:
                     with open(type_file, "r", encoding="utf-8") as f:
                         zone_type = f.read().strip().lower()
 
-                    if any(kw in zone_type for kw in ["x86_pkg_temp", "cpu-thermal", "soc_thermal", "coretemp"]):
+                    temp_zones = ["x86_pkg_temp", "cpu-thermal", "soc_thermal", "coretemp"]
+                    if any(kw in zone_type for kw in temp_zones):
                         with open(temp_file, "r", encoding="utf-8") as tf:
                             try:
                                 return round(float(tf.read().strip()) / 1000.0, 2)
@@ -83,8 +84,7 @@ def get_pi_temp() -> float:
 
     # Fall back to vcgencmd (works on Raspberry Pi host)
     try:
-        output: subprocess.CompletedProcess = subprocess.run(['vcgencmd', 'measure_temp'], capture_output=True, check=True)
-        temp_str: str = output.stdout.decode()
+        temp_str: str = subprocess.check_output(['vcgencmd', 'measure_temp'], encoding='utf-8')
         return float(temp_str.split('=')[1].split('\'')[0])
     except (IndexError, ValueError, subprocess.CalledProcessError, FileNotFoundError, PermissionError):
         pass

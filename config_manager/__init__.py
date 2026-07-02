@@ -1,3 +1,7 @@
+"""
+This module initializes the configuration management system for the Raspberry Extension Server.
+It imports the necessary configuration handlers and sets up the server and runtime configurations.
+"""
 from . import config_handler
 #from . import argumentHandler
 from . import runtime_config_handler

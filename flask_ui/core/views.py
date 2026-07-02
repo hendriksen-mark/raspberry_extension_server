@@ -1,6 +1,5 @@
 """Core Flask blueprint views: info, login, logout."""
 import os
-from datetime import datetime, timezone
 import logging
 from typing import Any
 from flask import render_template, request, Blueprint, redirect, url_for, send_file
@@ -151,8 +150,8 @@ def info() -> dict[str, str]:
         "machine": uname.machine,
         "os_version": uname.version,
         "os_release": uname.release,
-        "server": datetime.fromtimestamp(os.stat("api.py").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "webui": datetime.fromtimestamp(os.stat("flask_ui/templates/index.html").st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        "server": config_manager.SERVER_CONFIG.serverCreateTime,
+        "webui": config_manager.SERVER_CONFIG.WebUICreateTime
     }
 
 @core.route('/login', methods=['GET', 'POST'])

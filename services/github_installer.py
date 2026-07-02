@@ -1,3 +1,6 @@
+"""
+This module provides functionality to install updates from GitHub.
+"""
 from pathlib import Path
 from typing import Any
 import logging

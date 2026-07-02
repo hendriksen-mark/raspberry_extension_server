@@ -42,6 +42,9 @@ def create_thermostat(mac: str, post_dict: dict[str, Any] | None = None) -> Ther
     return ThermostatObject(data)
 
 class ThermostatRoute(Resource):
+    """
+    Flask-RESTful resource for managing thermostat configuration and control.
+    """
     @async_route
     async def get(self, mac: str, resource: str | None = None, value: str | None = None) -> tuple[dict[str, Any], int]:
         """
@@ -106,9 +109,11 @@ class ThermostatRoute(Resource):
 
             try:
                 temperature: float = float(temp_value)
-                if not thermostat.min_temperature <= temperature <= thermostat.max_temperature:
+                min_temp: float = getattr(thermostat, 'min_temperature', 5.0)
+                max_temp: float = getattr(thermostat, 'max_temperature', 35.0)
+                if not min_temp <= temperature <= max_temp:
                     return {
-                        "error": f"Temperature must be between {thermostat.min_temperature}°C and {thermostat.max_temperature}°C"
+                        "error": f"Temperature must be between {min_temp}°C and {max_temp}°C"
                     }, 400
             except ValueError:
                 return {"error": "Invalid temperature value"}, 400
@@ -172,7 +177,12 @@ class ThermostatRoute(Resource):
         if thermostat:
             logger.info(f"Thermostat with MAC {mac} already exists, updating it")
             # Only allow updating certain safe attributes
-            allowed_attributes: set[str] = {'targetHeatingCoolingState', 'targetTemperature', 'min_temperature', 'max_temperature'}
+            allowed_attributes: set[str] = {
+                'targetHeatingCoolingState',
+                'targetTemperature',
+                'min_temperature',
+                'max_temperature'
+            }
             for key, value in post_dict.items():
                 if key in allowed_attributes and hasattr(thermostat, key):
                     setattr(thermostat, key, value)

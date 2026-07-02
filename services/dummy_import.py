@@ -9,6 +9,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
 class DummyGPIO:
+    """Dummy GPIO class for simulating GPIO operations without hardware."""
     BCM: str = "BCM"
     OUT: str = "OUT"
     IN: str = "IN"
@@ -44,6 +45,7 @@ class DummyGPIO:
         """Dummy cleanup"""
 
 class DummyDHT:
+    """Dummy DHT class for simulating DHT sensor operations without hardware."""
 
     def __init__(self, sensor_type="DHT22"):
         logger.warning("Using DummyDHT")
@@ -51,12 +53,14 @@ class DummyDHT:
 
     @staticmethod
     def read_retry(_sensor: int, _pin: int) -> tuple[float, float]:
+        """Return mock temperature and humidity values."""
         temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
         humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
         return humidity, temp
 
     @staticmethod
     def read(_sensor: int, _pin: int) -> tuple[float, float]:
+        """Return mock temperature and humidity values."""
         temp: float = random.uniform(5.0, 30.0)  # Simulate a temperature reading
         humidity: float = random.uniform(0.0, 100.0)  # Simulate a humidity reading
         return humidity, temp
@@ -100,6 +104,7 @@ class DummyDHT:
             return DummyDHT
 
 class DummyPigpioInstance:
+    """Dummy pigpio instance for simulating pigpio operations without hardware."""
     def __init__(self) -> None:
         self.connected = True
 
@@ -113,6 +118,7 @@ class DummyPigpioInstance:
         """Dummy stop method"""
 
 class DummyPigpio:
+    """Dummy pigpio class for simulating pigpio operations without hardware."""
     @staticmethod
     def pi():
         """Return a dummy pigpio instance"""
@@ -125,6 +131,7 @@ class DummyBoard:
         """Initialize dummy board"""
 
     def __getattr__(self, name: str) -> Any:
+        """Raise an error for any attribute access on DummyBoard"""
         raise AttributeError("Using DummyBoard")
 
     @property
@@ -156,17 +163,20 @@ class DummyPixelStrip:
         self._brightness: int = brightness
 
     def begin(self) -> None:
-        pass
+        """Dummy begin method for PixelStrip"""
 
     def setPixelColor(self, n: int, color: int) -> None: # pylint: disable=invalid-name
+        """Dummy setPixelColor method for PixelStrip"""
         if 0 <= n < len(self._leds):
             self._leds[n] = color
 
     def show(self) -> None:
-        pass
+        """Dummy show method for PixelStrip"""
 
     def setBrightness(self, brightness: int) -> None: # pylint: disable=invalid-name
+        """Dummy setBrightness method for PixelStrip"""
         self._brightness = brightness
 
     def numPixels(self) -> int: # pylint: disable=invalid-name
+        """Dummy numPixels method for PixelStrip"""
         return len(self._leds)

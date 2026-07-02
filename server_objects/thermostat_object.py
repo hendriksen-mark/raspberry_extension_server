@@ -15,6 +15,7 @@ logger: logging.Logger = logManager.logger.get_logger(__name__)
 
 
 class HeatingCoolingState(TypedDict):
+    """Represents the heating/cooling state of the thermostat"""
     int: int
     str: str
 
@@ -74,7 +75,9 @@ class ThermostatObject:
         if current_hum is not None:
             self.current_relative_humidity = current_hum
 
-        logger.debug(f"Updated DHT status for {self.mac} thermostat: temp={self.current_temperature}°C, humidity={self.current_relative_humidity}%")
+        logger.debug(
+            f"Updated DHT status for {self.mac} "
+            f"thermostat: temp={self.current_temperature}°C, humidity={self.current_relative_humidity}%")
 
     def get_status(self) -> dict[str, Any]:
         """Get thermostat status for a given MAC address"""
@@ -138,15 +141,26 @@ class ThermostatObject:
             target_mode_status = self.calculate_heating_cooling_state(mode)
             current_mode_status = self.calculate_heating_cooling_state(mode, valve)
 
-            if self.target_heating_cooling_state != target_mode_status["int"] or self.current_heating_cooling_state != current_mode_status["int"]:
-                logger.info(f"Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {temp}C")
+            if self.target_heating_cooling_state != target_mode_status["int"] or \
+                self.current_heating_cooling_state != current_mode_status["int"]:
+                    logger.info(
+                        f"Status changed for {self.mac}: "
+                        f"targetMode: {target_mode_status['str']}, "
+                        f"currentMode: {current_mode_status['str']}, "
+                        f"targetTemp: {temp}C"
+                    )
 
             self.target_heating_cooling_state = target_mode_status["int"]
             self.target_temperature = temp
             self.current_heating_cooling_state = current_mode_status["int"]
             self.last_updated = strftime("%Y-%m-%d %H:%M:%S", localtime())
 
-            logger.debug(f"Polling: Status changed for {self.mac}: targetMode: {target_mode_status['str']}, currentMode: {current_mode_status['str']}, targetTemp: {self.target_temperature}C")
+            logger.debug(
+                f"Polling: Status changed for {self.mac}: "
+                f"targetMode: {target_mode_status['str']}, "
+                f"currentMode: {current_mode_status['str']}, "
+                f"targetTemp: {self.target_temperature}C"
+                )
 
         except Exception as e:
             logger.error(f"Polling failed for {self.mac}: {e}")
@@ -208,7 +222,8 @@ class ThermostatObject:
                 self.target_heating_cooling_state = 3
             else:
                 return {"result": "error", "message": "Invalid mode value"}
-            logger.info(f"Set mode for {mac} to {'off' if mode == '0' else 'heating' if mode == '1' else 'auto' if mode == '3' else 'unknown'}")
+            mode_str = 'off' if mode == '0' else 'heating' if mode == '1' else 'auto' if mode == '3' else 'unknown'
+            logger.info(f"Set mode for {mac} to {mode_str}")
             return {"result": "ok", "mode": int(mode)}
         except BleakError:
             logger.error(f"Device with address {mac} was not found")
